@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { xpRequise } from './stats'
 import { XP_BASE_NIVEAU, PIERRES } from './config'
-import { ROLES, determinerRole, passifDe, compterRoles, compositionValide, COMPOSITION_REQUISE } from './roles'
+import { ROLES, determinerRole, passifDe, passifEffectif, passifsDuRole, compterRoles, compositionValide, COMPOSITION_REQUISE, estJoker, roleEffectif, CASES_JOKER } from './roles'
 import { OBJETS } from './objets'
 
 // Affiche le sprite officiel d'un objet (fallback emoji si l'image échoue).
@@ -87,7 +87,7 @@ function BarreStat({ label, valeur, pctMax, couleur }) {
   )
 }
 
-function Fiche({ pokemon, pierres, objets = {}, onEquiperObjet, onEvoluerPierre, onRetour }) {
+function Fiche({ pokemon, pierres, objets = {}, onEquiperObjet, onEvoluerPierre, onChoisirPassif, onChoisirCaseJoker, onRetour }) {
   const [grilleOuverte, setGrilleOuverte] = useState(false)
   const iv = pokemon.iv || { pv: 0, attaque: 0, vitesse: 0 }
   const niv = pokemon.niveau || 1
@@ -98,8 +98,15 @@ function Fiche({ pokemon, pierres, objets = {}, onEquiperObjet, onEvoluerPierre,
   // Rôle + passif.
   const role = pokemon.role || determinerRole(pokemon)
   const infoRole = ROLES[role]
-  const passif = passifDe(pokemon)
   const types = pokemon.types || []
+
+  // Joker : peut choisir sa CASE (le rôle qu'il occupe en combat).
+  const joker = estJoker(pokemon)
+  const caseActuelle = roleEffectif(pokemon) // la case occupée (tank/eclaireur/soutien/dps)
+
+  // Choix de passif : les 3 passifs du rôle + celui actuellement effectif.
+  const passifsChoix = passifsDuRole(role)
+  const passifActif = passifEffectif(pokemon)
 
   const pvMax = pokemon.pvMax ?? 0
   const attaque = pokemon.attaque ?? 0
@@ -144,11 +151,53 @@ function Fiche({ pokemon, pierres, objets = {}, onEquiperObjet, onEvoluerPierre,
         </div>
       </div>
 
-      {/* Passif du Pokémon */}
-      {passif && (
-        <div className="fiche-passif">
-          <span className="fiche-passif-nom">{passif.emoji} {passif.nom}</span>
-          <span className="fiche-passif-desc">{passif.description}</span>
+      {/* Choix de la CASE du Joker (uniquement pour les Jokers) : 4 boutons de rôle */}
+      {joker && (
+        <div className="fiche-joker-case">
+          <div className="fiche-objet-titre-v2">🃏 Case du Joker (rôle joué en combat)</div>
+          <div className="joker-case-grille">
+            {CASES_JOKER.map((cle) => {
+              const info = ROLES[cle]
+              const actif = cle === caseActuelle
+              return (
+                <button
+                  key={cle}
+                  className={`joker-case-btn ${actif ? 'actif' : ''}`}
+                  onClick={() => { if (!actif && onChoisirCaseJoker) onChoisirCaseJoker(pokemon.uid, cle) }}
+                  title={`Faire jouer ce Joker comme ${info.nom}`}
+                  style={{ borderColor: actif ? info.couleur : 'transparent' }}
+                >
+                  <span className="joker-case-emoji">{info.emoji}</span>
+                  <span className="joker-case-nom">{info.nom}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Choix du passif : 3 cartes cliquables (celui actif est mis en avant) */}
+      {passifsChoix.length > 0 && (
+        <div className="fiche-passif-choix">
+          <div className="fiche-objet-titre-v2">✨ Passif {infoRole ? `— ${infoRole.nom}` : ''}</div>
+          <div className="passif-choix-grille">
+            {passifsChoix.map((p) => {
+              const actif = p.cle === passifActif
+              return (
+                <button
+                  key={p.cle}
+                  className={`passif-choix-carte ${actif ? 'actif' : ''}`}
+                  onClick={() => { if (!actif && onChoisirPassif) onChoisirPassif(pokemon.uid, p.cle) }}
+                  title={p.description}
+                  style={infoRole ? { borderColor: actif ? infoRole.couleur : 'transparent' } : undefined}
+                >
+                  <span className="passif-choix-nom">{p.emoji} {p.nom}</span>
+                  <span className="passif-choix-desc">{p.description}</span>
+                  {actif && <span className="passif-choix-actif">✓ Actif</span>}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 
@@ -263,7 +312,7 @@ function Fiche({ pokemon, pierres, objets = {}, onEquiperObjet, onEvoluerPierre,
   )
 }
 
-function Equipe({ equipe, collection, pierres = {}, objets = {}, onEquiperObjet, onEvoluerPierre, onAjouterMembre, onRetirerMembre, onAutoEquipe, onFermer }) {
+function Equipe({ equipe, collection, pierres = {}, objets = {}, onEquiperObjet, onEvoluerPierre, onChoisirPassif, onChoisirCaseJoker, onAjouterMembre, onRetirerMembre, onAutoEquipe, onFermer }) {
   const [selection, setSelection] = useState(null)
   const [ajoutEnCours, setAjoutEnCours] = useState(false)
   const [tri, setTri] = useState('numero')
@@ -397,6 +446,8 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, onEquiperObjet,
             objets={objets}
             onEquiperObjet={onEquiperObjet}
             onEvoluerPierre={onEvoluerPierre}
+            onChoisirPassif={onChoisirPassif}
+            onChoisirCaseJoker={onChoisirCaseJoker}
             onRetour={() => setSelection(null)}
           />
         </div>

@@ -8640,3 +8640,196 @@ img[src*="PokeAPI/sprites"] {
   -webkit-user-drag: none;
   user-select: none;
 }
+
+/* ========================================================== */
+/* SÉLECTEUR DE PASSIF (fiche Pokémon) — Chantier A2          */
+/* À coller à la FIN de App.css                               */
+/* ========================================================== */
+.fiche-passif-choix {
+  margin: 10px 0;
+}
+.passif-choix-grille {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-top: 6px;
+}
+.passif-choix-carte {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  position: relative;
+}
+.passif-choix-carte:hover {
+  background: rgba(255, 205, 117, 0.12);
+  transform: translateY(-1px);
+}
+.passif-choix-carte.actif {
+  background: rgba(255, 205, 117, 0.18);
+  box-shadow: 0 0 0 1px rgba(255, 205, 117, 0.5) inset;
+  cursor: default;
+}
+.passif-choix-nom {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #ffe9b0;
+}
+.passif-choix-desc {
+  font-size: 0.74rem;
+  color: #c9c9d6;
+  line-height: 1.25;
+}
+.passif-choix-actif {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.68rem;
+  color: #ffcd75;
+  font-weight: bold;
+}
+
+/* ========================================================== */
+/* SÉLECTEUR DE CASE DU JOKER (fiche Pokémon) — Chantier B2   */
+/* À coller à la FIN de App.css                               */
+/* ========================================================== */
+.fiche-joker-case {
+  margin: 10px 0;
+}
+.joker-case-grille {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+.joker-case-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.joker-case-btn:hover {
+  background: rgba(217, 134, 255, 0.15);
+  transform: translateY(-1px);
+}
+.joker-case-btn.actif {
+  background: rgba(217, 134, 255, 0.22);
+  box-shadow: 0 0 0 1px rgba(217, 134, 255, 0.5) inset;
+  cursor: default;
+}
+.joker-case-emoji {
+  font-size: 1.2rem;
+}
+.joker-case-nom {
+  font-size: 0.7rem;
+  color: #e8d8f5;
+  font-weight: bold;
+}
+
+/* ========================================================== */
+/* SÉLECTEUR DE PASSIF (fiche Pokémon) — Chantier A2          */
+/* ========================================================== */
+.fiche-passif-choix {
+  margin: 10px 0;
+}
+.passif-choix-grille {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-top: 6px;
+}
+.passif-choix-carte {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  position: relative;
+}
+.passif-choix-carte:hover {
+  background: rgba(255, 205, 117, 0.12);
+  transform: translateY(-1px);
+}
+.passif-choix-carte.actif {
+  background: rgba(255, 205, 117, 0.18);
+  box-shadow: 0 0 0 1px rgba(255, 205, 117, 0.5) inset;
+  cursor: default;
+}
+.passif-choix-nom {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #ffe9b0;
+}
+.passif-choix-desc {
+  font-size: 0.74rem;
+  color: #c9c9d6;
+  line-height: 1.25;
+}
+.passif-choix-actif {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.68rem;
+  color: #ffcd75;
+  font-weight: bold;
+}
+/* ========================================================== */
+/* SÉLECTEUR DE CASE DU JOKER (fiche Pokémon) — Chantier B2   */
+/* ========================================================== */
+.fiche-joker-case {
+  margin: 10px 0;
+}
+.joker-case-grille {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+.joker-case-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.joker-case-btn:hover {
+  background: rgba(217, 134, 255, 0.15);
+  transform: translateY(-1px);
+}
+.joker-case-btn.actif {
+  background: rgba(217, 134, 255, 0.22);
+  box-shadow: 0 0 0 1px rgba(217, 134, 255, 0.5) inset;
+  cursor: default;
+}
+.joker-case-emoji {
+  font-size: 1.2rem;
+}
+.joker-case-nom {
+  font-size: 0.7rem;
+  color: #e8d8f5;
+  font-weight: bold;
+}

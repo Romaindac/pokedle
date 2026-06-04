@@ -1,4 +1,4 @@
-// Moteur de combat ATB avec efficacité des types + rôles + PASSIFS (12 passifs).
+// Moteur de combat ATB avec efficacité des types + rôles + PASSIFS (12 passifs + Joker).
 
 import { DIVISEUR_DEGATS_JOUEUR, DIVISEUR_DEGATS_ENNEMI, VITESSE_JAUGE } from './config'
 import { multiplicateurType } from './types'
@@ -50,10 +50,11 @@ function alliesKO(equipe, pvs) {
 }
 
 // Calcule les dégâts d'un attaquant sur un défenseur.
-// Prend en compte : type, défense, passif de l'attaquant (dégâts, exécution, berserk),
-// boost de dégâts d'équipe (tacticien), et réduction d'équipe côté défenseur (carapace).
+// Prend en compte : type, défense, passif de l'attaquant (dégâts, exécution, berserk,
+// coup critique du Joker), boost de dégâts d'équipe (tacticien/meneur),
+// et réduction d'équipe côté défenseur (carapace).
 function calculerDegats(attaquant, defenseur, diviseur, ctx) {
-  if (!attaquant || !defenseur) return { degats: 0, multiplicateur: 1 }
+  if (!attaquant || !defenseur) return { degats: 0, multiplicateur: 1, critique: false }
   const typeAtt = attaquant.types ? attaquant.types[0] : null
   const mult = multiplicateurType(typeAtt, defenseur.types || [])
   const passif = passifEffet(attaquant)
@@ -63,7 +64,7 @@ function calculerDegats(attaquant, defenseur, diviseur, ctx) {
 
   // Multiplicateur de dégâts du passif attaquant.
   let degatsMult = passif.degatsMult || 1
-  // Tacticien : boost de dégâts de toute l'équipe de l'attaquant.
+  // Tacticien / Meneur : boost de dégâts de toute l'équipe de l'attaquant.
   degatsMult *= (1 + (ctx?.boostDegatsAllie || 0))
   // Berserk : +x% par allié KO.
   if (passif.degatsParAllieKO) degatsMult *= (1 + passif.degatsParAllieKO * (ctx?.alliesKO || 0))
@@ -72,11 +73,18 @@ function calculerDegats(attaquant, defenseur, diviseur, ctx) {
     if (ctx.pvCible / defenseur.pvMax < 0.30) degatsMult *= (1 + passif.bonusExecution)
   }
 
+  // Coup de chance (Joker) : chance d'infliger un coup critique (×critMult).
+  let critique = false
+  if (passif.critChance && Math.random() < passif.critChance) {
+    critique = true
+    degatsMult *= (passif.critMult || 2)
+  }
+
   // Réduction de dégâts d'équipe côté défenseur (Carapace).
   const reducEquipe = 1 - (ctx?.reducDegatsDef || 0)
 
   const degats = Math.max(1, Math.round(base * mult * reducDefense * degatsMult * reducEquipe))
-  return { degats, multiplicateur: mult }
+  return { degats, multiplicateur: mult, critique }
 }
 
 // Régénération (Guérisseur) : soigne toute l'équipe d'un % de PV max.
@@ -124,10 +132,11 @@ export function ticCombat(equipeJ, pvJ, jaugeJ, equipeE, pvE, jaugeE) {
       const cible = choisirCible(equipeE, nPvE)
       if (cible !== -1) {
         const ctx = { boostDegatsAllie: boostDegatsJ, alliesKO: koJ, pvCible: nPvE[cible], reducDegatsDef: reducDegatsE }
-        const { degats, multiplicateur } = calculerDegats(equipeJ[i], equipeE[cible], DIVISEUR_DEGATS_JOUEUR, ctx)
+        const { degats, multiplicateur, critique } = calculerDegats(equipeJ[i], equipeE[cible], DIVISEUR_DEGATS_JOUEUR, ctx)
         const avant = nPvE[cible]
         nPvE[cible] = Math.max(0, nPvE[cible] - degats)
         if (multiplicateur >= 2) evenements.push({ nom: equipeJ[i].nom, multiplicateur, camp: 'joueur' })
+        if (critique) evenements.push({ nom: equipeJ[i].nom, critique: true, camp: 'joueur' })
         // Renvoi de dégâts (Provocateur côté ennemi qui encaisse).
         const passifCible = passifEffet(equipeE[cible])
         if (passifCible.renvoiDegats && nPvJ[i] > 0) {

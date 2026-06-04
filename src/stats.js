@@ -26,6 +26,7 @@ export function xpRequise(niveau, xpBase) {
 
 // Calcule les stats finales : (base + IV) × multiplicateur de niveau, + bonus de PASSIF + objet.
 // Le PV perso du passif (Colosse +40%, Carapace +25%, etc.) est appliqué ici.
+// La DÉFENSE peut aussi être boostée par un passif (Caméléon du Joker : defMult).
 // Les bonus d'ÉQUIPE (Gardien +20% PV équipe) sont appliqués ailleurs (construction de l'équipe).
 export function statsFinales(pokemon, bonusNiveau = 0.08) {
   const iv = pokemon.iv || { pv: 0, attaque: 0, vitesse: 0 }
@@ -41,7 +42,7 @@ export function statsFinales(pokemon, bonusNiveau = 0.08) {
     pvMax: Math.round((pokemon.pvBase + iv.pv) * mult * (passif.pvMult || 1) * obj.pv),
     attaque: Math.round((pokemon.attaqueBase + iv.attaque) * mult * obj.attaque),
     vitesse: Math.round((pokemon.vitesseBase + iv.vitesse) * mult * obj.vitesse),
-    defense: Math.round(defBase * mult * obj.defense),
+    defense: Math.round(defBase * mult * (passif.defMult || 1) * obj.defense),
     role,
   }
 }
