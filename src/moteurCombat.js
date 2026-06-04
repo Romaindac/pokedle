@@ -144,7 +144,12 @@ export function appliquerUltime(idx, ultime, equipeJ, pvJ, jaugeJ, equipeE, pvE,
       const mult = nombreSur(ultime.multiplicateur, 4, 1)
       const defCible = nombreSur(equipeE[cible].defense, 50, 0)
       const reduc = 100 / (100 + defCible)
-      const degats = Math.max(1, Math.round(att * mult * reduc))
+      let degats = Math.max(1, Math.round(att * mult * reduc))
+      // PLAFOND ANTI-ONE-SHOT : la Déflagration ne peut pas faire plus de 40% des PV
+      // max de la cible. Sans ça, un Pokémon très boosté (attaque énorme) tuait
+      // n'importe qui en un seul ultime. Il faut ~3 ultimes pour tuer une cible pleine.
+      const plafond = Math.round(nombreSur(equipeE[cible].pvMax, 0, 0) * 0.40)
+      if (plafond > 0 && degats > plafond) degats = plafond
       pvE[cible] = Math.max(0, pvE[cible] - degats)
       coups.push({ montant: degats, cible, camp: campAdverse, type: 'crit' }) // gros chiffre jaune
     }
