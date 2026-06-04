@@ -8833,3 +8833,317 @@ img[src*="PokeAPI/sprites"] {
   color: #e8d8f5;
   font-weight: bold;
 }
+
+/* ========================================================== */
+/* SUCCÈS : familles + barres de progression (QOL)            */
+/* ========================================================== */
+.succes-famille {
+  margin-bottom: 16px;
+}
+.succes-famille-titre {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  color: #ffcd75;
+  font-size: 0.95rem;
+  padding: 4px 2px;
+  border-bottom: 2px solid rgba(255, 205, 117, 0.3);
+  margin-bottom: 8px;
+}
+.succes-famille-compte {
+  font-size: 0.8rem;
+  color: #c9c9d6;
+}
+.succes-barre {
+  position: relative;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 5px;
+}
+.succes-barre-remplissage {
+  height: 100%;
+  background: linear-gradient(90deg, #6aa84f, #93d36e);
+  border-radius: 8px;
+  transition: width 0.4s ease;
+}
+.succes-item.obtenu .succes-barre-remplissage {
+  background: linear-gradient(90deg, #d4a017, #ffcd75);
+}
+.succes-barre-texte {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  font-weight: bold;
+}
+.succes-recompense {
+  font-size: 0.72rem;
+  color: #ffcd75;
+  text-align: right;
+  max-width: 110px;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+.succes-item.obtenu .succes-recompense {
+  color: #93d36e;
+  font-size: 1.1rem;
+}
+
+/* ========================================================== */
+/* JAUGE QUALITÉ IV (fiche Pokémon) — style + animation       */
+/* ========================================================== */
+.fiche-iv-qualite {
+  margin: 10px 0;
+}
+.fiche-iv-qualite-haut {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.fiche-iv-qualite-label {
+  font-size: 0.8rem;
+  color: #c9c9d6;
+  font-weight: bold;
+}
+.fiche-iv-qualite-valeur {
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+.fiche-iv-qualite-barre {
+  position: relative;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.fiche-iv-qualite-fill {
+  height: 100%;
+  border-radius: 7px;
+  transform-origin: left center;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation:
+    iv-remplir 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    iv-brillance 1.8s ease-in-out 0.7s infinite;
+}
+@keyframes iv-remplir {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes iv-brillance {
+  0%   { background-position: 200% 0; }
+  60%  { background-position: -100% 0; }
+  100% { background-position: -100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fiche-iv-qualite-fill {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ========================================================== */
+/* JAUGE QUALITÉ IV (fiche Pokémon) — style + animation       */
+/* ========================================================== */
+.fiche-iv-qualite {
+  margin: 10px 0;
+}
+.fiche-iv-qualite-haut {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.fiche-iv-qualite-label {
+  font-size: 0.8rem;
+  color: #c9c9d6;
+  font-weight: bold;
+}
+.fiche-iv-qualite-valeur {
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+.fiche-iv-qualite-barre {
+  position: relative;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.fiche-iv-qualite-fill {
+  position: relative;
+  height: 100%;
+  border-radius: 7px;
+  transform-origin: left center;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: iv-remplir 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+.fiche-iv-qualite-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: iv-brillance 1.8s ease-in-out 0.7s infinite;
+}
+@keyframes iv-remplir {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes iv-brillance {
+  0%   { background-position: 200% 0; }
+  60%  { background-position: -100% 0; }
+  100% { background-position: -100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fiche-iv-qualite-fill { animation: none; transition: none; }
+  .fiche-iv-qualite-fill::after { animation: none; }
+}
+/* ========================================================== */
+/* RAIDS — indicateur de vagues, messages, cooldown           */
+/* À coller à la FIN de App.css                               */
+/* ========================================================== */
+
+/* Indicateur des 3 vagues en haut du combat de raid */
+.raid-vagues-indic {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+.raid-vague-pastille {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid #3a3a55;
+  color: #c9c9d6;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+.raid-vague-pastille.faite {
+  border-color: #6aa84f;
+  color: #93d36e;
+  opacity: 0.7;
+}
+.raid-vague-pastille.active {
+  border-color: #ffcd75;
+  color: #ffcd75;
+  box-shadow: 0 0 8px rgba(255, 205, 117, 0.5);
+  transform: scale(1.1);
+}
+
+/* Message d'annonce de vague (apparition) */
+.raid-message-vague {
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #ffcd75;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  margin: 8px 0;
+  animation: raid-msg-pop 0.4s ease;
+}
+@keyframes raid-msg-pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* Cooldown affiché sur une carte de raid */
+.raid-cooldown {
+  color: #ffb84d;
+  font-weight: bold;
+  font-size: 0.8rem;
+  margin-top: 3px;
+}
+
+/* Sprite du boss dans la carte de raid (un peu plus gros) */
+.raid-boss-sprite {
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+.raid-carte.etat-cooldown { opacity: 0.8; }
+.raid-carte.etat-verrouille { opacity: 0.55; }
+
+/* ---- Filets de secours : si jamais les classes combat-arene-* ----
+   ---- n'existent pas déjà dans ton App.css, voici un style de base. */
+.combat-arene-ecran {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 12px;
+}
+.combat-arene-titre {
+  text-align: center;
+  color: #ffcd75;
+  margin: 10px 0 6px;
+}
+.combat-arene-rangee {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.combat-arene-vs {
+  text-align: center;
+  font-size: 1.8rem;
+  margin: 12px 0;
+}
+.combat-arene-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  animation: raid-msg-pop 0.3s ease;
+}
+.combat-arene-overlay-contenu {
+  text-align: center;
+  padding: 30px 40px;
+  border-radius: 14px;
+  background: #1c1e33;
+  border: 3px solid #ffcd75;
+}
+.combat-arene-overlay-titre {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #ffcd75;
+}
+.combat-arene-overlay-sous {
+  margin-top: 10px;
+  color: #c9c9d6;
+}

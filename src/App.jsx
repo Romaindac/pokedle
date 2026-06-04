@@ -13,6 +13,9 @@ import ReglesCapture from './ReglesCapture'
 import PanneauPrestige from './PanneauPrestige'
 import PanneauArene from './PanneauArene'
 import CombatArene from './CombatArene'
+import PanneauRaids from './PanneauRaids'
+import CombatRaid from './CombatRaid'
+import { RAIDS, raidParId, etatRaid, tempsRestantRaid, COOLDOWN_RAID_MS, FORCE_BOSS_RAID_PV, FORCE_BOSS_RAID_ATK } from './raids'
 import PanneauPvp from './PanneauPvp'
 import CombatPvp from './CombatPvp'
 import Tutoriel from './Tutoriel'
@@ -259,6 +262,50 @@ async function chargerEquipeDresseur(dresseur) {
   })
 }
 
+// Charge les 3 vagues d'un raid. Renvoie un tableau de 3 tableaux de Pokémon prêts au combat.
+// Vague 1 = 6 petits, vague 2 = 2 mini-boss, vague 3 = [gros boss renforcé].
+async function chargerEquipeRaid(raid) {
+  const vagues = await Promise.all(
+    raid.vagues.map(async (noms, indexVague) => {
+      const estVagueBoss = indexVague === raid.vagues.length - 1
+      const equipe = await Promise.all(
+        noms.map(async (nom) => {
+          try {
+            return await chargerPokemon(nom, false)
+          } catch (err) {
+            console.warn(`Échec chargement raid "${nom}", remplacé par magikarp.`, err)
+            return await chargerPokemon('magikarp', false)
+          }
+        })
+      )
+      return equipe.map((p, i) => {
+        // Mini-boss (vague 2) : +8 niveaux. Gros boss (vague 3) : +20 niveaux + renforcé.
+        let niveau = raid.niveau
+        if (indexVague === 1) niveau = raid.niveau + 8
+        if (estVagueBoss) niveau = raid.niveau + 20
+        niveau = Math.max(1, niveau + Math.floor(Math.random() * 5) - 2)
+        const avecNiveau = {
+          ...p, niveau,
+          rarete: estVagueBoss ? 'legendaire' : (indexVague === 1 ? 'tresRare' : 'commun'),
+          shiny: false, sprite: p.spriteNormal,
+          estBoss: estVagueBoss,
+        }
+        const finales = statsFinales(avecNiveau, BONUS_STAT_NIVEAU)
+        if (estVagueBoss) {
+          // Le gros boss : très tanky (PV ×5) mais attaque modérée (×3) → pas de one-shot.
+          return {
+            ...avecNiveau, ...finales,
+            pvMax: Math.max(1, Math.round(finales.pvMax * FORCE_BOSS_RAID_PV)),
+            attaque: Math.max(1, Math.round(finales.attaque * FORCE_BOSS_RAID_ATK)),
+          }
+        }
+        return { ...avecNiveau, ...finales }
+      })
+    })
+  )
+  return vagues
+}
+
 async function chargerBoss(route) {
   const nomBoss = bossDeLaRoute(route)
   if (!nomBoss) return null
@@ -343,6 +390,15 @@ function App() {
   // Équipe du dresseur chargée (Pokémon prêts au combat) + état de chargement.
   const [equipeDresseur, setEquipeDresseur] = useState(null)
   const [chargementArene, setChargementArene] = useState(false)
+  // ===== RAIDS (endgame) =====
+  // Équipe dédiée aux raids (uid), séparée des autres modes.
+  const [equipeRaidIds, setEquipeRaidIds] = useState([])
+  // Cooldowns par raid : { [raidId]: timestamp de prochaine dispo }.
+  const [raidsCooldowns, setRaidsCooldowns] = useState({})
+  // Raid actuellement sélectionné / en cours + ses 3 vagues chargées.
+  const [raidActif, setRaidActif] = useState(null)
+  const [vaguesRaid, setVaguesRaid] = useState(null)  // [[pkm...], [pkm...], [pkm boss]]
+  const [chargementRaid, setChargementRaid] = useState(false)
   const [partieChargee, setPartieChargee] = useState(false)
   // Règles de capture : pour chaque catégorie, quelle ball utiliser.
   // Valeurs possibles : 'auto' | 'poke' | 'super' | 'hyper' | 'master' | 'rien'
@@ -1076,6 +1132,8 @@ function App() {
           if (typeof data.medailles === 'number') setMedailles(data.medailles)
           if (data.investisPrestige) setInvestisPrestige(data.investisPrestige)
           if (data.equipeAreneIds) setEquipeAreneIds(data.equipeAreneIds)
+          if (data.raidsCooldowns) setRaidsCooldowns(data.raidsCooldowns)
+          if (data.equipeRaidIds) setEquipeRaidIds(data.equipeRaidIds)
           if (data.equipeDefenseIds) setEquipeDefenseIds(data.equipeDefenseIds)
           if (data.equipeAttaqueIds) setEquipeAttaqueIds(data.equipeAttaqueIds)
           if (data.tutoVu) setTutoVu(true)
@@ -1126,9 +1184,9 @@ function App() {
 
   useEffect(() => {
     if (!partieChargee || captures.length === 0) return
-    const data = { captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu }
+    const data = { captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
     localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify(data))
-  }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu])
+  }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds])
 
   // --- Envoi du score au classement en ligne ---
   // Calcule les stats du joueur pour le classement.
@@ -1196,6 +1254,7 @@ function App() {
     const horloge = setInterval(() => {
       if (transitionEnCours.current) return
       if (modeJeuRef.current === 'arene') return // combat principal en pause pendant l'arène
+      if (modeJeuRef.current === 'raid') return // combat principal en pause pendant un raid
       // On reconstruit les équipes depuis les refs (stables) à chaque tic.
       const bonusPuissance = multiplicateur(ameliorationsRef.current, 'puissance') // +2%/niveau PV & ATT
       let equipeJoueur = equipeIdsRef.current
@@ -1844,6 +1903,140 @@ function App() {
     )
   }
 
+  // ===== ÉCRAN MODE RAID (endgame, remplace l'écran principal) =====
+  if (modeJeu === 'raid') {
+    const nbZonesRaid = ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length
+    const equipeRaid = equipeRaidIds.map((uid) => captures.find((p) => p.uid === uid)).filter(Boolean)
+    const equipeRaidValide = compositionValide(equipeRaid)
+    const equipeRaidDiagnostic = diagnostiqueComposition(equipeRaid)
+
+    function basculerMembreRaid(uid) {
+      setEquipeRaidIds((ids) => {
+        if (ids.includes(uid)) return ids.filter((x) => x !== uid)
+        if (ids.length >= 6) return ids
+        return trierIdsParRole([...ids, uid], captures)
+      })
+    }
+
+    // Lance un raid : vérifie compo + cooldown, charge les 3 vagues, bascule en combat.
+    async function lancerRaid(raid) {
+      if (!compositionValide(equipeRaid)) {
+        alert('Ton équipe de raid doit être composée de 1 Tank, 1 Éclaireur, 2 Soutien et 2 DPS.')
+        return
+      }
+      if (tempsRestantRaid(raid, raidsCooldowns) > 0) {
+        alert('Ce raid est encore en récupération. Reviens quand le minuteur est écoulé.')
+        return
+      }
+      setChargementRaid(true)
+      setRaidActif(raid)
+      try {
+        const vagues = await chargerEquipeRaid(raid)
+        setVaguesRaid(vagues)
+      } catch (err) {
+        console.warn('Échec chargement raid', err)
+        setRaidActif(null)
+      }
+      setChargementRaid(false)
+    }
+
+    // Fin du raid : victoire → tente la capture du boss + récompenses + lance le cooldown.
+    async function terminerRaid(resultat) {
+      if (resultat === 'victoire' && raidActif) {
+        const r = raidActif.recompense || {}
+        if (r.argent) setPokeDollars((a) => a + r.argent)
+        if (r.bonbons) setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + r.bonbons }))
+        ajouterAuJournal(`🏆 Raid « ${raidActif.nom} » réussi ! +${r.argent || 0} 💰`, 'victoire')
+
+        // Tentative de capture du gros boss (au taux du raid, faut une ball).
+        const boss = raidActif.boss
+        const dejaPossede = pokedexSpeciaux.includes(boss.id)
+        // Choisit la meilleure ball dispo (master > hyper > super > poke).
+        const ordreBall = ['master', 'hyper', 'super', 'poke']
+        const ballDispo = ordreBall.find((b) => (balls[b] || 0) > 0)
+        if (!ballDispo) {
+          ajouterAuJournal(`💥 ${boss.nomFr} s'est enfui : aucune Ball pour le capturer !`, 'echec')
+        } else {
+          // Consomme la ball.
+          setBalls((bb) => ({ ...bb, [ballDispo]: (bb[ballDispo] || 0) - 1 }))
+          const multiBall = BALLS[ballDispo] ? BALLS[ballDispo].multi : 1
+          const taux = multiBall === Infinity ? 1 : Math.min(1, raidActif.tauxCaptureBoss * multiBall)
+          if (Math.random() < taux) {
+            try {
+              const pkmn = await chargerPokemon(boss.nom, false)
+              const avecNiv = { ...pkmn, niveau: raidActif.niveau, xp: 0, rarete: 'special', estSpecial: true }
+              const finales = statsFinales(avecNiv, BONUS_STAT_NIVEAU)
+              const nouveau = { ...avecNiv, ...finales, uid: `special-${boss.id}-${Date.now()}` }
+              setCaptures((c) => [...c, nouveau])
+              if (!dejaPossede) setPokedexSpeciaux((s) => s.includes(boss.id) ? s : [...s, boss.id])
+              ajouterAuJournal(`🌟 CAPTURE ! ${boss.nomFr} (niv ${raidActif.niveau}) rejoint ta collection !`, 'capture')
+            } catch (err) {
+              console.warn('Échec chargement boss raid', boss.nom, err)
+            }
+          } else {
+            ajouterAuJournal(`💢 ${boss.nomFr} s'est libéré de la ${BALLS[ballDispo].nom} ! Reviens après le cooldown.`, 'echec')
+          }
+        }
+
+        // Lance le cooldown de CE raid (1h).
+        setRaidsCooldowns((cd) => ({ ...cd, [raidActif.id]: Date.now() + raidActif.cooldownMs }))
+      } else if (resultat === 'defaite' && raidActif) {
+        ajouterAuJournal(`💀 Raid « ${raidActif.nom} » échoué. Pas de cooldown, réessaie !`, 'echec')
+      }
+      setRaidActif(null)
+      setVaguesRaid(null)
+    }
+
+    // Combat en cours.
+    if (raidActif && vaguesRaid && equipeRaid.length > 0) {
+      return (
+        <>
+          <CombatRaid
+            raid={raidActif}
+            equipeJoueur={equipeRaid}
+            vagues={vaguesRaid}
+            vitesse={vitesse}
+            onTermine={terminerRaid}
+            onQuitter={() => { setRaidActif(null); setVaguesRaid(null) }}
+          />
+          {renduTutoriel}
+        </>
+      )
+    }
+
+    if (chargementRaid) {
+      return (
+        <div className="app app-layout">
+          <header className="topbar">
+            <div className="topbar-titre">⚔️ Raid</div>
+          </header>
+          <div className="arene-ecran">
+            <p className="arene-intro">Préparation du raid... ⏳</p>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <>
+        <PanneauRaids
+          raids={RAIDS}
+          nbZones={nbZonesRaid}
+          cooldowns={raidsCooldowns}
+          equipeRaid={equipeRaid}
+          equipeRaidIds={equipeRaidIds}
+          captures={captures}
+          onBasculerMembre={basculerMembreRaid}
+          onLancer={lancerRaid}
+          compoValide={equipeRaidValide}
+          compoDiagnostic={equipeRaidDiagnostic}
+          onRetour={() => setModeJeu('principal')}
+        />
+        {renduTutoriel}
+      </>
+    )
+  }
+
   // ===== ÉCRAN MODE ARÈNE (remplace l'écran principal) =====
   if (modeJeu === 'arene') {
     const nbZonesArene = ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length
@@ -2017,6 +2210,10 @@ function App() {
           <button className="hud-icone hud-icone-relative" onClick={() => setModeJeu('arene')} title="Mode Arène">
             <span className="hud-emoji-icone">⚔️</span>
             <span className="hud-label">Arène</span>
+          </button>
+          <button className="hud-icone hud-icone-relative" onClick={() => setModeJeu('raid')} title="Raids (endgame)">
+            <span className="hud-emoji-icone">🔥</span>
+            <span className="hud-label">Raids</span>
           </button>
           <button className="hud-icone hud-icone-relative" data-tuto="pvp" onClick={() => setModeJeu('pvp')} title="Arène PvP en ligne">
             <span className="hud-emoji-icone">🥊</span>
