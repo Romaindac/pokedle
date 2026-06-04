@@ -9147,3 +9147,121 @@ img[src*="PokeAPI/sprites"] {
   margin-top: 10px;
   color: #c9c9d6;
 }
+/* ========================================================== */
+/* PARCHEMINS DE RÔLE (fiche Pokémon) — bouton Changer le rôle */
+/* À coller à la FIN de App.css                               */
+/* ========================================================== */
+.fiche-parchemins {
+  margin: 10px 0;
+}
+.fiche-parchemins-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+.fiche-parchemin-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid #888;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.fiche-parchemin-btn:hover:not(:disabled) {
+  background: rgba(255, 205, 117, 0.15);
+  transform: translateY(-1px);
+}
+.fiche-parchemin-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.fiche-parchemin-emoji { font-size: 1.2rem; }
+.fiche-parchemin-nom {
+  font-size: 0.72rem;
+  color: #e8e8f0;
+  font-weight: bold;
+}
+.fiche-parchemin-stock {
+  font-size: 0.66rem;
+  color: #ffcd75;
+}
+/* ========================================================== */
+/* PARCHEMINS DE RÔLE (fiche Pokémon) — bouton Changer le rôle */
+/* À coller à la FIN de App.css                               */
+/* ========================================================== */
+.fiche-parchemins {
+  margin: 10px 0;
+}
+.fiche-parchemins-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+.fiche-parchemin-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid #888;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.fiche-parchemin-btn:hover:not(:disabled) {
+  background: rgba(255, 205, 117, 0.15);
+  transform: translateY(-1px);
+}
+.fiche-parchemin-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.fiche-parchemin-emoji { font-size: 1.2rem; }
+.fiche-parchemin-nom {
+  font-size: 0.72rem;
+  color: #e8e8f0;
+  font-weight: bold;
+}
+.fiche-parchemin-stock {
+  font-size: 0.66rem;
+  color: #ffcd75;
+}
+/* ========================================================== */
+/* FIX débordement onglet Parchemins (boutique)               */
+/* ========================================================== */
+.boutique-grille {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.boutique-item {
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.boutique-item-info {
+  min-width: 0;
+}
+.boutique-item-texte {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.boutique-item-nom,
+.boutique-item-stock {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.boutique-item-prix {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.boutique-item-boutons {
+  flex-wrap: wrap;
+}

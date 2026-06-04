@@ -3,6 +3,7 @@ import { xpRequise } from './stats'
 import { XP_BASE_NIVEAU, PIERRES } from './config'
 import { ROLES, determinerRole, passifDe, passifEffectif, passifsDuRole, compterRoles, compositionValide, COMPOSITION_REQUISE, estJoker, roleEffectif, CASES_JOKER } from './roles'
 import { OBJETS } from './objets'
+import { PARCHEMINS } from './parchemins'
 
 // Affiche le sprite officiel d'un objet (fallback emoji si l'image échoue).
 function IconeObjet({ id, classe = 'icone-objet' }) {
@@ -87,7 +88,7 @@ function BarreStat({ label, valeur, pctMax, couleur }) {
   )
 }
 
-function Fiche({ pokemon, pierres, objets = {}, onEquiperObjet, onEvoluerPierre, onChoisirPassif, onChoisirCaseJoker, onRetour }) {
+function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet, onEvoluerPierre, onChoisirPassif, onChoisirCaseJoker, onAppliquerParchemin, onRetour }) {
   const [grilleOuverte, setGrilleOuverte] = useState(false)
   const iv = pokemon.iv || { pv: 0, attaque: 0, vitesse: 0 }
   const niv = pokemon.niveau || 1
@@ -150,6 +151,37 @@ function Fiche({ pokemon, pierres, objets = {}, onEquiperObjet, onEvoluerPierre,
           )}
         </div>
       </div>
+
+      {/* Changer le rôle via un PARCHEMIN (objet endgame). N'affiche que les parchemins possédés. */}
+      {(() => {
+        const possedes = Object.entries(PARCHEMINS).filter(([cle]) => (parchemins[cle] || 0) > 0)
+        if (possedes.length === 0) return null
+        const roleActuel = pokemon.roleForce || pokemon.role
+        return (
+          <div className="fiche-parchemins">
+            <div className="fiche-objet-titre-v2">📜 Changer le rôle (parchemin)</div>
+            <div className="fiche-parchemins-grille">
+              {possedes.map(([cle, info]) => {
+                const dejaCeRole = roleActuel === info.role
+                return (
+                  <button
+                    key={cle}
+                    className="fiche-parchemin-btn"
+                    disabled={dejaCeRole}
+                    title={dejaCeRole ? `Déjà ${ROLES[info.role]?.nom}` : info.description}
+                    onClick={() => { if (onAppliquerParchemin) onAppliquerParchemin(pokemon.uid, cle) }}
+                    style={{ borderColor: ROLES[info.role]?.couleur || '#888' }}
+                  >
+                    <span className="fiche-parchemin-emoji">{info.emoji}</span>
+                    <span className="fiche-parchemin-nom">{ROLES[info.role]?.nom || info.role}</span>
+                    <span className="fiche-parchemin-stock">×{parchemins[cle]}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Choix de la CASE du Joker (uniquement pour les Jokers) : 4 boutons de rôle */}
       {joker && (
@@ -312,7 +344,7 @@ function Fiche({ pokemon, pierres, objets = {}, onEquiperObjet, onEvoluerPierre,
   )
 }
 
-function Equipe({ equipe, collection, pierres = {}, objets = {}, onEquiperObjet, onEvoluerPierre, onChoisirPassif, onChoisirCaseJoker, onAjouterMembre, onRetirerMembre, onAutoEquipe, onFermer }) {
+function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}, onEquiperObjet, onEvoluerPierre, onChoisirPassif, onChoisirCaseJoker, onAppliquerParchemin, onAjouterMembre, onRetirerMembre, onAutoEquipe, onFermer }) {
   const [selection, setSelection] = useState(null)
   const [ajoutEnCours, setAjoutEnCours] = useState(false)
   const [tri, setTri] = useState('numero')
@@ -444,10 +476,12 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, onEquiperObjet,
             pokemon={pokemonAJour}
             pierres={pierres}
             objets={objets}
+            parchemins={parchemins}
             onEquiperObjet={onEquiperObjet}
             onEvoluerPierre={onEvoluerPierre}
             onChoisirPassif={onChoisirPassif}
             onChoisirCaseJoker={onChoisirCaseJoker}
+            onAppliquerParchemin={onAppliquerParchemin}
             onRetour={() => setSelection(null)}
           />
         </div>

@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import { VITESSE_COMBAT, PAUSE_RESPAWN, GAIN_PAR_VICTOIRE, GAIN_BASE_ENNEMI, BONUS_STAT_NIVEAU, XP_BASE_NIVEAU, XP_BASE_ENNEMI, TAUX_CAPTURE_RARETE, BALLS, BALL_AUTO_PAR_RARETE, TAUX_SHINY, PIERRES, BONBONS, prixDynamique, multiplicateurSurclassement } from './config'
 import { ticCombat } from './moteurCombat'
-import { genererIV, statsFinales, fusionnerIV, ajouterXP } from './stats'
+import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise } from './stats'
 import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
-import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole } from './roles'
+import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole } from './roles'
 import CartePokemon from './CartePokemon'
 import TimerAnneau from './TimerAnneau'
 import Pokedex from './Pokedex'
@@ -15,7 +15,8 @@ import PanneauArene from './PanneauArene'
 import CombatArene from './CombatArene'
 import PanneauRaids from './PanneauRaids'
 import CombatRaid from './CombatRaid'
-import { RAIDS, raidParId, etatRaid, tempsRestantRaid, COOLDOWN_RAID_MS, FORCE_BOSS_RAID_PV, FORCE_BOSS_RAID_ATK } from './raids'
+import { RAIDS, raidParId, etatRaid, tempsRestantRaid, COOLDOWN_RAID_MS, FORCE_BOSS_RAID_PV, FORCE_BOSS_RAID_ATK, TAUX_CAPTURE_BOSS_RAID } from './raids'
+import { PARCHEMINS, roleDuParchemin } from './parchemins'
 import PanneauPvp from './PanneauPvp'
 import CombatPvp from './CombatPvp'
 import Tutoriel from './Tutoriel'
@@ -355,6 +356,8 @@ function App() {
   const [bonbons, setBonbons] = useState({})
   // Inventaire d'objets équipables (stock par id, comme les pierres).
   const [objets, setObjets] = useState({})
+  // Stock de parchemins de rôle (endgame) : { [cleParchemin]: quantité }.
+  const [parchemins, setParchemins] = useState({})
   // Compteur d'achats par item (pour le prix dynamique des pierres/objets).
   const [achatsItems, setAchatsItems] = useState({})
   const [recompensesReclamees, setRecompensesReclamees] = useState([])
@@ -1043,18 +1046,28 @@ function App() {
       capturesRef.current = majListe
       setCaptures(majListe)
     } else {
-      // --- Doublon : on améliore les IV si meilleurs ---
-      const nouveauxIV = fusionnerIV(existantActuel.iv, ennemi.iv)
-      const ameliore = JSON.stringify(nouveauxIV) !== JSON.stringify(existantActuel.iv)
-      ajouterAuJournal(
-        ameliore ? `${ennemi.nom} : IV améliorés ! ✨` : `${ennemi.nom} capturé (pas mieux).`,
-        'capture'
-      )
+      // --- Doublon : on améliore les IV de TOUTE LA FAMILLE si meilleurs ---
+      // On ne capture que des Pokémon de base, mais leurs évolutions (Reptincel, Dracaufeu…)
+      // appartiennent à la même famille (familleId). Un doublon de Salamèche doit donc
+      // aussi améliorer les IV de Reptincel/Dracaufeu. On cible par familleId (fallback id),
+      // et seulement les exemplaires du même statut shiny (normal/shiny restent séparés).
+      const familleCible = ennemi.familleId ?? null
+      const memeFamille = (p) =>
+        (familleCible != null ? p.familleId === familleCible : p.id === ennemi.id) &&
+        (p.shiny === ennemi.shiny)
+
+      let auMoinsUnAmeliore = false
       const majListe = capturesRef.current.map((p) => {
-        if (p.id !== ennemi.id) return p
+        if (!memeFamille(p)) return p
+        const nouveauxIV = fusionnerIV(p.iv, ennemi.iv)
+        if (JSON.stringify(nouveauxIV) !== JSON.stringify(p.iv)) auMoinsUnAmeliore = true
         const maj = { ...p, iv: nouveauxIV }
         return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
       })
+      ajouterAuJournal(
+        auMoinsUnAmeliore ? `${ennemi.nom} : IV de la famille améliorés ! ✨` : `${ennemi.nom} capturé (pas mieux).`,
+        'capture'
+      )
       capturesRef.current = majListe
       setCaptures(majListe)
     }
@@ -1127,6 +1140,7 @@ function App() {
           setPierres(data.pierres || {})
           setBonbons(data.bonbons || {})
           setObjets(data.objets || {})
+          if (data.parchemins) setParchemins(data.parchemins)
           setAchatsItems(data.achatsItems || {})
           setRecompensesReclamees(data.recompensesReclamees || [])
           if (typeof data.medailles === 'number') setMedailles(data.medailles)
@@ -1184,9 +1198,9 @@ function App() {
 
   useEffect(() => {
     if (!partieChargee || captures.length === 0) return
-    const data = { captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
+    const data = { captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
     localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify(data))
-  }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds])
+  }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds])
 
   // --- Envoi du score au classement en ligne ---
   // Calcule les stats du joueur pour le classement.
@@ -1467,6 +1481,17 @@ function App() {
     }
   }
 
+  // Achat d'un parchemin de rôle (endgame, prix fixe en millions, pas de prix dynamique).
+  function acheterParchemin(cle, quantite = 1) {
+    const info = PARCHEMINS[cle]
+    if (!info) return
+    const coutTotal = info.prix * quantite
+    if (pokeDollars >= coutTotal) {
+      setPokeDollars((argent) => argent - coutTotal)
+      setParchemins((pp) => ({ ...pp, [cle]: (pp[cle] || 0) + quantite }))
+    }
+  }
+
   function utiliserBonbon(uid, type) {
     if (!bonbons[type] || bonbons[type] <= 0) return
     const info = BONBONS[type]
@@ -1479,7 +1504,9 @@ function App() {
           const { pokemon } = ajouterXP(pkm, info.valeur, XP_BASE_NIVEAU, BONUS_STAT_NIVEAU)
           pkm = { ...pokemon, uid: poke.uid }
         } else if (info.effet === 'niveau') {
-          const manque = Math.max(1, Math.ceil(XP_BASE_NIVEAU * Math.pow(pkm.niveau, 1.5)) - (pkm.xp || 0))
+          // +1 niveau direct : on ajoute exactement l'XP qui manque pour le niveau suivant,
+          // calculée avec la VRAIE courbe (xpRequise), sinon le niveau ne monte pas.
+          const manque = Math.max(1, xpRequise(pkm.niveau, XP_BASE_NIVEAU) - (pkm.xp || 0))
           const { pokemon } = ajouterXP(pkm, manque, XP_BASE_NIVEAU, BONUS_STAT_NIVEAU)
           pkm = { ...pokemon, uid: poke.uid }
         }
@@ -1569,6 +1596,54 @@ function App() {
       equipeIdsRef.current = triee
       setEquipeIds(triee)
     }
+  }
+
+  // Applique un PARCHEMIN DE RÔLE (objet endgame) sur un Pokémon : force son rôle.
+  // - Pose roleForce + écrase role (pour que tout le code, qui lit pokemon.role, suive).
+  // - Reset le passif choisi au défaut du nouveau rôle (un Tank→DPS ne garde pas Colosse).
+  // - Pour le Sceau du Joker : met une case par défaut (DPS) que le joueur pourra changer.
+  // - Recalcule les stats, re-trie l'équipe active, et consomme le parchemin.
+  function appliquerParchemin(uidPokemon, cleParchemin) {
+    if (!parchemins[cleParchemin] || parchemins[cleParchemin] <= 0) return
+    const info = PARCHEMINS[cleParchemin]
+    if (!info) return
+    const nouveauRole = info.role // 'tank' | 'dps' | 'eclaireur' | 'soutien' | 'joker'
+
+    const poke = capturesRef.current.find((p) => p.uid === uidPokemon)
+    if (!poke) return
+
+    // Sécurité : si le Pokémon a déjà ce rôle forcé, on ne gaspille pas le parchemin.
+    if (poke.roleForce === nouveauRole) {
+      ajouterAuJournal(`${poke.nom} a déjà le rôle ${ROLES[nouveauRole]?.nom || nouveauRole}.`, 'info')
+      return
+    }
+
+    // Consomme le parchemin.
+    setParchemins((pp) => ({ ...pp, [cleParchemin]: (pp[cleParchemin] || 0) - 1 }))
+
+    const nouvelleCollection = capturesRef.current.map((p) => {
+      if (p.uid !== uidPokemon) return p
+      const maj = {
+        ...p,
+        roleForce: nouveauRole,
+        role: nouveauRole, // écrase le rôle stocké pour que tout le code suive
+        passifChoisi: passifParDefautDuRole(nouveauRole), // reset passif au défaut du rôle
+      }
+      // Pour un Joker, on initialise une case par défaut (modifiable ensuite dans la fiche).
+      if (nouveauRole === 'joker' && !maj.jokerCase) maj.jokerCase = 'dps'
+      return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
+    })
+    capturesRef.current = nouvelleCollection
+    setCaptures(nouvelleCollection)
+
+    // Re-trie l'équipe active si le Pokémon en fait partie (son rôle a changé).
+    if (equipeIdsRef.current.includes(uidPokemon)) {
+      const triee = trierIdsParRole(equipeIdsRef.current, nouvelleCollection)
+      equipeIdsRef.current = triee
+      setEquipeIds(triee)
+    }
+
+    ajouterAuJournal(`${info.emoji} ${poke.nom} devient ${ROLES[nouveauRole]?.nom || nouveauRole} !`, 'victoire')
   }
 
   // Équipe (ou déséquipe si idObjet=null) un objet sur un Pokémon.
@@ -1959,8 +2034,8 @@ function App() {
         } else {
           // Consomme la ball.
           setBalls((bb) => ({ ...bb, [ballDispo]: (bb[ballDispo] || 0) - 1 }))
-          const multiBall = BALLS[ballDispo] ? BALLS[ballDispo].multi : 1
-          const taux = multiBall === Infinity ? 1 : Math.min(1, raidActif.tauxCaptureBoss * multiBall)
+          // Taux de capture FIXE selon la ball (Poké 2% / Super 3% / Hyper 5% / Master 100%).
+          const taux = TAUX_CAPTURE_BOSS_RAID[ballDispo] ?? 0.02
           if (Math.random() < taux) {
             try {
               const pkmn = await chargerPokemon(boss.nom, false)
@@ -2571,6 +2646,8 @@ function App() {
           onEvoluerPierre={evoluerParPierre}
           onChoisirPassif={choisirPassif}
           onChoisirCaseJoker={choisirCaseJoker}
+          parchemins={parchemins}
+          onAppliquerParchemin={appliquerParchemin}
           onAjouterMembre={(poke) => {
             if (equipeIds.length >= 6) return
             if (equipeIds.includes(poke.uid)) return
@@ -2655,11 +2732,13 @@ function App() {
           pierres={pierres}
           bonbons={bonbons}
           objets={objets}
+          parchemins={parchemins}
           achatsItems={achatsItems}
           onAcheterBall={acheterBall}
           onAcheterPierre={acheterPierre}
           onAcheterBonbon={acheterBonbon}
           onAcheterObjet={acheterObjet}
+          onAcheterParchemin={acheterParchemin}
           onFermer={() => setVueOuverte(null)}
         />
       )}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BALLS, PIERRES, BONBONS, prixDynamique } from './config'
 import { OBJETS } from './objets'
+import { PARCHEMINS, formaterPrixParchemin } from './parchemins'
 
 const ICONES_BALLS = {
   poke: '/icons/ball-poke.png',
@@ -27,7 +28,7 @@ const ICONES_PIERRES = {
 }
 
 // achatsItems : objet { idItem: nombre d'achats } pour le prix dynamique (défaut {}).
-function Boutique({ pokeDollars, balls, pierres, bonbons = {}, objets = {}, achatsItems = {}, onAcheterBall, onAcheterPierre, onAcheterBonbon, onAcheterObjet, onFermer }) {
+function Boutique({ pokeDollars, balls, pierres, bonbons = {}, objets = {}, parchemins = {}, achatsItems = {}, onAcheterBall, onAcheterPierre, onAcheterBonbon, onAcheterObjet, onAcheterParchemin, onFermer }) {
   const [onglet, setOnglet] = useState('balls')
 
   // Prix actuel d'un item à prix dynamique (pierres/objets) selon les achats déjà faits.
@@ -70,6 +71,12 @@ function Boutique({ pokeDollars, balls, pierres, bonbons = {}, objets = {}, acha
             onClick={() => setOnglet('objets')}
           >
             ⚙️ Objets
+          </button>
+          <button
+            className={`mode-btn ${onglet === 'parchemins' ? 'actif' : ''}`}
+            onClick={() => setOnglet('parchemins')}
+          >
+            📜 Parchemins
           </button>
         </div>
 
@@ -194,6 +201,40 @@ function Boutique({ pokeDollars, balls, pierres, bonbons = {}, objets = {}, acha
                         ×{q}
                       </button>
                     ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {onglet === 'parchemins' && (
+          <div className="boutique-grille">
+            <p className="boutique-indispo-info">📜 Objets ENDGAME ultra-rares. Utilise un parchemin sur un Pokémon (dans sa fiche) pour changer DÉFINITIVEMENT son rôle. Le Sceau du Joker le rend flexible (n'importe quelle case + passifs Joker).</p>
+            {Object.entries(PARCHEMINS).map(([cle, info]) => {
+              const cher = pokeDollars < info.prix
+              return (
+                <div key={cle} className="boutique-item">
+                  <div className="boutique-item-info">
+                    <span className="boutique-item-emoji">
+                      {info.sprite ? <img src={info.sprite} alt={info.nom} className="item-ball-img" style={{ imageRendering: 'pixelated' }} /> : info.emoji}
+                    </span>
+                    <div className="boutique-item-texte">
+                      <span className="boutique-item-nom">{info.emoji} {info.nom}</span>
+                      <span className="boutique-item-stock">{info.description} — En stock : {parchemins[cle] || 0}</span>
+                    </div>
+                    <span className={`boutique-item-prix ${cher ? 'prix-majore' : ''}`}>
+                      {formaterPrixParchemin(info.prix)} <img src={ICONE_ARGENT} alt="" className="icone-inline-petit" />
+                    </span>
+                  </div>
+                  <div className="boutique-item-boutons">
+                    <button
+                      className="bouton-achat-lot"
+                      onClick={() => onAcheterParchemin(cle, 1)}
+                      disabled={cher}
+                    >
+                      Acheter ×1
+                    </button>
                   </div>
                 </div>
               )

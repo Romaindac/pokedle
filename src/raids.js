@@ -25,6 +25,15 @@ export const FORCE_BOSS_RAID_ATK = 3
 // (compat : ancienne constante unique, gardée au cas où)
 export const FORCE_BOSS_RAID = 5
 
+// Taux de capture FIXE du boss de raid, selon la ball utilisée (identique pour tous les raids).
+// Volontairement dur : le boss de raid est une grosse prise. Master Ball = garanti.
+export const TAUX_CAPTURE_BOSS_RAID = {
+  poke: 0.02,    // 2%
+  super: 0.03,   // 3%
+  hyper: 0.05,   // 5%
+  master: 1,     // 100% (garanti)
+}
+
 export const RAIDS = [
   {
     id: 'raid_dragons',

@@ -213,6 +213,11 @@ export function passifAppartientAuRole(clePassif, role) {
 //   4) Fallback : DPS.
 export function determinerRole(pokemon) {
   if (!pokemon) return 'dps'
+  // 0) Rôle FORCÉ sur cet exemplaire précis (via un objet endgame : Parchemin / Sceau Joker).
+  //    Priorité absolue, au-dessus de tout (c'est un choix explicite du joueur sur CE Pokémon).
+  if (pokemon.roleForce && (ROLES[pokemon.roleForce] || pokemon.roleForce === 'joker')) {
+    return pokemon.roleForce
+  }
   // 1) Exception forcée par nom d'espèce ?
   const nom = (pokemon.nom || pokemon.nomEspece || '').toLowerCase()
   if (ROLES_FORCES[nom]) return ROLES_FORCES[nom]
@@ -232,8 +237,10 @@ export function determinerRole(pokemon) {
 }
 
 // Vrai si le Pokémon a le rôle Joker (rôle flexible).
+// Inclut les Jokers natifs (légendaires) ET ceux transformés via le Sceau du Joker (roleForce).
 export function estJoker(pokemon) {
   if (!pokemon) return false
+  if (pokemon.roleForce === 'joker') return true
   return (pokemon.role || determinerRole(pokemon)) === 'joker'
 }
 
@@ -245,7 +252,8 @@ export function estJoker(pokemon) {
 // C'est CETTE fonction qu'on utilise partout à la place de "role === 'joker' ? 'dps'".
 export function roleEffectif(pokemon) {
   if (!pokemon) return 'dps'
-  const role = pokemon.role || determinerRole(pokemon)
+  // Le rôle forcé (objet) prime sur le rôle stocké, même si pokemon.role est resté figé.
+  const role = pokemon.roleForce || pokemon.role || determinerRole(pokemon)
   if (role !== 'joker') return role
   const choisie = pokemon.jokerCase
   if (choisie && CASES_JOKER.includes(choisie)) return choisie
@@ -256,7 +264,7 @@ export function roleEffectif(pokemon) {
 // C'est le passif "suggéré" tant que le joueur n'a rien choisi.
 export function determinerPassif(pokemon) {
   if (!pokemon) return 'bourrin'
-  const role = pokemon.role || determinerRole(pokemon)
+  const role = pokemon.roleForce || pokemon.role || determinerRole(pokemon)
   // Le Joker a ses propres passifs : par défaut le 1er (Caméléon).
   if (role === 'joker') return PASSIF_DEFAUT.joker
   const table = TYPE_VERS_PASSIF[role] || {}
@@ -275,7 +283,8 @@ export function passifEffectif(pokemon) {
   if (!pokemon) return 'bourrin'
   // On garde le rôle TEL QUEL (y compris 'joker') : les passifs Joker
   // (Caméléon/Coup de chance/Meneur) n'appartiennent qu'au rôle 'joker'.
-  const role = pokemon.role || determinerRole(pokemon)
+  // Le rôle forcé (objet) prime sur le rôle stocké.
+  const role = pokemon.roleForce || pokemon.role || determinerRole(pokemon)
   // 1) Choix du joueur, seulement s'il est valide pour le rôle actuel.
   const choisi = pokemon.passifChoisi
   if (choisi && passifAppartientAuRole(choisi, role)) return choisi
