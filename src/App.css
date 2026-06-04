@@ -9902,3 +9902,159 @@ img[src*="PokeAPI/sprites"] {
   .routes-v2-liste { max-height: 220px; }
   .routes-v2-detail-col { overflow-y: visible; }
 }
+
+/* ============================================================
+   STYLE MENU PRINCIPAL — assorti au menu Routes (parchemin + doré)
+   À COLLER À LA FIN de src/App.css
+   MÉTHODE SAFE : aucun ::before, aucun z-index, aucun position touché
+   → ne peut pas bloquer les clics ni les pop-ups.
+   Si un jour tu veux l'enlever : supprime tout ce bloc, rien d'autre ne bouge.
+   ============================================================ */
+
+/* ---------- FOND DE PAGE (simple background, rien d'autre) ---------- */
+.app.app-layout {
+  background: radial-gradient(130% 100% at 50% 0%, #6b5526 0%, #4a3a18 45%, #2e2410 100%) fixed;
+}
+
+/* ---------- BARRE DU HAUT ---------- */
+.topbar {
+  background: linear-gradient(180deg, #5a4520, #3a2c12);
+  border-bottom: 3px solid #c8a23a;
+}
+
+/* HUD : boutons "parchemin doré" comme les items du menu Routes. */
+.hud-icone {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348;
+  border-radius: 12px;
+  color: #4a3410;
+  box-shadow: 0 2px 0 #8a6a1e;
+  transition: transform 0.08s, border-color 0.12s, box-shadow 0.12s;
+}
+.hud-icone:hover {
+  border-color: #e0b93d;
+  box-shadow: 0 2px 9px rgba(224, 185, 61, 0.45);
+  transform: translateY(-1px);
+}
+.hud-icone:active { transform: translateY(1px); box-shadow: 0 1px 0 #8a6a1e; }
+.hud-label { color: #4a3410; }
+
+/* ---------- PANNEAUX (les 3 colonnes) ---------- */
+/* Même recette que .routes-v2-item / .zoneD : parchemin clair + bordure dorée. */
+.colonne .panneau {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348;
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(74, 52, 16, 0.25);
+}
+/* Titre de panneau : doré sombre + filet sous le titre (comme .zoneD-entete). */
+.panneau-titre {
+  color: #7a5a1e;
+  border-bottom: 2px dashed #c8a23a;
+  padding-bottom: 6px;
+}
+
+/* ---------- BANDEAU DE ZONE (colonne centre) ---------- */
+.bandeau-zone {
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+  border: 2px solid #b89348;
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(74, 52, 16, 0.25);
+}
+.bandeau-zone-nom { color: #5a4520; }
+.bandeau-zone-numtxt { color: #8a7038; }
+
+/* ---------- ZONE DE COMBAT (arène) ---------- */
+.arene {
+  border: 2px solid #c8a23a;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(74, 52, 16, 0.3);
+}
+/* Combat de boss : liseré doré pulsant (tension), via box-shadow uniquement. */
+.arene-boss { animation: amb-pulse-boss 1.4s ease-in-out infinite; }
+@keyframes amb-pulse-boss {
+  0%, 100% { box-shadow: 0 4px 16px rgba(74, 52, 16, 0.3), 0 0 0 0 rgba(224, 185, 61, 0); }
+  50%      { box-shadow: 0 4px 16px rgba(74, 52, 16, 0.3), 0 0 16px 2px rgba(224, 185, 61, 0.55); }
+}
+
+/* ---------- JOURNAL DE COMBAT ---------- */
+.console {
+  background: rgba(255, 247, 224, 0.85);
+  border: 2px solid #b89348;
+  border-radius: 12px;
+  color: #4a3410;
+}
+
+/* ---------- PETITS DÉTAILS ---------- */
+.zone-rapide-btn:hover { border-color: #e0b93d; }
+.zone-progression-fill { background: linear-gradient(90deg, #ffd451, #e0a81e); }
+
+@media (prefers-reduced-motion: reduce) {
+  .arene-boss { animation: none; }
+}
+/* ============================================================
+   PEAUFINAGE MENU PRINCIPAL  (à coller À LA FIN de src/App.css,
+   APRÈS le bloc "STYLE MENU PRINCIPAL").
+   - Allège le fond marron pour révéler le paysage derrière.
+   - Corrige les textes illisibles (Journal, HUD, Zone rapide).
+   - Stylise les emoji du HUD + les badges de rôle.
+   MÉTHODE SAFE : aucun z-index / position / ::before. Que des couleurs/bordures.
+   ============================================================ */
+
+/* ---------- FOND : on allège le marron pour laisser respirer le paysage ----------
+   Le bloc précédent posait un dégradé marron opaque qui masquait le décor.
+   Ici on le rend SEMI-TRANSPARENT : le paysage d'origine (sur body/.app) transparaît,
+   et un léger voile sombre garde le contraste du contenu. */
+.app.app-layout {
+  background:
+    linear-gradient(180deg, rgba(40, 30, 16, 0.45), rgba(30, 24, 14, 0.55));
+}
+
+/* ---------- TEXTES ILLISIBLES ----------
+   On force des couleurs lisibles là où du texte clair restait invisible. */
+
+/* Journal : titre + lignes (sur fond clair maintenant → texte foncé). */
+.console-vide { color: #6b5526; }
+.console-ligne { color: #4a3410; }
+/* On garde les couleurs sémantiques des lignes spéciales, juste assombries pour le fond clair. */
+.console-ligne.victoire { color: #2e7d32; }
+.console-ligne.echec    { color: #c0392b; }
+.console-ligne.info     { color: #4a3410; }
+.console-ligne.fuite    { color: #8a7038; }
+
+/* Zone rapide : nom + compteur. */
+.zone-rapide-nom { color: #5a4520; }
+.zone-rapide-compteur { color: #6b5526; }
+.zone-rapide-btn { color: #4a3410; }
+
+/* Labels du HUD (sous chaque bouton) : bien foncés sur le parchemin. */
+.hud-label { color: #4a3410 !important; }
+
+/* Filet de sécurité : titres de panneaux toujours lisibles. */
+.panneau-titre { color: #7a5a1e; }
+
+/* ---------- HUD : emoji stylisés comme les icônes images ---------- */
+/* L'emoji (⚔️ 🔥 ❓) prend la même place/taille que les <img> d'icône. */
+.hud-emoji-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+}
+
+/* ---------- BADGES DE RÔLE (emoji) : pastille colorée propre ----------
+   Si tes badges de rôle utilisent une classe dédiée, ils héritent d'un fond
+   doux + bord. (Classe générique : adapte si la tienne diffère.) */
+.badge-role, .carte-role, .role-badge {
+  border-radius: 6px;
+  padding: 1px 5px;
+  font-size: 0.7rem;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- COLONNES : léger fond translucide pour la profondeur ----------
+   (les .panneau restent en parchemin plein ; ici on ne touche QUE l'espace
+   autour, pas les panneaux eux-mêmes). */
+.colonne { background: transparent; }
