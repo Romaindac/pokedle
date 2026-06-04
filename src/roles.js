@@ -1,5 +1,5 @@
 // ============================================================
-// RÔLES DES POKÉMON (système enrichi : 4 rôles × 3 passifs = 12 passifs)
+// RÔLES DES POKÉMON (système enrichi : 4 rôles × passifs + Joker)
 //
 // NOUVEAU : le RÔLE est maintenant déterminé par les VRAIES STATS de base du
 // Pokémon (table figée dans rolesPokemon.js, calculée depuis PokeAPI).
@@ -7,8 +7,9 @@
 //     PV/Défense -> Tank, Attaque/Atq.Spé -> DPS, Vitesse -> Éclaireur, Déf.Spé -> Soutien.
 //   - 21 grands légendaires sont des "Joker" (rôle flexible — géré plus tard).
 // - Une table ROLES_FORCES permet de corriger les cas spéciaux à la main (par nom).
-// - Chaque rôle a 3 PASSIFS. Le JOUEUR choisit le passif (champ pokemon.passifChoisi) ;
-//   sinon on déduit un passif automatique selon le style/type ; défaut = 1er passif du rôle.
+// - Chaque rôle a 3 PASSIFS (DPS en a 4 avec le Briseur). Le JOUEUR choisit le passif
+//   (champ pokemon.passifChoisi) ; sinon on déduit un passif automatique selon le
+//   style/type ; défaut = 1er passif du rôle.
 // - Composition d'équipe imposée : 1 Tank, 1 Éclaireur, 2 Support, 2 DPS.
 // ============================================================
 
@@ -58,7 +59,7 @@ export const ROLES_FORCES = {
   // 'alakazam': 'soutien',
 }
 
-// ---------- LES 12 PASSIFS (3 par rôle) ----------
+// ---------- LES PASSIFS (3 par rôle, 4 pour le DPS avec le Briseur) ----------
 // effet : décrit ce que le passif fait (lu par le moteur de combat).
 export const PASSIFS = {
   // ===== TANK =====
@@ -93,6 +94,11 @@ export const PASSIFS = {
     nom: 'Berserk', role: 'dps', emoji: '🔥',
     description: '+15% dégâts, et davantage quand l\'équipe perd des membres',
     effet: { degatsMult: 1.15, degatsParAllieKO: 0.12 },
+  },
+  briseur: {
+    nom: 'Briseur', role: 'dps', emoji: '🩸',
+    description: '+10% dégâts et réduit de 50% les soins de l\'équipe ennemie',
+    effet: { degatsMult: 1.10, reducSoinAdverse: 0.50 },
   },
 
   // ===== ÉCLAIREUR =====
@@ -175,18 +181,18 @@ const TYPE_VERS_PASSIF = {
 // Passif par défaut de chaque rôle (= 1er passif du rôle, si aucun type ne matche).
 const PASSIF_DEFAUT = { tank: 'colosse', dps: 'bourrin', eclaireur: 'vif', soutien: 'guerisseur', joker: 'cameleon' }
 
-// ---------- CHOIX DE PASSIF PAR LE JOUEUR (nouveau) ----------
+// ---------- CHOIX DE PASSIF PAR LE JOUEUR ----------
 // Liste ORDONNÉE des clés de passifs par rôle. L'ordre = ordre d'affichage dans l'UI,
 // et le 1er élément est le passif PAR DÉFAUT du rôle.
 export const PASSIFS_PAR_ROLE = {
   tank:      ['colosse', 'carapace', 'provocateur'],
-  dps:       ['bourrin', 'assassin', 'berserk'],
+  dps:       ['bourrin', 'assassin', 'berserk', 'briseur'],
   eclaireur: ['vif', 'precurseur', 'frenetique'],
   soutien:   ['guerisseur', 'tacticien', 'gardien'],
   joker:     ['cameleon', 'coupDeChance', 'meneur'],
 }
 
-// Renvoie les 3 objets passifs d'un rôle (pour peupler le sélecteur de l'UI).
+// Renvoie les objets passifs d'un rôle (pour peupler le sélecteur de l'UI).
 // Chaque élément = { cle, ...donnéesDuPassif }.
 export function passifsDuRole(role) {
   const cles = PASSIFS_PAR_ROLE[role] || []
@@ -319,7 +325,7 @@ export function bonusDuPassif(pokemon) {
   const neutre = {
     pvMult: 1, degatsMult: 1, jaugeMult: 1, regenEquipe: 0,
     attireCoups: false, reducDegatsEquipe: 0, renvoiDegats: 0,
-    bonusExecution: 0, degatsParAllieKO: 0,
+    bonusExecution: 0, degatsParAllieKO: 0, reducSoinAdverse: 0,
     jaugeEquipe: 0, jaugeDepart: 0, jaugeMontante: 0,
     boostDegatsEquipe: 0, boostPvEquipe: 0,
     // Champs Joker :

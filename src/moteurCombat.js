@@ -104,14 +104,16 @@ function calculerDegats(attaquant, defenseur, diviseur, ctx) {
 
 // Régénération (Guérisseur) : soigne toute l'équipe d'un % de PV max.
 // Pousse les soins réellement appliqués dans `coups` (pour les chiffres verts).
-function appliquerRegen(soutien, equipe, pvs, coups, camp) {
+// reducSoin (0 à 1) : réduction des soins imposée par l'équipe adverse (passif Briseur).
+function appliquerRegen(soutien, equipe, pvs, coups, camp, reducSoin = 0) {
   if (!soutien) return
   const passif = passifEffet(soutien)
   if (!passif.regenEquipe) return
+  const facteurSoin = Math.max(0, 1 - nombreSur(reducSoin, 0, 0))
   for (let i = 0; i < equipe.length; i++) {
     if (equipe[i] && pvs[i] > 0) {
       const pvMax = nombreSur(equipe[i].pvMax, 1, 1)
-      const soin = Math.round(pvMax * passif.regenEquipe)
+      const soin = Math.round(pvMax * passif.regenEquipe * facteurSoin)
       const avant = pvs[i]
       pvs[i] = Math.min(pvMax, pvs[i] + soin)
       const gagne = pvs[i] - avant
@@ -200,6 +202,10 @@ export function ticCombat(equipeJ, pvJ, jaugeJ, equipeE, pvE, jaugeE, options) {
   const jaugeEquipeE = bonusEquipe(equipeE, nPvE, 'jaugeEquipe')
   const koJ = alliesKO(equipeJ, nPvJ)
   const koE = alliesKO(equipeE, nPvE)
+  // Réduction de soin imposée à l'adversaire (passif Briseur, côté DPS).
+  // On prend la MEILLEURE réduction présente dans le camp (pas cumulée à l'infini).
+  const reducSoinImposeeParJ = meilleureReduc(equipeJ, nPvJ, 'reducSoinAdverse') // affecte les soins ENNEMIS
+  const reducSoinImposeeParE = meilleureReduc(equipeE, nPvE, 'reducSoinAdverse') // affecte les soins JOUEUR
 
   // --- Pokémon du joueur ---
   for (let i = 0; i < equipeJ.length; i++) {
@@ -236,7 +242,7 @@ export function ticCombat(equipeJ, pvJ, jaugeJ, equipeE, pvE, jaugeE, options) {
         }
         if (avant > 0 && nPvE[cible] <= 0) ennemisTombes.push(cible)
       }
-      appliquerRegen(equipeJ[i], equipeJ, nPvJ, coups, 'joueur')
+      appliquerRegen(equipeJ[i], equipeJ, nPvJ, coups, 'joueur', reducSoinImposeeParE)
     }
   }
 
@@ -268,7 +274,7 @@ export function ticCombat(equipeJ, pvJ, jaugeJ, equipeE, pvE, jaugeE, options) {
           nPvE[i] = Math.max(0, nPvE[i] - Math.round(degats * passifCible.renvoiDegats))
         }
       }
-      appliquerRegen(equipeE[i], equipeE, nPvE, coups, 'ennemi')
+      appliquerRegen(equipeE[i], equipeE, nPvE, coups, 'ennemi', reducSoinImposeeParJ)
     }
   }
 
