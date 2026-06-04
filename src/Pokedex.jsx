@@ -6,10 +6,13 @@ import {
   compteGeneration,
   decrireGains,
 } from './recompenses'
-import { SPECIAUX, spriteSpecial } from './speciaux'
+import { SPECIAUX, SPECIAUX_RAID, TOUS_SPECIAUX, spriteSpecial } from './speciaux'
 
 // Grille du Pokédex national (1025 Pokémon, Gen 1-9).
 const TOTAL_POKEDEX = 1025
+
+// Total des spéciaux (arène + raid) pour le compteur de l'onglet Spéciaux.
+const TOTAL_SPECIAUX = TOUS_SPECIAUX.length
 
 // Bornes des générations (pour le compteur de complétion).
 const GENERATIONS = [
@@ -99,6 +102,28 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
     )
   }
 
+  // Affiche une case de Pokémon spécial (factorisé pour arène + raid).
+  // sp = { id, nomFr, boss, emoji? }, label = texte sous le nom (boss / raid).
+  function CaseSpeciale({ sp, label }) {
+    const debloque = idsSpeciaux.has(sp.id)
+    const prefixe = sp.emoji ? `${sp.emoji} ` : ''
+    return (
+      <div
+        className={`case-pokedex case-speciale ${debloque ? 'capturee' : ''}`}
+        title={debloque ? `${sp.nomFr} (${label})` : `??? — ${label}`}
+      >
+        <img
+          src={spriteSpecial(sp.id)}
+          alt={sp.nomFr}
+          className={`sprite-pokedex ${debloque ? '' : 'non-capture'}`}
+          loading="lazy"
+        />
+        <span className="case-speciale-nom">{debloque ? sp.nomFr : '???'}</span>
+        <span className="case-speciale-boss">{debloque ? `✓ ${prefixe}${label}` : `🔒 ${prefixe}${label}`}</span>
+      </div>
+    )
+  }
+
   return (
     <div className="overlay" onClick={onFermer}>
       <div className="panneau-pokedex panneau-pokedex-doree" onClick={(e) => e.stopPropagation()}>
@@ -106,7 +131,7 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
           <h2>
             {onglet === 'dex'
               ? (modeSpeciaux
-                  ? `Pokédex 🌟 Spéciaux (${idsSpeciaux.size}/${SPECIAUX.length})`
+                  ? `Pokédex 🌟 Spéciaux (${idsSpeciaux.size}/${TOTAL_SPECIAUX})`
                   : `Pokédex ${modeShiny ? '✨' : '📖'} (${registreActif.size}/${TOTAL_POKEDEX})`)
               : '🎁 Récompenses'}
           </h2>
@@ -152,7 +177,7 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
                 ✨ Shiny ({idsShiny.size})
               </button>
               <button className={`mode-btn ${modeSpeciaux ? 'actif' : ''}`} onClick={() => setModeSpeciaux(true)}>
-                🌟 Spéciaux ({idsSpeciaux.size}/{SPECIAUX.length})
+                🌟 Spéciaux ({idsSpeciaux.size}/{TOTAL_SPECIAUX})
               </button>
             </div>
 
@@ -172,26 +197,22 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
             )}
 
             {modeSpeciaux ? (
-              <div className="pokedex-grille pokedex-grille-speciaux">
-                {SPECIAUX.map((sp) => {
-                  const debloque = idsSpeciaux.has(sp.id)
-                  return (
-                    <div
-                      key={sp.id}
-                      className={`case-pokedex case-speciale ${debloque ? 'capturee' : ''}`}
-                      title={debloque ? `${sp.nomFr} (vaincre ${sp.boss})` : `??? — Bats ${sp.boss} en Arène`}
-                    >
-                      <img
-                        src={spriteSpecial(sp.id)}
-                        alt={sp.nomFr}
-                        className={`sprite-pokedex ${debloque ? '' : 'non-capture'}`}
-                        loading="lazy"
-                      />
-                      <span className="case-speciale-nom">{debloque ? sp.nomFr : '???'}</span>
-                      <span className="case-speciale-boss">{debloque ? `✓ ${sp.boss}` : `🔒 ${sp.boss}`}</span>
-                    </div>
-                  )
-                })}
+              <div className="pokedex-speciaux-zone">
+                {/* --- Section 1 : spéciaux d'ARÈNE (mégas/formes des 15 boss) --- */}
+                <h3 className="speciaux-section-titre">⚔️ Champions d'Arène ({SPECIAUX.filter((s) => idsSpeciaux.has(s.id)).length}/{SPECIAUX.length})</h3>
+                <div className="pokedex-grille pokedex-grille-speciaux">
+                  {SPECIAUX.map((sp) => (
+                    <CaseSpeciale key={sp.id} sp={sp} label={sp.boss} />
+                  ))}
+                </div>
+
+                {/* --- Section 2 : spéciaux de RAID (gros boss capturables) --- */}
+                <h3 className="speciaux-section-titre">🔥 Boss de Raid ({SPECIAUX_RAID.filter((s) => idsSpeciaux.has(s.id)).length}/{SPECIAUX_RAID.length})</h3>
+                <div className="pokedex-grille pokedex-grille-speciaux">
+                  {SPECIAUX_RAID.map((sp) => (
+                    <CaseSpeciale key={sp.id} sp={sp} label={sp.boss} />
+                  ))}
+                </div>
               </div>
             ) : (
             <div className="pokedex-grille">

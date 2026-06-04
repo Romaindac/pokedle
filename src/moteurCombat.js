@@ -4,6 +4,14 @@ import { DIVISEUR_DEGATS_JOUEUR, DIVISEUR_DEGATS_ENNEMI, VITESSE_JAUGE } from '.
 import { multiplicateurType } from './types'
 import { bonusDuPassif, determinerRole, passifDe } from './roles'
 
+// --- Helper anti-NaN local ---
+// Garantit un nombre fini >= min. Empêche une jauge ATB de se bloquer à NaN
+// (ce qui figerait le combat : NaN >= 100 est toujours faux → le Pokémon n'attaque jamais).
+function nombreSur(valeur, repli, min = 0) {
+  const v = Number.isFinite(valeur) ? valeur : repli
+  return v < min ? min : v
+}
+
 export function premierVivant(pvs) {
   return pvs.findIndex((pv) => pv > 0)
 }
@@ -58,8 +66,9 @@ function calculerDegats(attaquant, defenseur, diviseur, ctx) {
   const typeAtt = attaquant.types ? attaquant.types[0] : null
   const mult = multiplicateurType(typeAtt, defenseur.types || [])
   const passif = passifEffet(attaquant)
-  const base = Math.max(1, (attaquant.attaque || 1) / diviseur)
-  const defenseCible = defenseur.defense ?? 50
+  const div = nombreSur(diviseur, 6, 0.0001) // jamais 0 (division)
+  const base = Math.max(1, nombreSur(attaquant.attaque, 50, 1) / div)
+  const defenseCible = nombreSur(defenseur.defense, 50, 0)
   const reducDefense = 100 / (100 + defenseCible)
 
   // Multiplicateur de dégâts du passif attaquant.
@@ -83,7 +92,8 @@ function calculerDegats(attaquant, defenseur, diviseur, ctx) {
   // Réduction de dégâts d'équipe côté défenseur (Carapace).
   const reducEquipe = 1 - (ctx?.reducDegatsDef || 0)
 
-  const degats = Math.max(1, Math.round(base * mult * reducDefense * degatsMult * reducEquipe))
+  const brut = base * mult * reducDefense * nombreSur(degatsMult, 1, 0) * reducEquipe
+  const degats = Math.max(1, Math.round(nombreSur(brut, 1, 1)))
   return { degats, multiplicateur: mult, critique }
 }
 
@@ -94,8 +104,9 @@ function appliquerRegen(soutien, equipe, pvs) {
   if (!passif.regenEquipe) return
   for (let i = 0; i < equipe.length; i++) {
     if (equipe[i] && pvs[i] > 0) {
-      const soin = Math.round(equipe[i].pvMax * passif.regenEquipe)
-      pvs[i] = Math.min(equipe[i].pvMax, pvs[i] + soin)
+      const pvMax = nombreSur(equipe[i].pvMax, 1, 1)
+      const soin = Math.round(pvMax * passif.regenEquipe)
+      pvs[i] = Math.min(pvMax, pvs[i] + soin)
     }
   }
 }
@@ -125,7 +136,11 @@ export function ticCombat(equipeJ, pvJ, jaugeJ, equipeE, pvE, jaugeE) {
     // Vitesse de jauge : passif perso + boost d'équipe (vif) + montante (frénétique).
     let jaugeMult = (passif.jaugeMult || 1) + jaugeEquipeJ
     if (passif.jaugeMontante) jaugeMult += passif.jaugeMontante * ((equipeJ[i]._attaques) || 0)
-    nJaugeJ[i] += equipeJ[i].vitesse * VITESSE_JAUGE * jaugeMult
+    // BLINDAGE : vitesse et jaugeMult forcés finis. Vitesse de repli 50 (jamais 0/NaN)
+    // pour que la jauge progresse TOUJOURS → plus jamais de combat figé.
+    const vit = nombreSur(equipeJ[i].vitesse, 50, 1)
+    const jm = nombreSur(jaugeMult, 1, 0.01)
+    nJaugeJ[i] = nombreSur(nJaugeJ[i], 0, 0) + vit * VITESSE_JAUGE * jm
     if (nJaugeJ[i] >= 100) {
       nJaugeJ[i] = 0
       equipeJ[i]._attaques = ((equipeJ[i]._attaques) || 0) + 1 // pour frénétique
@@ -154,7 +169,9 @@ export function ticCombat(equipeJ, pvJ, jaugeJ, equipeE, pvE, jaugeE) {
     const passif = passifEffet(equipeE[i])
     let jaugeMult = (passif.jaugeMult || 1) + jaugeEquipeE
     if (passif.jaugeMontante) jaugeMult += passif.jaugeMontante * ((equipeE[i]._attaques) || 0)
-    nJaugeE[i] += equipeE[i].vitesse * VITESSE_JAUGE * jaugeMult
+    const vit = nombreSur(equipeE[i].vitesse, 50, 1)
+    const jm = nombreSur(jaugeMult, 1, 0.01)
+    nJaugeE[i] = nombreSur(nJaugeE[i], 0, 0) + vit * VITESSE_JAUGE * jm
     if (nJaugeE[i] >= 100) {
       nJaugeE[i] = 0
       equipeE[i]._attaques = ((equipeE[i]._attaques) || 0) + 1

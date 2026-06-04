@@ -35,7 +35,7 @@ import { coutAmelioration, multiplicateur, niveauAmelioration, PALIER_MAX, facte
 import { recompensesDisponibles, PALIERS_GLOBAUX, PALIERS_GENERATION, GENERATIONS as GENS_RECOMP } from './recompenses'
 import { medaillesGagnables, multiplicateursPrestige, totalInvesti, BONUS_PRESTIGE } from './prestige'
 import { chargerInfosEspece, corrigerNom } from './evolution'
-import { SPECIAUX, specialDuBoss } from './speciaux'
+import { SPECIAUX, specialDuBoss, estIdSpecial } from './speciaux'
 import Classement from './Classement'
 import ChoixPseudo from './ChoixPseudo'
 import { chargerIdentite, envoyerScore } from './apiClassement'
@@ -85,6 +85,45 @@ function formaterNombre(n) {
   return String(n)
 }
 
+// --- Limite « 1 Pokémon spécial par équipe » ---
+// Un Pokémon est "spécial" s'il a été marqué comme tel à la capture (estSpecial)
+// OU si son id PokeAPI est un id de spécial connu (arène/raid) — double sécurité,
+// robuste sur les vieilles saves où estSpecial pourrait manquer.
+function estSpecial(poke) {
+  if (!poke) return false
+  if (poke.estSpecial === true) return true
+  return estIdSpecial(poke.id)
+}
+
+// Compte les spéciaux présents dans une équipe (liste d'uid + collection).
+function compterSpeciaux(ids, collection) {
+  return (ids || [])
+    .map((uid) => (collection || []).find((p) => p && p.uid === uid))
+    .filter((p) => estSpecial(p)).length
+}
+
+// --- Lecture sûre des stats PokeAPI ---
+// PokeAPI renvoie un tableau data.stats où chaque entrée a { base_stat, stat: { name } }.
+// L'ordre est NORMALEMENT hp/attack/defense/special-attack/special-defense/speed,
+// mais on lit par NOM (pas par index) pour être robuste sur les formes spéciales.
+// Repli à 50 si une stat manque, pour ne jamais produire undefined → NaN plus loin.
+function statBase(data, nom, repli = 50) {
+  const stats = (data && data.stats) || []
+  const trouve = stats.find((s) => s && s.stat && s.stat.name === nom)
+  const val = trouve ? trouve.base_stat : undefined
+  return Number.isFinite(val) ? val : repli
+}
+// Construit les 4 stats de base d'un Pokémon depuis une réponse PokeAPI (data),
+// en lisant par nom et en prenant max(def, def-spé) pour la défense (comme avant).
+function statsBaseDepuis(data) {
+  return {
+    pvBase: statBase(data, 'hp'),
+    attaqueBase: statBase(data, 'attack'),
+    vitesseBase: statBase(data, 'speed'),
+    defBase: Math.max(statBase(data, 'defense'), statBase(data, 'special-defense')),
+  }
+}
+
 async function chargerPokemon(nom, avecPrechargement = true) {
   const reponse = await fetch(`https://pokeapi.co/api/v2/pokemon/${corrigerNom(nom)}`)
   if (!reponse.ok) throw new Error(`Pokémon introuvable : ${nom}`)
@@ -101,10 +140,7 @@ async function chargerPokemon(nom, avecPrechargement = true) {
       formeEvoluee = {
         nom: dataEvo.name,
         id: dataEvo.id,
-        pvBase: dataEvo.stats[0].base_stat,
-        attaqueBase: dataEvo.stats[1].base_stat,
-        vitesseBase: dataEvo.stats[5].base_stat,
-        defBase: Math.max(dataEvo.stats[2].base_stat, dataEvo.stats[4].base_stat),
+        ...statsBaseDepuis(dataEvo),
         types: dataEvo.types.map((t) => t.type.name),
         sprite: dataEvo.sprites.front_default,
         spriteNormal: dataEvo.sprites.front_default,
@@ -121,10 +157,7 @@ async function chargerPokemon(nom, avecPrechargement = true) {
     uid: nouvelUid(),
     nom: data.name,
     id: data.id,
-    pvBase: data.stats[0].base_stat,
-    attaqueBase: data.stats[1].base_stat,
-    vitesseBase: data.stats[5].base_stat,
-    defBase: Math.max(data.stats[2].base_stat, data.stats[4].base_stat),
+    ...statsBaseDepuis(data),
     types: data.types.map((t) => t.type.name),
     sprite: data.sprites.front_default,
     spriteNormal: data.sprites.front_default,
@@ -702,10 +735,7 @@ function App() {
           formeEvoluee = {
             nom: dataEvo.name,
             id: dataEvo.id,
-            pvBase: dataEvo.stats[0].base_stat,
-            attaqueBase: dataEvo.stats[1].base_stat,
-            vitesseBase: dataEvo.stats[5].base_stat,
-            defBase: Math.max(dataEvo.stats[2].base_stat, dataEvo.stats[4].base_stat),
+            ...statsBaseDepuis(dataEvo),
             types: dataEvo.types.map((t) => t.type.name),
             sprite: dataEvo.sprites.front_default,
             spriteNormal: dataEvo.sprites.front_default,
@@ -779,10 +809,7 @@ function App() {
       const formeEvoluee = {
         nom: dataEvo.name,
         id: dataEvo.id,
-        pvBase: dataEvo.stats[0].base_stat,
-        attaqueBase: dataEvo.stats[1].base_stat,
-        vitesseBase: dataEvo.stats[5].base_stat,
-        defBase: Math.max(dataEvo.stats[2].base_stat, dataEvo.stats[4].base_stat),
+        ...statsBaseDepuis(dataEvo),
         types: dataEvo.types.map((t) => t.type.name),
         sprite: dataEvo.sprites.front_default,
         spriteNormal: dataEvo.sprites.front_default,
@@ -825,10 +852,7 @@ function App() {
             uid: poke.uid,
             nom: dataEvo.name,
             id: dataEvo.id,
-            pvBase: dataEvo.stats[0].base_stat,
-            attaqueBase: dataEvo.stats[1].base_stat,
-            vitesseBase: dataEvo.stats[5].base_stat,
-            defBase: Math.max(dataEvo.stats[2].base_stat, dataEvo.stats[4].base_stat),
+            ...statsBaseDepuis(dataEvo),
             types: dataEvo.types.map((t) => t.type.name),
             sprite: poke.shiny && dataEvo.sprites.front_shiny ? dataEvo.sprites.front_shiny : dataEvo.sprites.front_default,
             spriteNormal: dataEvo.sprites.front_default,
@@ -1743,11 +1767,17 @@ function App() {
     const besoin = { ...COMPOSITION_REQUISE } // {tank:1, eclaireur:1, soutien:2, dps:2}
     const choisis = []
     const famillesPrises = new Set()
+    let nbSpeciauxChoisis = 0
     for (const poke of tries) {
       const role = poke.role || determinerRole(poke)
       if (!besoin[role] || besoin[role] <= 0) continue // ce rôle est déjà complet
       const fam = poke.familleId ?? poke.id
       if (famillesPrises.has(fam)) continue
+      // Limite : 1 seul Pokémon spécial dans l'équipe auto.
+      if (estSpecial(poke)) {
+        if (nbSpeciauxChoisis >= 1) continue
+        nbSpeciauxChoisis += 1
+      }
       famillesPrises.add(fam)
       choisis.push(poke.uid)
       besoin[role] -= 1
@@ -1900,6 +1930,12 @@ function App() {
       setEquipeDefenseIds((ids) => {
         if (ids.includes(uid)) return ids.filter((x) => x !== uid)
         if (ids.length >= 6) return ids
+        // Limite : 1 seul Pokémon spécial par équipe.
+        const poke = captures.find((p) => p.uid === uid)
+        if (estSpecial(poke) && compterSpeciaux(ids, captures) >= 1) {
+          alert('Un seul Pokémon spécial autorisé par équipe.')
+          return ids
+        }
         return trierIdsParRole([...ids, uid], captures)
       })
     }
@@ -1907,6 +1943,12 @@ function App() {
       setEquipeAttaqueIds((ids) => {
         if (ids.includes(uid)) return ids.filter((x) => x !== uid)
         if (ids.length >= 6) return ids
+        // Limite : 1 seul Pokémon spécial par équipe.
+        const poke = captures.find((p) => p.uid === uid)
+        if (estSpecial(poke) && compterSpeciaux(ids, captures) >= 1) {
+          alert('Un seul Pokémon spécial autorisé par équipe.')
+          return ids
+        }
         return trierIdsParRole([...ids, uid], captures)
       })
     }
@@ -2037,6 +2079,12 @@ function App() {
       setEquipeRaidIds((ids) => {
         if (ids.includes(uid)) return ids.filter((x) => x !== uid)
         if (ids.length >= 6) return ids
+        // Limite : 1 seul Pokémon spécial par équipe.
+        const poke = captures.find((p) => p.uid === uid)
+        if (estSpecial(poke) && compterSpeciaux(ids, captures) >= 1) {
+          alert('Un seul Pokémon spécial autorisé par équipe.')
+          return ids
+        }
         return trierIdsParRole([...ids, uid], captures)
       })
     }
@@ -2173,6 +2221,12 @@ function App() {
       setEquipeAreneIds((ids) => {
         if (ids.includes(uid)) return ids.filter((x) => x !== uid)
         if (ids.length >= 6) return ids // max 6
+        // Limite : 1 seul Pokémon spécial par équipe.
+        const poke = captures.find((p) => p.uid === uid)
+        if (estSpecial(poke) && compterSpeciaux(ids, captures) >= 1) {
+          alert('Un seul Pokémon spécial autorisé par équipe.')
+          return ids
+        }
         return trierIdsParRole([...ids, uid], captures)
       })
     }
@@ -2699,6 +2753,11 @@ function App() {
           onAjouterMembre={(poke) => {
             if (equipeIds.length >= 6) return
             if (equipeIds.includes(poke.uid)) return
+            // Limite : 1 seul Pokémon spécial par équipe.
+            if (estSpecial(poke) && compterSpeciaux(equipeIds, captures) >= 1) {
+              alert('Un seul Pokémon spécial autorisé par équipe. Retire d\'abord celui qui est déjà dans l\'équipe.')
+              return
+            }
             const nouveaux = trierIdsParRole([...equipeIds, poke.uid], captures)
             setEquipeIds(nouveaux)
             equipeIdsRef.current = nouveaux

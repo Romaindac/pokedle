@@ -3,7 +3,13 @@
 // Chaque boss spécial (tous les 5) débloque un Pokémon spécial unique.
 // nom = identifier PokeAPI valide (chargeable via /pokemon/<nom>).
 // id = numéro PokeAPI de la forme (>= 10000) pour le sprite du Pokédex.
+//
+// NOUVEAU : les BOSS DE RAID sont aussi des Pokémon spéciaux (capturables en raid).
+// On en dérive une liste (SPECIAUX_RAID) à partir de raids.js, pour les afficher
+// dans le même onglet "Spéciaux" du Pokédex, dans une section à part.
 // ============================================================
+
+import { RAIDS } from './raids'
 
 export const SPECIAUX = [
   { bossId: 'boss5', boss: 'Giovanni', nom: 'mewtwo-mega-x', nomFr: 'Mewtwo Méga X', id: 10043 },
@@ -22,6 +28,30 @@ export const SPECIAUX = [
   { bossId: 'boss70', boss: 'Blue', nom: 'charizard-mega-x', nomFr: 'Dracaufeu Méga X', id: 10034 },
   { bossId: 'boss75', boss: 'Red', nom: 'mewtwo-mega-y', nomFr: 'Mewtwo Méga Y', id: 10044 },
 ]
+
+// Liste des spéciaux DE RAID, dérivée automatiquement de raids.js.
+// Même forme que SPECIAUX, mais "boss" = nom du raid (ex: "L'Aire des Dragons").
+// raid = id du raid (pour info), id = id PokeAPI du boss (>= 10000).
+export const SPECIAUX_RAID = RAIDS.map((r) => ({
+  raid: r.id,
+  boss: r.nom,            // nom du RAID (sert de sous-titre "d'où ça vient")
+  emoji: r.emoji,
+  nom: r.boss.nom,        // identifier PokeAPI
+  nomFr: r.boss.nomFr,    // nom français affiché
+  id: r.boss.id,          // id PokeAPI (>= 10000)
+}))
+
+// Tous les spéciaux confondus (arène + raid) — pratique pour le total du Pokédex.
+export const TOUS_SPECIAUX = [...SPECIAUX, ...SPECIAUX_RAID]
+
+// Ensemble des id qui correspondent à un Pokémon spécial (arène OU raid).
+// Sert à savoir, pour n'importe quel Pokémon, s'il est "spécial" (limite d'équipe).
+export const IDS_SPECIAUX = new Set(TOUS_SPECIAUX.map((s) => s.id))
+
+// Vrai si un id PokeAPI correspond à un Pokémon spécial (arène ou raid).
+export function estIdSpecial(id) {
+  return IDS_SPECIAUX.has(id)
+}
 
 // Trouve le spécial associé à un boss (ou null).
 export function specialDuBoss(bossId) {

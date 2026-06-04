@@ -9265,3 +9265,30 @@ img[src*="PokeAPI/sprites"] {
 .boutique-item-boutons {
   flex-wrap: wrap;
 }
+
+/* ============================================================
+   POKÉDEX SPÉCIAUX — sections Arène / Raid (ajout)
+   À coller à la FIN de App.css.
+   ============================================================ */
+
+/* Conteneur scrollable de la zone spéciaux (les 2 sections). */
+.pokedex-speciaux-zone {
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Titre de chaque section (Champions d'Arène / Boss de Raid). */
+.speciaux-section-titre {
+  font-family: 'Silkscreen', monospace;
+  font-size: 13px;
+  color: var(--jaune, #ffcd75);
+  text-shadow: 1px 1px 0 #000;
+  margin: 14px 4px 8px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid rgba(255, 205, 117, 0.35);
+}
+
+/* Le tout premier titre n'a pas besoin d'autant de marge en haut. */
+.pokedex-speciaux-zone .speciaux-section-titre:first-child {
+  margin-top: 4px;
+}
