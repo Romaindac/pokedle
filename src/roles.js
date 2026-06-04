@@ -115,8 +115,8 @@ export const PASSIFS = {
   // ===== SOUTIEN =====
   guerisseur: {
     nom: 'Guérisseur', role: 'soutien', emoji: '💚',
-    description: 'Régénère 3.5% des PV de toute l\'équipe à chaque attaque',
-    effet: { regenEquipe: 0.035 },
+    description: 'Régénère 1.5% des PV de toute l\'équipe à chaque attaque',
+    effet: { regenEquipe: 0.015 },
   },
   tacticien: {
     nom: 'Tacticien', role: 'soutien', emoji: '🧠',
