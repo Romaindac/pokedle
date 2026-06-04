@@ -2,8 +2,8 @@
 export const AMELIORATIONS = {
   fortune: {
     nom: 'Fortune', emoji: '💰',
-    description: '+10% de PokéDollars par victoire',
-    bonusParNiveau: 0.10,
+    description: '+6% de PokéDollars par victoire',
+    bonusParNiveau: 0.06,
     coutBase: 500,
   },
   mentor: {
@@ -14,8 +14,8 @@ export const AMELIORATIONS = {
   },
   chroma: {
     nom: 'Charme Chroma', emoji: '✨',
-    description: '+20% de chance de shiny',
-    bonusParNiveau: 0.20,
+    description: '+1,5% de chance de shiny',
+    bonusParNiveau: 0.015,  // +15% max à niveau 10 — le shiny reste un événement rare
     coutBase: 2000,
   },
   frenesie: {
@@ -66,8 +66,8 @@ export const AMELIORATIONS = {
   },
   champion: {
     nom: 'Champion', emoji: '🏟️',
-    description: '+10% de PokéDollars gagnés en Arène',
-    bonusParNiveau: 0.10,
+    description: '+6% de PokéDollars gagnés en Arène',
+    bonusParNiveau: 0.06,
     coutBase: 1500,
   },
 }

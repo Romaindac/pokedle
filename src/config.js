@@ -84,11 +84,12 @@ export const BALLS = {
 export const BALL_AUTO_PAR_RARETE = { commun: 'poke', rare: 'super', tresRare: 'hyper', legendaire: 'hyper' }
 // Taux de chance qu'un Pokémon rencontré soit shiny, selon sa rareté.
 // Plus le Pokémon est rare, plus son shiny est "accessible" (option B).
+// Valeurs RÉDUITES (le shiny doit rester un vrai événement, même boosté par le Charme Chroma).
 export const TAUX_SHINY = {
-  commun: 1 / 4096,
-  rare: 1 / 2000,
-  tresRare: 1 / 500,
-  legendaire: 1 / 100,
+  commun: 1 / 8192,
+  rare: 1 / 4000,
+  tresRare: 1 / 1500,
+  legendaire: 1 / 400,
 }
 
 
