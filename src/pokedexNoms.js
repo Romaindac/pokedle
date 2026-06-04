@@ -1,10 +1,11 @@
-// Charge UNE fois la table nom → numéro des 649 premiers Pokémon (Gen 1-5).
+// Charge UNE fois la table nom → numéro des 1025 Pokémon (Gen 1-9).
+// (Avant : limité à 649 → les Pokémon des zones hautes n'avaient pas de sprite.)
 let tableNoms = null
 
 export async function chargerTableNoms() {
   if (tableNoms) return tableNoms // déjà chargée
   try {
-    const reponse = await fetch('https://pokeapi.co/api/v2/pokemon?limit=649')
+    const reponse = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025')
     const data = await reponse.json()
     const table = {}
     data.results.forEach((p, i) => {

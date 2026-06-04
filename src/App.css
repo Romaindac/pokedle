@@ -9595,3 +9595,310 @@ img[src*="PokeAPI/sprites"] {
 @media (prefers-reduced-motion: reduce) {
   .halo-role::after { animation-duration: 0.2s; }
 }
+
+/* ============================================================
+   MENU ROUTES v2 — liste (gauche) + détail (droite)
+   À COLLER À LA FIN DE src/App.css
+   Thème doré/pixel cohérent avec .panneau-routes-doree.
+   ============================================================ */
+
+/* Le panneau prend une grande largeur pour loger les deux colonnes. */
+.panneau-routes-doree.routes-v2 {
+  width: min(960px, 94vw);
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+}
+
+/* Corps = 2 colonnes. */
+.routes-v2-corps {
+  display: flex;
+  gap: 14px;
+  min-height: 0;            /* permet le scroll interne des colonnes */
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---------- COLONNE GAUCHE : liste ---------- */
+.routes-v2-liste-col {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.routes-v2-recherche {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  margin-bottom: 10px;
+  border: 3px solid #7a5a1e;
+  border-radius: 10px;
+  background: #fff7e0;
+  color: #4a3410;
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+}
+.routes-v2-recherche::placeholder { color: #b09a64; }
+.routes-v2-recherche:focus { border-color: #c8a23a; background: #fffdf4; }
+
+.routes-v2-liste {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 4px;
+}
+
+/* Un item de zone dans la liste. */
+.routes-v2-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 2px solid #b89348;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  color: #4a3410;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.08s, border-color 0.12s, box-shadow 0.12s;
+}
+.routes-v2-item:hover { border-color: #c8a23a; transform: translateX(2px); }
+.routes-v2-item.selectionnee {
+  border-color: #e0b93d;
+  box-shadow: 0 0 0 2px #e0b93d inset, 0 2px 8px rgba(120, 90, 20, 0.3);
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+}
+.routes-v2-item.verrouillee {
+  opacity: 0.6;
+  filter: grayscale(0.4);
+}
+.routes-v2-item.active {
+  border-color: #4caf50;
+}
+.routes-v2-item.prochaine {
+  border-color: #4aa3e0;
+}
+
+.routes-v2-num {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #7a5a1e;
+  color: #fff3cf;
+  font-size: 0.72rem;
+  font-weight: bold;
+}
+.routes-v2-num.termine { background: #c8a23a; color: #3a2a08; }
+
+.routes-v2-emoji { font-size: 1.15rem; flex-shrink: 0; }
+
+.routes-v2-nom {
+  flex: 1;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.routes-v2-badge {
+  font-size: 0.56rem;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: #4aa3e0;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+.routes-v2-badge.actif { background: #4caf50; }
+
+.routes-v2-couronne { font-size: 0.9rem; flex-shrink: 0; }
+
+.routes-v2-vide { color: #b09a64; text-align: center; padding: 20px; font-size: 0.85rem; }
+
+/* ---------- COLONNE DROITE : détail ---------- */
+.routes-v2-detail-col {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  border: 3px solid #b89348;
+  border-radius: 12px;
+  background: rgba(255, 250, 235, 0.55);
+  padding: 14px;
+}
+
+.zoneD-vide {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #b09a64;
+  text-align: center;
+}
+.zoneD-vide-emoji { font-size: 2.4rem; }
+
+/* En-tête de zone */
+.zoneD-entete { border-bottom: 2px dashed #c8a23a; padding-bottom: 10px; margin-bottom: 12px; }
+.zoneD-num {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: bold;
+  background: #7a5a1e;
+  color: #fff3cf;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+.zoneD-titre { margin: 4px 0; color: #4a3410; font-size: 1.15rem; }
+.zoneD-desc { margin: 4px 0; color: #6b5526; font-size: 0.82rem; line-height: 1.35; }
+.zoneD-meta {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  font-size: 0.74rem;
+  color: #8a7038;
+  margin-top: 6px;
+}
+.zoneD-meta-ok { color: #c8901a; font-weight: bold; }
+
+/* Verrou */
+.zoneD-verrou {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 26px 14px;
+  color: #8a7038;
+  text-align: center;
+}
+.zoneD-verrou-emoji { font-size: 2rem; }
+
+/* Bouton aller */
+.zoneD-aller {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px;
+  margin-bottom: 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffd451, #e0a81e);
+  color: #4a3410;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #b8861a;
+  transition: transform 0.08s;
+}
+.zoneD-aller:hover:not(:disabled) { transform: translateY(-1px); }
+.zoneD-aller:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #b8861a; }
+.zoneD-aller.active, .zoneD-aller:disabled {
+  background: linear-gradient(180deg, #b9e6bb, #88c98b);
+  box-shadow: 0 3px 0 #5a9c5d;
+  cursor: default;
+}
+
+/* Barre de progression de capture */
+.zoneD-progress { margin-bottom: 16px; }
+.zoneD-progress-label { font-size: 0.74rem; color: #8a7038; }
+.zoneD-progress-barre {
+  margin-top: 4px;
+  height: 12px;
+  border-radius: 7px;
+  background: #e3d2a4;
+  overflow: hidden;
+  border: 1px solid #b89348;
+}
+.zoneD-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffd451, #e0a81e);
+  transition: width 0.3s;
+}
+
+/* Sections (capturables / évolutions / boss) */
+.zoneD-section { margin-bottom: 16px; }
+.zoneD-section-titre {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+.zoneD-section-note { font-weight: normal; font-size: 0.68rem; color: #a08a52; }
+
+/* Grille de sprites */
+.zoneD-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+  gap: 8px;
+}
+
+/* Une carte Pokémon dans le détail */
+.zoneD-poke {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 3px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid transparent;
+}
+.zoneD-poke.possede { background: rgba(255, 240, 190, 0.7); border-color: #e0b93d; }
+.zoneD-poke.boss { background: rgba(220, 177, 91, 0.25); border-color: #c8a23a; }
+
+.zoneD-poke-cadre { position: relative; width: 58px; height: 58px; }
+.zoneD-poke-sprite {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.zoneD-poke-sprite.silhouette { filter: brightness(0) opacity(0.45); }
+.zoneD-poke-inconnu {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; color: #b09a64;
+}
+.zoneD-poke-check {
+  position: absolute; top: -3px; right: -3px;
+  background: #4caf50; color: #fff;
+  width: 17px; height: 17px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 0.62rem;
+  border: 2px solid #fff7e0;
+}
+.zoneD-poke-couronne { position: absolute; top: -6px; left: -4px; font-size: 0.85rem; }
+.zoneD-poke-nom {
+  font-size: 0.62rem;
+  color: #5a4520;
+  text-align: center;
+  line-height: 1.1;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zoneD-poke-nom.non-vu { color: #b09a64; }
+
+/* ---------- Responsive : sur petit écran, colonnes empilées ---------- */
+@media (max-width: 720px) {
+  .routes-v2-corps { flex-direction: column; overflow-y: auto; }
+  .routes-v2-liste-col { width: 100%; }
+  .routes-v2-liste { max-height: 220px; }
+  .routes-v2-detail-col { overflow-y: visible; }
+}
