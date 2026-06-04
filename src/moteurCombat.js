@@ -93,12 +93,18 @@ function calculerDegats(attaquant, defenseur, diviseur, ctx) {
   const reducEquipe = 1 - (ctx?.reducDegatsDef || 0)
 
   const brut = base * mult * reducDefense * nombreSur(degatsMult, 1, 0) * reducEquipe
-  const degats = Math.max(1, Math.round(nombreSur(brut, 1, 1)))
+  let degats = Math.max(1, Math.round(nombreSur(brut, 1, 1)))
+  // PLANCHER ANTI-MUR : un coup inflige toujours au moins 1% des PV max de la cible.
+  // Sans ça, à haut niveau la défense écrase les dégâts (ex: 12 sur 2849 PV → boss
+  // mathématiquement intuable en 45s). Garantit qu'aucune cible n'est jamais imbattable.
+  const plancher = Math.round(nombreSur(defenseur.pvMax, 0, 0) * 0.01)
+  if (plancher > degats) degats = plancher
   return { degats, multiplicateur: mult, critique }
 }
 
 // Régénération (Guérisseur) : soigne toute l'équipe d'un % de PV max.
-function appliquerRegen(soutien, equipe, pvs) {
+// Pousse les soins réellement appliqués dans `coups` (pour les chiffres verts).
+function appliquerRegen(soutien, equipe, pvs, coups, camp) {
   if (!soutien) return
   const passif = passifEffet(soutien)
   if (!passif.regenEquipe) return
@@ -106,18 +112,79 @@ function appliquerRegen(soutien, equipe, pvs) {
     if (equipe[i] && pvs[i] > 0) {
       const pvMax = nombreSur(equipe[i].pvMax, 1, 1)
       const soin = Math.round(pvMax * passif.regenEquipe)
+      const avant = pvs[i]
       pvs[i] = Math.min(pvMax, pvs[i] + soin)
+      const gagne = pvs[i] - avant
+      // On n'affiche le chiffre vert que si le soin a réellement eu un effet.
+      if (gagne > 0 && coups) coups.push({ montant: gagne, cible: i, camp, type: 'soin' })
     }
   }
 }
 
-export function ticCombat(equipeJ, pvJ, jaugeJ, equipeE, pvE, jaugeE) {
+// === ULTIMES ===
+// Applique l'effet d'un ultime déclenché par le Pokémon d'index `idx` de l'équipe joueur.
+// Modifie en place les tableaux d'état fournis et renvoie { coups, bouclierTics }.
+// Robuste : bornes et nombreSur partout, ne plante jamais.
+export function appliquerUltime(idx, ultime, equipeJ, pvJ, jaugeJ, equipeE, pvE, campLanceur = 'joueur') {
+  const coups = []
+  let bouclierTics = 0
+  if (!ultime) return { coups, bouclierTics }
+  const lanceur = equipeJ[idx]
+  if (!lanceur || pvJ[idx] <= 0) return { coups, bouclierTics } // KO = pas d'ultime
+
+  // Camp des chiffres flottants : dégâts → camp adverse du lanceur ; soin → camp du lanceur.
+  const campAdverse = campLanceur === 'joueur' ? 'ennemi' : 'joueur'
+  const campAllie = campLanceur
+
+  if (ultime.effet === 'deflagration') {
+    // Gros dégâts immédiats sur le premier ennemi vivant.
+    const cible = premierVivant(pvE)
+    if (cible !== -1 && equipeE[cible]) {
+      const att = nombreSur(lanceur.attaque, 50, 1)
+      const mult = nombreSur(ultime.multiplicateur, 4, 1)
+      const defCible = nombreSur(equipeE[cible].defense, 50, 0)
+      const reduc = 100 / (100 + defCible)
+      const degats = Math.max(1, Math.round(att * mult * reduc))
+      pvE[cible] = Math.max(0, pvE[cible] - degats)
+      coups.push({ montant: degats, cible, camp: campAdverse, type: 'crit' }) // gros chiffre jaune
+    }
+  } else if (ultime.effet === 'soin') {
+    // Gros soin à toute l'équipe vivante.
+    for (let i = 0; i < equipeJ.length; i++) {
+      if (equipeJ[i] && pvJ[i] > 0) {
+        const pvMax = nombreSur(equipeJ[i].pvMax, 1, 1)
+        const soin = Math.round(pvMax * nombreSur(ultime.soin, 0.5, 0))
+        const avant = pvJ[i]
+        pvJ[i] = Math.min(pvMax, pvJ[i] + soin)
+        const gagne = pvJ[i] - avant
+        if (gagne > 0) coups.push({ montant: gagne, cible: i, camp: campAllie, type: 'soin' })
+      }
+    }
+  } else if (ultime.effet === 'tempo') {
+    // Remplit les jauges ATB de toute l'équipe (prêtes à frapper).
+    for (let i = 0; i < jaugeJ.length; i++) {
+      if (equipeJ[i] && pvJ[i] > 0) jaugeJ[i] = 100
+    }
+  } else if (ultime.effet === 'bouclier') {
+    // Active un bouclier d'équipe pour quelques tics (appliqué via options dans ticCombat).
+    bouclierTics = nombreSur(ultime.duree, 30, 1)
+  }
+
+  return { coups, bouclierTics }
+}
+
+export function ticCombat(equipeJ, pvJ, jaugeJ, equipeE, pvE, jaugeE, options) {
   const nPvJ = [...pvJ]
   const nPvE = [...pvE]
   const nJaugeJ = [...jaugeJ]
   const nJaugeE = [...jaugeE]
   const ennemisTombes = []
   const evenements = []
+  // Chiffres flottants : chaque coup porté (dégâts) ou soin appliqué.
+  // Format : { montant, cible, camp, type } où
+  //   camp = camp de la CIBLE ('joueur' = un pokémon du joueur a pris le coup),
+  //   type = 'degats' | 'crit' | 'soin'.
+  const coups = []
 
   // Pré-calcul des bonus d'équipe (une fois par tic, pour chaque camp).
   const boostDegatsJ = bonusEquipe(equipeJ, nPvJ, 'boostDegatsEquipe')
@@ -149,7 +216,12 @@ export function ticCombat(equipeJ, pvJ, jaugeJ, equipeE, pvE, jaugeE) {
         const ctx = { boostDegatsAllie: boostDegatsJ, alliesKO: koJ, pvCible: nPvE[cible], reducDegatsDef: reducDegatsE }
         const { degats, multiplicateur, critique } = calculerDegats(equipeJ[i], equipeE[cible], DIVISEUR_DEGATS_JOUEUR, ctx)
         const avant = nPvE[cible]
-        nPvE[cible] = Math.max(0, nPvE[cible] - degats)
+        let degatsE = degats
+        const reducBouclierE = (options && options.bouclierEnnemi) ? options.bouclierEnnemi : 0
+        if (reducBouclierE > 0) degatsE = Math.max(1, Math.round(degatsE * (1 - reducBouclierE)))
+        nPvE[cible] = Math.max(0, nPvE[cible] - degatsE)
+        // Chiffre flottant sur l'ennemi touché (rouge, ou jaune si crit).
+        coups.push({ montant: degatsE, cible, camp: 'ennemi', type: critique ? 'crit' : 'degats' })
         if (multiplicateur >= 2) evenements.push({ nom: equipeJ[i].nom, multiplicateur, camp: 'joueur' })
         if (critique) evenements.push({ nom: equipeJ[i].nom, critique: true, camp: 'joueur' })
         // Renvoi de dégâts (Provocateur côté ennemi qui encaisse).
@@ -159,7 +231,7 @@ export function ticCombat(equipeJ, pvJ, jaugeJ, equipeE, pvE, jaugeE) {
         }
         if (avant > 0 && nPvE[cible] <= 0) ennemisTombes.push(cible)
       }
-      appliquerRegen(equipeJ[i], equipeJ, nPvJ)
+      appliquerRegen(equipeJ[i], equipeJ, nPvJ, coups, 'joueur')
     }
   }
 
@@ -178,15 +250,20 @@ export function ticCombat(equipeJ, pvJ, jaugeJ, equipeE, pvE, jaugeE) {
       const cible = choisirCible(equipeJ, nPvJ)
       if (cible !== -1) {
         const ctx = { boostDegatsAllie: boostDegatsE, alliesKO: koE, pvCible: nPvJ[cible], reducDegatsDef: reducDegatsJ }
-        const { degats } = calculerDegats(equipeE[i], equipeJ[cible], DIVISEUR_DEGATS_ENNEMI, ctx)
+        let { degats, critique } = calculerDegats(equipeE[i], equipeJ[cible], DIVISEUR_DEGATS_ENNEMI, ctx)
+        // Bouclier ultime du Tank (Rempart) : réduit les dégâts subis par l'équipe joueur.
+        const reducBouclier = (options && options.bouclierJoueur) ? options.bouclierJoueur : 0
+        if (reducBouclier > 0) degats = Math.max(1, Math.round(degats * (1 - reducBouclier)))
         nPvJ[cible] = Math.max(0, nPvJ[cible] - degats)
+        // Chiffre flottant sur le pokémon du joueur touché.
+        coups.push({ montant: degats, cible, camp: 'joueur', type: critique ? 'crit' : 'degats' })
         // Renvoi de dégâts (Provocateur côté joueur qui encaisse).
         const passifCible = passifEffet(equipeJ[cible])
         if (passifCible.renvoiDegats && nPvE[i] > 0) {
           nPvE[i] = Math.max(0, nPvE[i] - Math.round(degats * passifCible.renvoiDegats))
         }
       }
-      appliquerRegen(equipeE[i], equipeE, nPvE)
+      appliquerRegen(equipeE[i], equipeE, nPvE, coups, 'ennemi')
     }
   }
 
@@ -199,6 +276,6 @@ export function ticCombat(equipeJ, pvJ, jaugeJ, equipeE, pvE, jaugeE) {
   return {
     pvJoueur: nPvJ, pvEnnemis: nPvE,
     jaugeJoueur: nJaugeJ, jaugeEnnemis: nJaugeE,
-    ennemisTombes, resultat, evenements,
+    ennemisTombes, resultat, evenements, coups,
   }
 }

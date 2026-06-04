@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import { VITESSE_COMBAT, PAUSE_RESPAWN, GAIN_PAR_VICTOIRE, GAIN_BASE_ENNEMI, BONUS_STAT_NIVEAU, XP_BASE_NIVEAU, XP_BASE_ENNEMI, TAUX_CAPTURE_RARETE, BALLS, BALL_AUTO_PAR_RARETE, TAUX_SHINY, PIERRES, BONBONS, prixDynamique, multiplicateurSurclassement } from './config'
-import { ticCombat } from './moteurCombat'
+import { ticCombat, appliquerUltime } from './moteurCombat'
+import { ULTIMES, ultimeDuRole, COUT_ULTIME } from './ultimes'
 import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise } from './stats'
 import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
 import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole } from './roles'
@@ -455,6 +456,27 @@ function App() {
   const [vitesse, setVitesse] = useState(1)
   const [choixStarterRequis, setChoixStarterRequis] = useState(false)
   const [captureRecente, setCaptureRecente] = useState(null)
+  // Chiffres flottants de combat (dégâts/crit) : { id, montant, type, camp, index }.
+  // camp = 'joueur' ou 'ennemi' (le camp de la cible touchée), index = position dans l'équipe.
+  const [chiffresFlottants, setChiffresFlottants] = useState([])
+  // --- ULTIMES ---
+  // Charge d'ultime par Pokémon de l'équipe (en nombre d'attaques). Index = position équipe.
+  const [chargeUltime, setChargeUltime] = useState([0, 0, 0, 0, 0, 0])
+  // Charge d'ultime affichée pour l'équipe ennemie (jauge visible, non-cliquable).
+  const [chargeUltimeEnnemi, setChargeUltimeEnnemi] = useState([0, 0, 0, 0, 0, 0, 0])
+  // Mode de déclenchement des ultimes : 'manuel' (clic) ou 'auto'.
+  const [modeUltime, setModeUltime] = useState('manuel')
+  const modeUltimeRef = useRef('manuel')
+  useEffect(() => { modeUltimeRef.current = modeUltime }, [modeUltime])
+  // Tics de bouclier (Rempart) encore actifs. Lu par la boucle, décrémenté à chaque tic.
+  const bouclierTicsRef = useRef(0)
+  // Suivi des attaques précédentes de chaque Pokémon (pour incrémenter la charge).
+  const attaquesPrecedentesRef = useRef([0, 0, 0, 0, 0, 0])
+  // Demande de déclenchement d'ultime en attente (index du Pokémon), traitée par la boucle.
+  const ultimeEnAttenteRef = useRef(null)
+  // Côté ENNEMI : charge d'ultime (réf, pas affichée) + tics de bouclier ennemi.
+  const attaquesPrecedentesEnnemiRef = useRef([0, 0, 0, 0, 0, 0, 0])
+  const bouclierTicsEnnemiRef = useRef(0)
 
   const equipeJoueur = equipeIds.map((uid) => captures.find((p) => p.uid === uid)).filter(Boolean)
   // Validité de la composition d'équipe (1 Tank / 1 Éclaireur / 2 Soutien / 2 DPS).
@@ -702,6 +724,31 @@ function App() {
     })
     if (captureTimer.current) clearTimeout(captureTimer.current)
     captureTimer.current = setTimeout(() => setCaptureRecente(null), 2200)
+  }
+
+  // Déclenche l'ultime du Pokémon d'index donné (clic manuel). La boucle le traite au prochain tic.
+  function declencherUltime(index) {
+    if ((chargeUltime[index] || 0) < COUT_ULTIME) return // pas encore prêt
+    ultimeEnAttenteRef.current = index
+  }
+
+  // Ajoute des chiffres flottants depuis les coups d'un tic de combat.
+  // Chaque chiffre s'auto-supprime après 0.9s (durée de l'animation CSS).
+  const compteurChiffre = useRef(0)
+  function ajouterChiffres(coups) {
+    if (!coups || coups.length === 0) return
+    const nouveaux = coups.map((c) => {
+      compteurChiffre.current += 1
+      // petit décalage horizontal aléatoire pour que les chiffres ne se superposent pas
+      const dx = Math.round((Math.random() - 0.5) * 30)
+      return { id: `c-${compteurChiffre.current}`, montant: c.montant, type: c.type, camp: c.camp, index: c.cible, dx }
+    })
+    setChiffresFlottants((liste) => [...liste, ...nouveaux])
+    // Nettoyage : on retire ces chiffres après l'animation.
+    const ids = new Set(nouveaux.map((n) => n.id))
+    setTimeout(() => {
+      setChiffresFlottants((liste) => liste.filter((c) => !ids.has(c.id)))
+    }, 900)
   }
 
   function marquerVu(id) {
@@ -1168,6 +1215,9 @@ function App() {
 
       setEquipeEnnemie(nouveaux)
       equipeEnnemieRef.current = nouveaux
+      // Reset des charges d'ultime ennemies (nouvelle équipe).
+      attaquesPrecedentesEnnemiRef.current = [0, 0, 0, 0, 0, 0, 0]
+      bouclierTicsEnnemiRef.current = 0
       const pvE = nouveaux.map((p) => p.pvMax)
       const jE = nouveaux.map(() => 0)
       const eq = equipeIds.map((uid) => capturesRef.current.find((p) => p.uid === uid)).filter(Boolean)
@@ -1373,11 +1423,88 @@ function App() {
         e = { ...e, pvE, jE }
         etat.current = e
       }
-      const r = ticCombat(equipeJoueur, e.pvJ, e.jJ, equipeEnnemie, e.pvE, e.jE)
+      // --- ULTIMES : déclenchement (manuel demandé OU auto si jauge pleine) ---
+      // On traite AVANT le tic pour que l'effet soit immédiat ce tour-ci.
+      const chargesActuelles = attaquesPrecedentesRef.current
+      let demandeIdx = ultimeEnAttenteRef.current
+      // En mode auto, on déclenche le premier Pokémon dont la jauge est pleine.
+      if (demandeIdx == null && modeUltimeRef.current === 'auto') {
+        for (let k = 0; k < equipeJoueur.length; k++) {
+          if ((chargesActuelles[k] || 0) >= COUT_ULTIME && e.pvJ[k] > 0) { demandeIdx = k; break }
+        }
+      }
+      if (demandeIdx != null && equipeJoueur[demandeIdx] && (chargesActuelles[demandeIdx] || 0) >= COUT_ULTIME && e.pvJ[demandeIdx] > 0) {
+        const roleU = equipeJoueur[demandeIdx].role || 'dps'
+        const ult = ultimeDuRole(roleU)
+        const res = appliquerUltime(demandeIdx, ult, equipeJoueur, e.pvJ, e.jJ, equipeEnnemie, e.pvE)
+        if (res.bouclierTics > 0) bouclierTicsRef.current = res.bouclierTics
+        if (res.coups && res.coups.length) ajouterChiffres(res.coups)
+        // Consomme la charge : on mémorise le compteur d'attaques au moment du déclenchement.
+        if (equipeJoueur[demandeIdx]) {
+          equipeJoueur[demandeIdx]._ultiResetAttaques = equipeJoueur[demandeIdx]._attaques || 0
+        }
+        chargesActuelles[demandeIdx] = 0
+        const nouvellesCharges = [...chargesActuelles]
+        setChargeUltime(nouvellesCharges)
+        if (ult) ajouterAuJournal(`${ult.emoji} ${equipeJoueur[demandeIdx].nom} déclenche ${ult.nom} !`, 'victoire')
+      }
+      ultimeEnAttenteRef.current = null
+
+      // --- ULTIMES ENNEMIS (auto) : le 1er ennemi dont la jauge est pleine déclenche ---
+      const chargesEnnemi = attaquesPrecedentesEnnemiRef.current
+      for (let k = 0; k < equipeEnnemie.length; k++) {
+        const atk = (equipeEnnemie[k] && equipeEnnemie[k]._attaques) || 0
+        const reset = (equipeEnnemie[k] && equipeEnnemie[k]._ultiResetAttaques) || 0
+        chargesEnnemi[k] = Math.min(COUT_ULTIME, Math.max(0, atk - reset))
+      }
+      // Met à jour l'affichage de la jauge ennemie (copie pour déclencher le rendu).
+      setChargeUltimeEnnemi([...chargesEnnemi])
+      for (let k = 0; k < equipeEnnemie.length; k++) {
+        if (chargesEnnemi[k] >= COUT_ULTIME && e.pvE[k] > 0) {
+          const roleE = equipeEnnemie[k].role || 'dps'
+          const ultE = ultimeDuRole(roleE)
+          // On inverse les équipes : l'ennemi déclenche → tape le joueur / soigne les ennemis.
+          const resE = appliquerUltime(k, ultE, equipeEnnemie, e.pvE, e.jE, equipeJoueur, e.pvJ, 'ennemi')
+          if (resE.bouclierTics > 0) bouclierTicsEnnemiRef.current = resE.bouclierTics
+          if (resE.coups && resE.coups.length) ajouterChiffres(resE.coups)
+          if (equipeEnnemie[k]) equipeEnnemie[k]._ultiResetAttaques = equipeEnnemie[k]._attaques || 0
+          chargesEnnemi[k] = 0
+          if (ultE) ajouterAuJournal(`${ultE.emoji} ${equipeEnnemie[k].nom} (ennemi) déclenche ${ultE.nom} !`, 'echec')
+          break // un seul ultime ennemi par tic, pour rester lisible
+        }
+      }
+
+      // Bouclier actif (Rempart) : joueur ET ennemi. Passés au tic puis décrémentés.
+      const bouclierActif = bouclierTicsRef.current > 0
+      const bouclierActifE = bouclierTicsEnnemiRef.current > 0
+      const optionsTic = {
+        bouclierJoueur: bouclierActif ? 0.5 : 0,
+        bouclierEnnemi: bouclierActifE ? 0.5 : 0,
+      }
+      if (bouclierTicsRef.current > 0) bouclierTicsRef.current -= 1
+      if (bouclierTicsEnnemiRef.current > 0) bouclierTicsEnnemiRef.current -= 1
+
+      const r = ticCombat(equipeJoueur, e.pvJ, e.jJ, equipeEnnemie, e.pvE, e.jE, optionsTic)
 
       etat.current = { pvJ: r.pvJoueur, jJ: r.jaugeJoueur, pvE: r.pvEnnemis, jE: r.jaugeEnnemis }
       setPvJoueur(r.pvJoueur); setJaugeJoueur(r.jaugeJoueur)
       setPvEnnemis(r.pvEnnemis); setJaugeEnnemis(r.jaugeEnnemis)
+      // Chiffres flottants de dégâts/crit (feedback visuel).
+      if (r.coups && r.coups.length) ajouterChiffres(r.coups)
+
+      // --- ULTIMES : mise à jour de la charge selon les attaques portées ce tic ---
+      // Charge = (attaques cumulées) - (attaques au dernier déclenchement), plafonné à COUT_ULTIME.
+      let chargesChangees = false
+      const charges = [...attaquesPrecedentesRef.current]
+      for (let k = 0; k < equipeJoueur.length; k++) {
+        const atk = (equipeJoueur[k] && equipeJoueur[k]._attaques) || 0
+        const dernierReset = (equipeJoueur[k] && equipeJoueur[k]._ultiResetAttaques) || 0
+        const c = Math.min(COUT_ULTIME, Math.max(0, atk - dernierReset))
+        if (c !== charges[k]) chargesChangees = true
+        charges[k] = c
+      }
+      attaquesPrecedentesRef.current = charges
+      if (chargesChangees) setChargeUltime(charges)
 
       r.ennemisTombes.forEach((index) => {
         const ennemi = equipeEnnemieRef.current[index]
@@ -2548,7 +2675,26 @@ function App() {
           }}>
             <div className="equipe-joueur">
               {equipeJoueur.map((poke, i) => (
-                <CartePokemon key={poke.uid} pokemon={poke} pvActuels={pvJoueur[i]} jauge={jaugeJoueur[i]} niveau={poke.niveau} compact />
+                <div className="carte-slot" key={poke.uid}>
+                  <CartePokemon
+                    pokemon={poke}
+                    pvActuels={pvJoueur[i]}
+                    jauge={jaugeJoueur[i]}
+                    niveau={poke.niveau}
+                    compact
+                    chargeUltime={chargeUltime[i] || 0}
+                    coutUltime={COUT_ULTIME}
+                    ultimePret={(chargeUltime[i] || 0) >= COUT_ULTIME}
+                    onUltime={() => declencherUltime(i)}
+                  />
+                  <div className="chiffres-couche">
+                    {chiffresFlottants.filter((c) => c.camp === 'joueur' && c.index === i).map((c) => (
+                      <span key={c.id} className={`chiffre-flottant ${c.type}`} style={{ left: `calc(50% + ${c.dx}px)` }}>
+                        {c.type === 'crit' ? `${c.montant} !` : c.type === 'soin' ? `+${c.montant}` : c.montant}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
 
@@ -2556,7 +2702,26 @@ function App() {
 
             <div className="equipe-ennemie">
               {equipeEnnemie.map((poke, i) => (
-                <CartePokemon key={i} pokemon={poke} pvActuels={pvEnnemis[i]} jauge={jaugeEnnemis[i]} niveau={poke.niveau} compact />
+                <div className="carte-slot" key={i}>
+                  <CartePokemon
+                    pokemon={poke}
+                    pvActuels={pvEnnemis[i]}
+                    jauge={jaugeEnnemis[i]}
+                    niveau={poke.niveau}
+                    compact
+                    chargeUltime={chargeUltimeEnnemi[i] || 0}
+                    coutUltime={COUT_ULTIME}
+                    ultimePret={(chargeUltimeEnnemi[i] || 0) >= COUT_ULTIME}
+                    ultimeEnnemi
+                  />
+                  <div className="chiffres-couche">
+                    {chiffresFlottants.filter((c) => c.camp === 'ennemi' && c.index === i).map((c) => (
+                      <span key={c.id} className={`chiffre-flottant ${c.type}`} style={{ left: `calc(50% + ${c.dx}px)` }}>
+                        {c.type === 'crit' ? `${c.montant} !` : c.type === 'soin' ? `+${c.montant}` : c.montant}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -2644,6 +2809,21 @@ function App() {
               <button className={`mode-btn ${vitesse === 4 ? 'actif' : ''}`} onClick={() => setVitesse(4)}>×4</button>
               <button className={`mode-btn ${vitesse === 8 ? 'actif' : ''}`} onClick={() => setVitesse(8)}>×8</button>
             </div>
+          </div>
+
+          <div className="panneau">
+            <div className="panneau-titre">
+              <span className="panneau-icone-emoji">⚡</span> Ultimes
+            </div>
+            <div className="ctrl-rangee">
+              <button className={`mode-btn ${modeUltime === 'manuel' ? 'actif' : ''}`} onClick={() => setModeUltime('manuel')}>✋ Manuel</button>
+              <button className={`mode-btn ${modeUltime === 'auto' ? 'actif' : ''}`} onClick={() => setModeUltime('auto')}>🤖 Auto</button>
+            </div>
+            <p className="ultime-aide">
+              {modeUltime === 'manuel'
+                ? 'Clique sur l\'icône ⚡ d\'un Pokémon quand elle brille pour lancer son ultime.'
+                : 'Les ultimes se déclenchent automatiquement dès qu\'ils sont prêts.'}
+            </p>
           </div>
 
           {!bossOk && (

@@ -9292,3 +9292,306 @@ img[src*="PokeAPI/sprites"] {
 .pokedex-speciaux-zone .speciaux-section-titre:first-child {
   margin-top: 4px;
 }
+
+/* ============================================================
+   COMBAT D'ARÈNE (reconstruit) — à coller à la FIN de App.css
+   ============================================================ */
+
+.arene-combat {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.arene-combat-entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid rgba(255, 205, 117, 0.35);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.arene-combat-titre {
+  font-family: 'Silkscreen', monospace;
+  font-size: 15px;
+  color: var(--jaune, #ffcd75);
+  text-shadow: 1px 1px 0 #000;
+}
+
+/* Zone des deux combattants actifs. */
+.arene-combat-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.arene-combat-camp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.arene-combat-restants {
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: #cfd2da;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.arene-combat-journal {
+  max-height: 140px;
+}
+
+/* Overlay de fin de combat (victoire / défaite). */
+.arene-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 60;
+  animation: areneOverlayFond 0.3s ease;
+}
+
+@keyframes areneOverlayFond {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.arene-overlay-boite {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 30px 50px;
+  border-radius: 16px;
+  border: 4px solid;
+  background: #1a1c2c;
+  animation: areneOverlayPop 0.4s cubic-bezier(0.2, 1.4, 0.5, 1);
+}
+
+@keyframes areneOverlayPop {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.arene-overlay-boite.victoire { border-color: #5bc47f; box-shadow: 0 0 30px rgba(91, 196, 127, 0.5); }
+.arene-overlay-boite.defaite { border-color: #ef7d57; box-shadow: 0 0 30px rgba(239, 125, 87, 0.4); }
+
+.arene-overlay-emoji { font-size: 56px; }
+
+.arene-overlay-texte {
+  font-family: 'Silkscreen', monospace;
+  font-size: 22px;
+  color: #fff;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.vs-texte {
+  font-family: 'Silkscreen', monospace;
+  font-size: 20px;
+  color: var(--jaune, #ffcd75);
+  text-shadow: 2px 2px 0 #000;
+}
+
+/* ============================================================
+   CHIFFRES FLOTTANTS DE COMBAT (dégâts / crit)
+   À coller à la FIN de App.css.
+   ============================================================ */
+
+/* Conteneur qui enveloppe chaque carte pour positionner les chiffres par-dessus. */
+.carte-slot {
+  position: relative;
+  display: inline-block;
+}
+
+/* Couche transparente au-dessus de la carte où apparaissent les chiffres. */
+.chiffres-couche {
+  position: absolute;
+  top: 30%;
+  left: 0;
+  right: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Un chiffre qui monte et s'efface. */
+.chiffre-flottant {
+  position: absolute;
+  transform: translateX(-50%);
+  font-family: 'Silkscreen', monospace;
+  font-size: 18px;
+  font-weight: bold;
+  color: #ff5555;                 /* dégâts = rouge */
+  text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+  animation: chiffre-monte 0.9s ease-out forwards;
+  white-space: nowrap;
+}
+
+/* Crit = jaune, plus gros. */
+.chiffre-flottant.crit {
+  color: #ffd62e;
+  font-size: 24px;
+}
+
+/* Soin = vert (prévu pour plus tard). */
+.chiffre-flottant.soin {
+  color: #5bc47f;
+}
+
+@keyframes chiffre-monte {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.7); }
+  20%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-38px) scale(1); }
+}
+
+/* Respect des préférences de mouvement réduit. */
+@media (prefers-reduced-motion: reduce) {
+  .chiffre-flottant { animation-duration: 0.4s; }
+}
+
+/* ============================================================
+   ULTIMES + POLISH DES JAUGES  (remplace l'ancien bloc "BOUTON / JAUGE D'ULTIME")
+   À coller à la FIN de App.css. Si tu avais déjà collé le bloc ultimes précédent,
+   REMPLACE-le par celui-ci (ne colle pas les deux).
+   ============================================================ */
+
+/* ---------- Bouton / jauge d'ultime (joueur cliquable + ennemi visible) ---------- */
+.bouton-ultime {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #2a2a3a;
+  background: radial-gradient(circle at 50% 40%, #232334, #14141d);
+  overflow: hidden;
+  cursor: default;
+  padding: 0;
+  z-index: 15;
+  opacity: 0.7;
+  transition: opacity 0.25s, transform 0.15s, box-shadow 0.25s;
+}
+.bouton-ultime-emoji {
+  position: relative;
+  z-index: 2;
+  font-size: 14px;
+  line-height: 30px;
+  filter: grayscale(0.7);
+  transition: filter 0.25s;
+}
+/* La jauge qui se remplit par le bas (dégradé doux de la couleur du rôle). */
+.bouton-ultime-jauge {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background: linear-gradient(to top, var(--couleur-ultime, #ffcd75), transparent);
+  opacity: 0.55;
+  z-index: 1;
+  transition: height 0.25s ease-out;
+}
+/* Prêt : brille, pulse, cliquable (joueur). */
+.bouton-ultime.pret {
+  opacity: 1;
+  cursor: pointer;
+  border-color: var(--couleur-ultime, #ffcd75);
+  box-shadow: 0 0 8px 2px var(--couleur-ultime, #ffcd75);
+  animation: ultime-pulse 1s ease-in-out infinite;
+}
+.bouton-ultime.pret .bouton-ultime-emoji { filter: none; }
+.bouton-ultime.pret:hover { transform: scale(1.15); }
+
+/* Ultime ENNEMI : visible mais non-cliquable, placé en haut à GAUCHE pour le distinguer. */
+.bouton-ultime.ultime-ennemi {
+  right: auto;
+  left: 4px;
+  cursor: default;
+}
+.bouton-ultime.ultime-ennemi.pret:hover { transform: none; }
+
+@keyframes ultime-pulse {
+  0%, 100% { box-shadow: 0 0 6px 1px var(--couleur-ultime, #ffcd75); }
+  50%      { box-shadow: 0 0 12px 4px var(--couleur-ultime, #ffcd75); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bouton-ultime.pret { animation: none; }
+}
+
+.panneau-icone-emoji { font-size: 16px; margin-right: 2px; }
+.ultime-aide { font-size: 10px; color: #9aa; margin: 6px 2px 0; line-height: 1.4; }
+
+/* ---------- POLISH des 3 barres (vie / jauge ATB / XP) ---------- */
+/* Transitions fluides + dégradés + petit éclat, pour un rendu plus "propre". */
+.barre-vie, .barre-jauge, .barre-xp {
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.barre-vie-remplissage,
+.barre-jauge-remplissage,
+.barre-xp-remplissage {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.2s ease-out;
+}
+/* Vie : vert → l'effet "dégradé" donne du volume. */
+.barre-vie-remplissage {
+  background: linear-gradient(to bottom, #6fe39a, #3fae6b);
+}
+/* Jauge d'action : bleu lumineux. */
+.barre-jauge-remplissage {
+  background: linear-gradient(to bottom, #6fc3ff, #2f8fe0);
+}
+/* XP : jaune doré. */
+.barre-xp-remplissage {
+  background: linear-gradient(to bottom, #ffe27a, #f0b400);
+}
+/* ============================================================
+   HALOS D'EFFET DE RÔLE (glow coloré sur la carte au bon moment)
+   À coller à la FIN de App.css.
+   Tank=bleu (encaisse) · Soutien=vert (soigne) · DPS=orange (frappe) · Éclaireur=jaune (vif)
+   ============================================================ */
+
+.halo-role {
+  position: relative;
+}
+.halo-role::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 9;
+  animation: halo-pulse 0.45s ease-out;
+}
+
+/* Couleurs par rôle (doivent matcher ROLES dans roles.js). */
+.halo-tank::after      { box-shadow: 0 0 14px 4px #41a6f6, inset 0 0 10px 2px #41a6f6; }
+.halo-soutien::after   { box-shadow: 0 0 14px 4px #5bc47f, inset 0 0 10px 2px #5bc47f; }
+.halo-dps::after       { box-shadow: 0 0 14px 4px #ef7d57, inset 0 0 10px 2px #ef7d57; }
+.halo-eclaireur::after { box-shadow: 0 0 14px 4px #ffcd75, inset 0 0 10px 2px #ffcd75; }
+
+@keyframes halo-pulse {
+  0%   { opacity: 0; }
+  35%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halo-role::after { animation-duration: 0.2s; }
+}
