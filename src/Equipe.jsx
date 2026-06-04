@@ -1,0 +1,472 @@
+import { useState } from 'react'
+import { xpRequise } from './stats'
+import { XP_BASE_NIVEAU, PIERRES } from './config'
+import { ROLES, determinerRole, passifDe, compterRoles, compositionValide, COMPOSITION_REQUISE } from './roles'
+import { OBJETS } from './objets'
+
+// Affiche le sprite officiel d'un objet (fallback emoji si l'image échoue).
+function IconeObjet({ id, classe = 'icone-objet' }) {
+  const o = OBJETS[id]
+  if (!o) return null
+  if (o.sprite) {
+    return <img src={o.sprite} alt={o.nom} className={classe} onError={(e) => { e.target.replaceWith(Object.assign(document.createElement('span'), { textContent: o.emoji })) }} />
+  }
+  return <span>{o.emoji}</span>
+}
+
+// Petit badge de rôle (emoji) à afficher dans un coin d'une carte.
+function BadgeRole({ pokemon }) {
+  const role = pokemon.role || determinerRole(pokemon)
+  const info = ROLES[role]
+  if (!info) return null
+  return <span className="badge-role" title={info.nom}>{info.emoji}</span>
+}
+
+// Indicateur de composition d'équipe : montre combien de chaque rôle, et si c'est valide.
+function IndicateurCompo({ equipe }) {
+  const compte = compterRoles(equipe)
+  const valide = compositionValide(equipe)
+  const ordre = ['tank', 'eclaireur', 'soutien', 'dps']
+  return (
+    <div className={`compo-indicateur ${valide ? 'compo-ok' : 'compo-ko'}`}>
+      <div className="compo-titre">
+        {valide ? '✓ Composition valide — prête au combat' : 'Composition requise : 1 Tank · 1 Éclaireur · 2 Soutien · 2 DPS'}
+      </div>
+      <div className="compo-roles">
+        {ordre.map((role) => {
+          const info = ROLES[role]
+          const actuel = compte[role]
+          const requis = COMPOSITION_REQUISE[role]
+          const ok = actuel === requis
+          return (
+            <span key={role} className={`compo-role ${ok ? 'role-ok' : 'role-ko'}`} style={{ borderColor: info.couleur }}>
+              <span className="compo-role-emoji">{info.emoji}</span>
+              <span className="compo-role-txt">{info.nom}</span>
+              <span className="compo-role-compte">{actuel}/{requis}</span>
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+const ICONES_PIERRES = {
+  'fire-stone': '/icons/fire-stone.png',
+  'water-stone': '/icons/water-stone.png',
+  'thunder-stone': '/icons/thunder-stone.png',
+  'leaf-stone': '/icons/leaf-stone.png',
+  'moon-stone': '/icons/moon-stone.png',
+  'sun-stone': '/icons/sun-stone.png',
+  'shiny-stone': '/icons/shiny-stone.png',
+  'dusk-stone': '/icons/dusk-stone.png',
+  'dawn-stone': '/icons/dawn-stone.png',
+  'ice-stone': '/icons/ice-stone.png',
+}
+
+// Couleurs par type Pokémon (pour les badges).
+const COULEURS_TYPE = {
+  normal: '#9099a1', fire: '#ff9d55', water: '#4d90d5', electric: '#f4d23c',
+  grass: '#63bb5b', ice: '#73cec0', fighting: '#ce4069', poison: '#ab6ac8',
+  ground: '#d97746', flying: '#8fa8dd', psychic: '#fa7179', bug: '#90c12c',
+  rock: '#c7b78b', ghost: '#5269ac', dragon: '#0b6dc3', dark: '#5a5366',
+  steel: '#5a8ea1', fairy: '#ec8fe6',
+}
+
+// Une barre de stat visuelle.
+function BarreStat({ label, valeur, pctMax, couleur }) {
+  const pct = Math.max(8, Math.min(100, pctMax))
+  return (
+    <div className="stat-barre-ligne">
+      <span className="stat-barre-label">{label}</span>
+      <div className="stat-barre-piste">
+        <div className="stat-barre-fill" style={{ width: `${pct}%`, background: couleur }}></div>
+      </div>
+      <span className="stat-barre-val">{valeur}</span>
+    </div>
+  )
+}
+
+function Fiche({ pokemon, pierres, objets = {}, onEquiperObjet, onEvoluerPierre, onRetour }) {
+  const [grilleOuverte, setGrilleOuverte] = useState(false)
+  const iv = pokemon.iv || { pv: 0, attaque: 0, vitesse: 0 }
+  const niv = pokemon.niveau || 1
+  const requise = xpRequise(niv, XP_BASE_NIVEAU)
+  const xp = pokemon.xp || 0
+  const pourcentageXP = Math.min(100, (xp / requise) * 100)
+
+  // Rôle + passif.
+  const role = pokemon.role || determinerRole(pokemon)
+  const infoRole = ROLES[role]
+  const passif = passifDe(pokemon)
+  const types = pokemon.types || []
+
+  const pvMax = pokemon.pvMax ?? 0
+  const attaque = pokemon.attaque ?? 0
+  const vitesse = pokemon.vitesse ?? 0
+  const defense = pokemon.defense ?? 0
+  const statMax = Math.max(pvMax, attaque, vitesse, defense, 1)
+
+  const objetEquipe = pokemon.objetEquipe && OBJETS[pokemon.objetEquipe] ? OBJETS[pokemon.objetEquipe] : null
+  const objetsDispo = Object.entries(objets).filter(([id, n]) => n > 0 && id !== pokemon.objetEquipe && OBJETS[id])
+
+  const evosPierre = (pokemon.evolutionsPierre || []).filter(
+    (e) => (pierres[e.pierre] || 0) > 0
+  )
+
+  return (
+    <div className="fiche-v2">
+      <button className="bouton-retour" onClick={onRetour}>← Retour</button>
+
+      <div className="fiche-entete">
+        <div className="fiche-sprite-cadre">
+          <img src={pokemon.sprite} alt={pokemon.nom} className="fiche-sprite-v2" />
+          {pokemon.shiny && <span className="fiche-shiny-badge">✨</span>}
+        </div>
+        <div className="fiche-identite">
+          <div className="fiche-nom-ligne">
+            <span className="fiche-nom-v2">{pokemon.nom}</span>
+            <span className="fiche-niv-badge">N.{niv}</span>
+          </div>
+          <span className="fiche-num-v2">N°{String(pokemon.id).padStart(3, '0')}</span>
+          <div className="fiche-types">
+            {types.map((t) => (
+              <span key={t} className="fiche-type-badge" style={{ background: COULEURS_TYPE[t] || '#777' }}>
+                {t}
+              </span>
+            ))}
+          </div>
+          {infoRole && (
+            <span className="fiche-role-v2" style={{ color: infoRole.couleur }}>
+              {infoRole.emoji} {infoRole.nom}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Passif du Pokémon */}
+      {passif && (
+        <div className="fiche-passif">
+          <span className="fiche-passif-nom">{passif.emoji} {passif.nom}</span>
+          <span className="fiche-passif-desc">{passif.description}</span>
+        </div>
+      )}
+
+      <div className="fiche-xp-v2">
+        <div className="fiche-xp-label-v2">XP {xp} / {requise}</div>
+        <div className="barre-xp grande">
+          <div className="barre-xp-remplissage" style={{ width: `${pourcentageXP}%` }}></div>
+        </div>
+      </div>
+
+      <div className="fiche-stats-v2">
+        <BarreStat label="PV" valeur={pvMax} pctMax={(pvMax / statMax) * 100} couleur="#5fbf60" />
+        <BarreStat label="ATT" valeur={attaque} pctMax={(attaque / statMax) * 100} couleur="#f0a020" />
+        <BarreStat label="VIT" valeur={vitesse} pctMax={(vitesse / statMax) * 100} couleur="#50a0e0" />
+        <BarreStat label="DÉF" valeur={defense} pctMax={(defense / statMax) * 100} couleur="#c060c0" />
+      </div>
+      {(() => {
+        const totalIV = iv.pv + iv.attaque + iv.vitesse
+        const pctQualite = Math.round((totalIV / 93) * 100)
+        const couleurQualite =
+          pctQualite >= 80 ? '#5fbf60' :
+          pctQualite >= 55 ? '#f0c040' :
+          pctQualite >= 30 ? '#f0a020' : '#e06060'
+        const mention =
+          pctQualite >= 90 ? 'Parfait !' :
+          pctQualite >= 75 ? 'Excellent' :
+          pctQualite >= 50 ? 'Bon' :
+          pctQualite >= 25 ? 'Moyen' : 'Faible'
+        return (
+          <div className="fiche-iv-qualite">
+            <div className="fiche-iv-qualite-haut">
+              <span className="fiche-iv-qualite-label">Qualité (IV)</span>
+              <span className="fiche-iv-qualite-valeur" style={{ color: couleurQualite }}>
+                {pctQualite}% · {mention}
+              </span>
+            </div>
+            <div className="fiche-iv-qualite-barre">
+              <div className="fiche-iv-qualite-fill" style={{ width: `${pctQualite}%`, background: couleurQualite }}></div>
+            </div>
+          </div>
+        )
+      })()}
+
+      <div className="fiche-objet-v2">
+        <div className="fiche-objet-titre-v2">⚙️ Objet équipé</div>
+        <div className="fiche-objet-slot-zone">
+          <button
+            className={`fiche-objet-slot ${objetEquipe ? 'rempli' : 'vide'}`}
+            onClick={() => setGrilleOuverte((v) => !v)}
+            title={objetEquipe ? 'Changer / retirer l\'objet' : 'Équiper un objet'}
+          >
+            {objetEquipe
+              ? <IconeObjet id={pokemon.objetEquipe} classe="fiche-objet-slot-img" />
+              : <span className="fiche-objet-slot-plus">+</span>}
+          </button>
+          <div className="fiche-objet-slot-txt">
+            {objetEquipe ? (
+              <>
+                <span className="fiche-objet-nom">{objetEquipe.nom}</span>
+                <span className="fiche-objet-effet-v2">{objetEquipe.desc}</span>
+                <button className="bouton-retirer-objet-v2" onClick={() => onEquiperObjet(pokemon.uid, null)}>
+                  Retirer
+                </button>
+              </>
+            ) : (
+              <span className="fiche-objet-vide-v2">Aucun objet — clique le slot pour en équiper un</span>
+            )}
+          </div>
+        </div>
+
+        {grilleOuverte && (
+          <div className="fiche-objets-grille">
+            {objetsDispo.length > 0 ? (
+              objetsDispo.map(([id, n]) => (
+                <button
+                  key={id}
+                  className="fiche-objet-case"
+                  onClick={() => { onEquiperObjet(pokemon.uid, id); setGrilleOuverte(false) }}
+                  title={`${OBJETS[id].nom} — ${OBJETS[id].desc}`}
+                >
+                  <IconeObjet id={id} classe="fiche-objet-case-img" />
+                  <span className="fiche-objet-case-nom">{OBJETS[id].nom}</span>
+                  <span className="fiche-objet-case-stock">×{n}</span>
+                </button>
+              ))
+            ) : (
+              <p className="fiche-objet-vide-v2">Aucun objet disponible dans ton sac.</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {evosPierre.length > 0 && (
+        <div className="fiche-pierres-v2">
+          <div className="fiche-objet-titre-v2">💎 Évolution par pierre</div>
+          {evosPierre.map((e) => {
+            const infoPierre = PIERRES[e.pierre]
+            return (
+              <button
+                key={e.pierre}
+                className="bouton-pierre"
+                onClick={() => onEvoluerPierre(pokemon.uid, e.evolueEn, e.pierre)}
+                title={`Utiliser une ${infoPierre ? infoPierre.nom : e.pierre}`}
+              >
+                {ICONES_PIERRES[e.pierre] ? <img src={ICONES_PIERRES[e.pierre]} alt="" className="bouton-pierre-img" /> : (infoPierre ? infoPierre.emoji : '💎')} → {e.evolueEn} (x{pierres[e.pierre] || 0})
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Equipe({ equipe, collection, pierres = {}, objets = {}, onEquiperObjet, onEvoluerPierre, onAjouterMembre, onRetirerMembre, onAutoEquipe, onFermer }) {
+  const [selection, setSelection] = useState(null)
+  const [ajoutEnCours, setAjoutEnCours] = useState(false)
+  const [tri, setTri] = useState('numero')
+  const [typeFiltre, setTypeFiltre] = useState('tous')
+  const [roleFiltre, setRoleFiltre] = useState('tous')
+  const [recherche, setRecherche] = useState('')
+  const [shinyOnly, setShinyOnly] = useState(false)
+
+  const uidsEquipe = equipe.map((p) => p.uid)
+  const famillesEquipe = equipe.map((p) => p.familleId).filter((f) => f != null)
+  const NB_SLOTS = 6
+  const slotsVides = NB_SLOTS - equipe.length
+
+  const typesDispo = ['tous', ...Array.from(new Set(collection.flatMap((p) => p.types || []))).sort()]
+
+  function trierFiltrer(liste) {
+    let resultat = [...liste]
+    if (recherche.trim() !== '') {
+      const q = recherche.trim().toLowerCase()
+      resultat = resultat.filter((p) => (p.nom || '').toLowerCase().includes(q))
+    }
+    if (shinyOnly) {
+      resultat = resultat.filter((p) => p.shiny)
+    }
+    if (typeFiltre !== 'tous') {
+      resultat = resultat.filter((p) => (p.types || []).includes(typeFiltre))
+    }
+    if (roleFiltre !== 'tous') {
+      resultat = resultat.filter((p) => (p.role || determinerRole(p)) === roleFiltre)
+    }
+    if (tri === 'numero') resultat.sort((a, b) => a.id - b.id)
+    else if (tri === 'niveau') resultat.sort((a, b) => (b.niveau || 1) - (a.niveau || 1))
+    else if (tri === 'nom') resultat.sort((a, b) => a.nom.localeCompare(b.nom))
+    else if (tri === 'rarete') {
+      const ordreRarete = { legendaire: 4, tresRare: 3, rare: 2, commun: 1 }
+      resultat.sort((a, b) => (ordreRarete[b.rarete] || 0) - (ordreRarete[a.rarete] || 0))
+    }
+    return resultat
+  }
+
+  const barreTriFiltre = (
+    <div className="banc-outils" onClick={(e) => e.stopPropagation()}>
+      <input
+        type="text"
+        className="banc-recherche"
+        placeholder="🔍 Rechercher..."
+        value={recherche}
+        onChange={(e) => setRecherche(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+      />
+      <div className="tri-filtre">
+        <select className="tri-select" value={tri} onChange={(e) => setTri(e.target.value)} onClick={(e) => e.stopPropagation()}>
+          <option value="numero">Tri : N°</option>
+          <option value="niveau">Tri : Niveau</option>
+          <option value="nom">Tri : Nom</option>
+          <option value="rarete">Tri : Rareté</option>
+        </select>
+        <select className="tri-select" value={typeFiltre} onChange={(e) => setTypeFiltre(e.target.value)} onClick={(e) => e.stopPropagation()}>
+          {typesDispo.map((t) => (
+            <option key={t} value={t}>{t === 'tous' ? 'Type : tous' : `Type : ${t}`}</option>
+          ))}
+        </select>
+        <select className="tri-select" value={roleFiltre} onChange={(e) => setRoleFiltre(e.target.value)} onClick={(e) => e.stopPropagation()}>
+          <option value="tous">Rôle : tous</option>
+          {Object.entries(ROLES).map(([cle, info]) => (
+            <option key={cle} value={cle}>{info.emoji} {info.nom}</option>
+          ))}
+        </select>
+        <button
+          className={`tri-toggle ${shinyOnly ? 'actif' : ''}`}
+          onClick={(e) => { e.stopPropagation(); setShinyOnly((v) => !v) }}
+          title="Afficher seulement les shinies"
+        >✨ Shiny</button>
+      </div>
+    </div>
+  )
+
+  if (ajoutEnCours) {
+    const dispoBrut = collection.filter(
+      (p) => !uidsEquipe.includes(p.uid) && !famillesEquipe.includes(p.familleId)
+    )
+    const dispo = trierFiltrer(dispoBrut)
+    return (
+      <div className="overlay" onClick={onFermer}>
+        <div className="panneau-banc panneau-equipe-doree" onClick={(e) => e.stopPropagation()}>
+          <div className="pokedex-entete">
+            <h2>Ajouter à l'équipe</h2>
+            <button className="bouton-fermer" onClick={() => setAjoutEnCours(false)}>✕</button>
+          </div>
+          <IndicateurCompo equipe={equipe} />
+          {barreTriFiltre}
+          <div className="banc-grille">
+            {dispo.length === 0 ? (
+              <p className="banc-vide">Aucun Pokémon disponible (vérifie les filtres).</p>
+            ) : (
+              dispo.map((poke) => (
+                <button
+                  key={poke.uid}
+                  className="banc-carte cliquable"
+                  onClick={() => {
+                    onAjouterMembre(poke)
+                    setAjoutEnCours(false)
+                  }}
+                >
+                  {poke.shiny && <span className="banc-shiny-mark">✨</span>}
+                  <BadgeRole pokemon={poke} />
+                  <img src={poke.sprite} alt={poke.nom} className="banc-sprite" loading="lazy" />
+                  <span className="banc-nom">{poke.nom}</span>
+                  <span className="banc-iv">N.{poke.niveau || 1}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (selection) {
+    const pokemonAJour = collection.find((p) => p.uid === selection.uid) || selection
+    return (
+      <div className="overlay" onClick={onFermer}>
+        <div className="panneau-banc panneau-equipe-doree" onClick={(e) => e.stopPropagation()}>
+          <div className="pokedex-entete">
+            <h2>Détails</h2>
+            <button className="bouton-fermer" onClick={onFermer}>✕</button>
+          </div>
+          <Fiche
+            pokemon={pokemonAJour}
+            pierres={pierres}
+            objets={objets}
+            onEquiperObjet={onEquiperObjet}
+            onEvoluerPierre={onEvoluerPierre}
+            onRetour={() => setSelection(null)}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  const collectionAffichee = trierFiltrer(collection)
+
+  return (
+    <div className="overlay" onClick={onFermer}>
+      <div className="panneau-banc panneau-equipe-doree" onClick={(e) => e.stopPropagation()}>
+        <div className="pokedex-entete">
+          <h2>Mon équipe ({equipe.length}/{NB_SLOTS})</h2>
+          <button className="bouton-fermer" onClick={onFermer}>✕</button>
+        </div>
+
+        <IndicateurCompo equipe={equipe} />
+        <p className="banc-aide">Les changements s'appliquent au prochain combat.</p>
+        {onAutoEquipe && (
+          <button className="bouton-auto-equipe" onClick={onAutoEquipe}>
+            ⚡ Auto-équipe (compo idéale)
+          </button>
+        )}
+        <div className="banc-grille">
+          {equipe.map((poke, i) => (
+            <div key={poke.uid} className="banc-carte">
+              {poke.shiny && <span className="banc-shiny-mark">✨</span>}
+              <BadgeRole pokemon={poke} />
+              <img
+                src={poke.sprite}
+                alt={poke.nom}
+                className="banc-sprite cliquable-img"
+                onClick={() => setSelection(poke)}
+              />
+              <span className="banc-nom">{poke.nom}</span>
+              <span className="banc-iv">N.{poke.niveau || 1}</span>
+              {equipe.length > 1 && (
+                <button className="bouton-retirer" onClick={() => onRetirerMembre(i)}>Retirer</button>
+              )}
+            </div>
+          ))}
+          {Array.from({ length: slotsVides }).map((_, i) => (
+            <button key={`vide-${i}`} className="banc-carte slot-vide" onClick={() => setAjoutEnCours(true)}>
+              <span className="slot-plus">+</span>
+              <span className="banc-nom">Ajouter</span>
+            </button>
+          ))}
+        </div>
+
+        <h3 className="banc-titre reserve">📦 Collection ({collectionAffichee.length})</h3>
+        {barreTriFiltre}
+        <div className="banc-grille">
+          {collectionAffichee.length === 0 ? (
+            <p className="banc-vide">Aucun Pokémon ne correspond (vérifie les filtres).</p>
+          ) : (
+            collectionAffichee.map((poke) => (
+              <button key={poke.uid} className="banc-carte cliquable" onClick={() => setSelection(poke)}>
+                {poke.shiny && <span className="banc-shiny-mark">✨</span>}
+                <BadgeRole pokemon={poke} />
+                <img src={poke.sprite} alt={poke.nom} className="banc-sprite" loading="lazy" />
+                <span className="banc-nom">{poke.nom}</span>
+                <span className="banc-iv">N.{poke.niveau || 1}</span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default Equipe

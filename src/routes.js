@@ -1,0 +1,1751 @@
+// Définition des zones (pool par rareté, niveau, déblocage, décor).
+// 100 zones, Pokémon gen 1-9 (1025 espèces). Généré automatiquement.
+// Règle : commun/rare = bases capturables ; tresRare = évolutions (non capturables) ;
+// legendaire = 1er = boss de zone, les autres = légendaires capturables (rare).
+
+export const ROUTES = [
+  // ============ 1. Sentier des Débutants ============
+  {
+    id: 'tutoriel',
+    nom: 'Sentier des Débutants',
+    emoji: '🌱',
+    description: 'Zone 1 — Sentier des Débutants.',
+    pool: {
+      commun: ['zubat', 'vulpix', 'weedle', 'sandshrew', 'pidgey', 'spearow', 'venonat', 'rattata', 'nidoran-f', 'paras', 'charmander', 'nidoran-m'],
+      rare: ['squirtle', 'oddish', 'diglett', 'ekans', 'bulbasaur', 'caterpie'],
+      tresRare: ['blastoise', 'venusaur', 'beedrill', 'ivysaur', 'charmeleon', 'wartortle'],
+      legendaire: ['articuno', 'zapdos', 'moltres', 'mewtwo'],
+    },
+    niveau: 1,
+    requisDe: null,
+    decor: '/prairie.png',
+    handicapEnnemi: 0.45, // ZONE TUTO : ennemis (et boss) affaiblis à 45% des stats pour un démarrage accessible.
+  },
+
+  // ============ 2. Route de l'Aurore ============
+  {
+    id: 'zone2',
+    nom: 'Route de l\'Aurore',
+    emoji: '🌅',
+    description: 'Zone 2 — Route de l\'Aurore.',
+    pool: {
+      commun: ['oddish', 'zubat', 'paras', 'nidoran-m', 'venonat', 'mankey', 'diglett', 'spearow', 'bulbasaur', 'psyduck', 'sandshrew', 'vulpix'],
+      rare: ['pidgey', 'charmander', 'meowth', 'squirtle', 'caterpie', 'growlithe', 'rattata'],
+      tresRare: ['kakuna', 'charmeleon', 'blastoise', 'arbok', 'pidgeotto', 'butterfree'],
+      legendaire: ['zapdos', 'moltres', 'mewtwo', 'mew'],
+    },
+    niveau: 3,
+    requisDe: 'tutoriel',
+    decor: '/prairie.png',
+    handicapEnnemi: 0.55, // coup de pouce dégressif (équipe encore incomplète)
+  },
+
+  // ============ 3. Bois de Jade ============
+  {
+    id: 'zone3',
+    nom: 'Bois de Jade',
+    emoji: '🌲',
+    description: 'Zone 3 — Bois de Jade.',
+    pool: {
+      commun: ['zubat', 'poliwag', 'oddish', 'nidoran-f', 'psyduck', 'paras', 'squirtle', 'charmander', 'venonat', 'weedle', 'mankey', 'nidoran-m'],
+      rare: ['pidgey', 'tentacool', 'diglett', 'meowth', 'ekans', 'machop', 'caterpie'],
+      tresRare: ['charizard', 'pikachu', 'metapod', 'arbok', 'pidgeot', 'kakuna'],
+      legendaire: ['moltres', 'mewtwo', 'mew', 'raikou'],
+    },
+    niveau: 5,
+    requisDe: 'zone2',
+    decor: '/foret.png',
+    handicapEnnemi: 0.65, // coup de pouce dégressif
+  },
+
+  // ============ 4. Prairie Verdoyante ============
+  {
+    id: 'zone4',
+    nom: 'Prairie Verdoyante',
+    emoji: '🌿',
+    description: 'Zone 4 — Prairie Verdoyante.',
+    pool: {
+      commun: ['zubat', 'pidgey', 'nidoran-f', 'meowth', 'geodude', 'machop', 'bellsprout', 'ponyta', 'poliwag', 'oddish', 'nidoran-m', 'psyduck'],
+      rare: ['slowpoke', 'magnemite', 'paras', 'tentacool', 'ekans', 'rattata', 'spearow'],
+      tresRare: ['nidorino', 'jigglypuff', 'fearow', 'clefairy', 'clefable', 'sandslash'],
+      legendaire: ['mewtwo', 'mew', 'raikou', 'entei'],
+    },
+    niveau: 7,
+    requisDe: 'zone3',
+    decor: '/prairie.png',
+    handicapEnnemi: 0.80, // dernier petit coup de pouce avant l'équilibrage normal
+  },
+
+  // ============ 5. Caverne d'Écho ============
+  {
+    id: 'zone5',
+    nom: 'Caverne d\'Écho',
+    emoji: '🪨',
+    description: 'Zone 5 — Caverne d\'Écho.',
+    pool: {
+      commun: ['diglett', 'ponyta', 'vulpix', 'venonat', 'meowth', 'shellder', 'psyduck', 'nidoran-m', 'magnemite', 'seel', 'doduo', 'oddish'],
+      rare: ['poliwag', 'abra', 'machop', 'growlithe', 'zubat', 'farfetchd', 'bellsprout'],
+      tresRare: ['fearow', 'arbok', 'nidorino', 'ninetales', 'pikachu', 'vileplume'],
+      legendaire: ['mew', 'raikou', 'entei', 'suicune'],
+    },
+    niveau: 9,
+    requisDe: 'zone4',
+    decor: '/grotte.png',
+  },
+
+  // ============ 6. Mont Sélénite ============
+  {
+    id: 'zone6',
+    nom: 'Mont Sélénite',
+    emoji: '🌑',
+    description: 'Zone 6 — Mont Sélénite.',
+    pool: {
+      commun: ['mankey', 'magnemite', 'tentacool', 'gastly', 'abra', 'meowth', 'poliwag', 'psyduck', 'geodude', 'ponyta', 'krabby', 'slowpoke'],
+      rare: ['shellder', 'bellsprout', 'paras', 'grimer', 'seel', 'onix', 'farfetchd'],
+      tresRare: ['jigglypuff', 'sandslash', 'parasect', 'persian', 'clefairy', 'golbat'],
+      legendaire: ['raikou', 'entei', 'suicune', 'lugia'],
+    },
+    niveau: 11,
+    requisDe: 'zone5',
+    decor: '/grotte.png',
+  },
+
+  // ============ 7. Forge Ardente ============
+  {
+    id: 'zone7',
+    nom: 'Forge Ardente',
+    emoji: '🔥',
+    description: 'Zone 7 — Forge Ardente.',
+    pool: {
+      commun: ['koffing', 'drowzee', 'ponyta', 'machop', 'seel', 'psyduck', 'magnemite', 'onix', 'doduo', 'abra', 'cubone', 'grimer'],
+      rare: ['growlithe', 'gastly', 'geodude', 'shellder', 'bellsprout', 'tentacool', 'exeggcute'],
+      tresRare: ['golduck', 'wigglytuff', 'clefable', 'poliwhirl', 'parasect', 'persian'],
+      legendaire: ['entei', 'suicune', 'lugia', 'ho-oh'],
+    },
+    niveau: 13,
+    requisDe: 'zone6',
+    decor: '/volcan.png',
+  },
+
+  // ============ 8. Plaine Cendrée ============
+  {
+    id: 'zone8',
+    nom: 'Plaine Cendrée',
+    emoji: '🌋',
+    description: 'Zone 8 — Plaine Cendrée.',
+    pool: {
+      commun: ['tentacool', 'seel', 'gastly', 'horsea', 'kangaskhan', 'lickitung', 'onix', 'bellsprout', 'farfetchd', 'magnemite', 'exeggcute', 'shellder'],
+      rare: ['abra', 'ponyta', 'grimer', 'krabby', 'machop', 'cubone', 'doduo'],
+      tresRare: ['weepinbell', 'poliwhirl', 'primeape', 'vileplume', 'victreebel', 'venomoth'],
+      legendaire: ['suicune', 'lugia', 'ho-oh', 'celebi'],
+    },
+    niveau: 15,
+    requisDe: 'zone7',
+    decor: '/desert.png',
+  },
+
+  // ============ 9. Dunes Brûlantes ============
+  {
+    id: 'zone9',
+    nom: 'Dunes Brûlantes',
+    emoji: '🏜️',
+    description: 'Zone 9 — Dunes Brûlantes.',
+    pool: {
+      commun: ['grimer', 'exeggcute', 'rhyhorn', 'seel', 'krabby', 'lickitung', 'kangaskhan', 'farfetchd', 'tauros', 'koffing', 'slowpoke', 'horsea'],
+      rare: ['tangela', 'pinsir', 'ponyta', 'magnemite', 'scyther', 'cubone', 'onix'],
+      tresRare: ['poliwrath', 'persian', 'primeape', 'graveler', 'golduck', 'machamp'],
+      legendaire: ['lugia', 'ho-oh', 'celebi', 'regirock'],
+    },
+    niveau: 17,
+    requisDe: 'zone8',
+    decor: '/desert.png',
+  },
+
+  // ============ 10. Oasis Perdue ============
+  {
+    id: 'zone10',
+    nom: 'Oasis Perdue',
+    emoji: '🌴',
+    description: 'Zone 10 — Oasis Perdue.',
+    pool: {
+      commun: ['ditto', 'tangela', 'scyther', 'onix', 'magikarp', 'grimer', 'rhyhorn', 'lickitung', 'koffing', 'horsea', 'seel', 'doduo'],
+      rare: ['tauros', 'krabby', 'kangaskhan', 'pinsir', 'staryu', 'cubone', 'drowzee'],
+      tresRare: ['weepinbell', 'machoke', 'golem', 'victreebel', 'graveler', 'muk'],
+      legendaire: ['ho-oh', 'celebi', 'regirock', 'regice'],
+    },
+    niveau: 19,
+    requisDe: 'zone9',
+    decor: '/desert.png',
+  },
+
+  // ============ 11. Rivage Naissant ============
+  {
+    id: 'zone11',
+    nom: 'Rivage Naissant',
+    emoji: '🐚',
+    description: 'Zone 11 — Rivage Naissant.',
+    pool: {
+      commun: ['tauros', 'pinsir', 'tangela', 'rhyhorn', 'drowzee', 'eevee', 'kangaskhan', 'cubone', 'ditto', 'onix', 'aerodactyl', 'scyther'],
+      rare: ['goldeen', 'krabby', 'lapras', 'omanyte', 'exeggcute', 'staryu', 'magikarp'],
+      tresRare: ['dodrio', 'kingler', 'golem', 'weepinbell', 'slowbro', 'hypno'],
+      legendaire: ['celebi', 'regirock', 'regice', 'registeel'],
+    },
+    niveau: 21,
+    requisDe: 'zone10',
+    decor: '/abysses.png',
+  },
+
+  // ============ 12. Côte Azurée ============
+  {
+    id: 'zone12',
+    nom: 'Côte Azurée',
+    emoji: '🏖️',
+    description: 'Zone 12 — Côte Azurée.',
+    pool: {
+      commun: ['ditto', 'chikorita', 'omanyte', 'cyndaquil', 'dratini', 'lapras', 'horsea', 'tangela', 'kangaskhan', 'magikarp', 'cubone', 'kabuto'],
+      rare: ['rhyhorn', 'staryu', 'lickitung', 'sentret', 'koffing', 'exeggcute', 'scyther'],
+      tresRare: ['hitmonlee', 'muk', 'haunter', 'magneton', 'rapidash', 'hypno'],
+      legendaire: ['regirock', 'regice', 'registeel', 'latias'],
+    },
+    niveau: 23,
+    requisDe: 'zone11',
+    decor: '/abysses.png',
+  },
+
+  // ============ 13. Lagon Turquoise ============
+  {
+    id: 'zone13',
+    nom: 'Lagon Turquoise',
+    emoji: '🌊',
+    description: 'Zone 13 — Lagon Turquoise.',
+    pool: {
+      commun: ['goldeen', 'kangaskhan', 'scyther', 'tauros', 'eevee', 'tangela', 'magikarp', 'cyndaquil', 'pichu', 'chikorita', 'horsea', 'sentret'],
+      rare: ['kabuto', 'totodile', 'aerodactyl', 'pinsir', 'staryu', 'ledyba', 'porygon'],
+      tresRare: ['hitmonlee', 'hitmonchan', 'dodrio', 'exeggutor', 'hypno', 'gengar'],
+      legendaire: ['regice', 'registeel', 'latias', 'latios'],
+    },
+    niveau: 25,
+    requisDe: 'zone12',
+    decor: '/abysses.png',
+  },
+
+  // ============ 14. Marais Brumeux ============
+  {
+    id: 'zone14',
+    nom: 'Marais Brumeux',
+    emoji: '🌫️',
+    description: 'Zone 14 — Marais Brumeux.',
+    pool: {
+      commun: ['sentret', 'dratini', 'porygon', 'natu', 'chinchou', 'lapras', 'spinarak', 'aerodactyl', 'chikorita', 'ledyba', 'hoothoot', 'tauros'],
+      rare: ['togepi', 'kabuto', 'cleffa', 'cyndaquil', 'pinsir', 'totodile', 'igglybuff'],
+      tresRare: ['jynx', 'seadra', 'rhydon', 'starmie', 'exeggutor', 'seaking'],
+      legendaire: ['registeel', 'latias', 'latios', 'kyogre'],
+    },
+    niveau: 27,
+    requisDe: 'zone13',
+    decor: '/marais.png',
+  },
+
+  // ============ 15. Tourbière Toxique ============
+  {
+    id: 'zone15',
+    nom: 'Tourbière Toxique',
+    emoji: '☠️',
+    description: 'Zone 15 — Tourbière Toxique.',
+    pool: {
+      commun: ['eevee', 'totodile', 'hoppip', 'aerodactyl', 'ledyba', 'lapras', 'cyndaquil', 'cleffa', 'yanma', 'hoothoot', 'porygon', 'omanyte'],
+      rare: ['sentret', 'ditto', 'igglybuff', 'togepi', 'natu', 'sunkern', 'pichu'],
+      tresRare: ['flareon', 'marowak', 'vaporeon', 'jynx', 'electabuzz', 'mr-mime'],
+      legendaire: ['latias', 'latios', 'kyogre', 'groudon'],
+    },
+    niveau: 29,
+    requisDe: 'zone14',
+    decor: '/marais.png',
+  },
+
+  // ============ 16. Plaine Statique ============
+  {
+    id: 'zone16',
+    nom: 'Plaine Statique',
+    emoji: '⚡',
+    description: 'Zone 16 — Plaine Statique.',
+    pool: {
+      commun: ['yanma', 'wooper', 'igglybuff', 'murkrow', 'kabuto', 'dratini', 'hoothoot', 'aerodactyl', 'spinarak', 'cyndaquil', 'sunkern', 'misdreavus'],
+      rare: ['natu', 'totodile', 'chikorita', 'hoppip', 'unown', 'sentret', 'aipom'],
+      tresRare: ['jolteon', 'vaporeon', 'chansey', 'gyarados', 'magmar', 'flareon'],
+      legendaire: ['latios', 'kyogre', 'groudon', 'rayquaza'],
+    },
+    niveau: 31,
+    requisDe: 'zone15',
+    decor: '/electrique.png',
+  },
+
+  // ============ 17. Centrale Abandonnée ============
+  {
+    id: 'zone17',
+    nom: 'Centrale Abandonnée',
+    emoji: '🔌',
+    description: 'Zone 17 — Centrale Abandonnée.',
+    pool: {
+      commun: ['chinchou', 'snubbull', 'misdreavus', 'yanma', 'ledyba', 'mareep', 'spinarak', 'murkrow', 'togepi', 'hoppip', 'girafarig', 'igglybuff'],
+      rare: ['dunsparce', 'aipom', 'hoothoot', 'pineco', 'unown', 'gligar', 'pichu'],
+      tresRare: ['snorlax', 'omastar', 'meganium', 'jolteon', 'quilava', 'typhlosion'],
+      legendaire: ['kyogre', 'groudon', 'rayquaza', 'jirachi'],
+    },
+    niveau: 33,
+    requisDe: 'zone16',
+    decor: '/electrique.png',
+  },
+
+  // ============ 18. Temple de l'Esprit ============
+  {
+    id: 'zone18',
+    nom: 'Temple de l\'Esprit',
+    emoji: '🔮',
+    description: 'Zone 18 — Temple de l\'Esprit.',
+    pool: {
+      commun: ['igglybuff', 'teddiursa', 'wooper', 'gligar', 'girafarig', 'sneasel', 'qwilfish', 'natu', 'spinarak', 'unown', 'misdreavus', 'hoppip'],
+      rare: ['pineco', 'togepi', 'sunkern', 'murkrow', 'yanma', 'chinchou', 'heracross'],
+      tresRare: ['dragonair', 'vaporeon', 'jolteon', 'flareon', 'furret', 'noctowl'],
+      legendaire: ['groudon', 'rayquaza', 'jirachi', 'deoxys-normal'],
+    },
+    niveau: 35,
+    requisDe: 'zone17',
+    decor: '/temple.png',
+  },
+
+  // ============ 19. Sanctuaire Mental ============
+  {
+    id: 'zone19',
+    nom: 'Sanctuaire Mental',
+    emoji: '🧠',
+    description: 'Zone 19 — Sanctuaire Mental.',
+    pool: {
+      commun: ['togepi', 'qwilfish', 'unown', 'snubbull', 'sunkern', 'corsola', 'sneasel', 'murkrow', 'hoppip', 'teddiursa', 'mareep', 'slugma'],
+      rare: ['remoraid', 'aipom', 'pineco', 'gligar', 'igglybuff', 'misdreavus', 'girafarig'],
+      tresRare: ['meganium', 'typhlosion', 'quilava', 'ledian', 'dragonair', 'flaaffy'],
+      legendaire: ['rayquaza', 'jirachi', 'deoxys-normal', 'uxie'],
+    },
+    niveau: 37,
+    requisDe: 'zone18',
+    decor: '/temple.png',
+  },
+
+  // ============ 20. Pics Enneigés ============
+  {
+    id: 'zone20',
+    nom: 'Pics Enneigés',
+    emoji: '🏔️',
+    description: 'Zone 20 — Pics Enneigés.',
+    pool: {
+      commun: ['remoraid', 'unown', 'misdreavus', 'pineco', 'corsola', 'aipom', 'yanma', 'stantler', 'sunkern', 'wooper', 'heracross', 'qwilfish'],
+      rare: ['murkrow', 'girafarig', 'phanpy', 'houndour', 'gligar', 'shuckle', 'skarmory'],
+      tresRare: ['marill', 'noctowl', 'lanturn', 'ampharos', 'ledian', 'azumarill'],
+      legendaire: ['jirachi', 'deoxys-normal', 'uxie', 'mesprit'],
+    },
+    niveau: 39,
+    requisDe: 'zone19',
+    decor: '/neige.png',
+  },
+
+  // ============ 21. Toundra Gelée ============
+  {
+    id: 'zone21',
+    nom: 'Toundra Gelée',
+    emoji: '❄️',
+    description: 'Zone 21 — Toundra Gelée.',
+    pool: {
+      commun: ['qwilfish', 'sneasel', 'teddiursa', 'remoraid', 'skarmory', 'heracross', 'gligar', 'elekid', 'slugma', 'stantler', 'smoochum', 'unown'],
+      rare: ['dunsparce', 'swinub', 'snubbull', 'houndour', 'tyrogue', 'murkrow', 'girafarig'],
+      tresRare: ['jumpluff', 'furret', 'azumarill', 'lanturn', 'ledian', 'xatu'],
+      legendaire: ['deoxys-normal', 'uxie', 'mesprit', 'azelf'],
+    },
+    niveau: 41,
+    requisDe: 'zone20',
+    decor: '/neige.png',
+  },
+
+  // ============ 22. Glacier Éternel ============
+  {
+    id: 'zone22',
+    nom: 'Glacier Éternel',
+    emoji: '🧊',
+    description: 'Zone 22 — Glacier Éternel.',
+    pool: {
+      commun: ['corsola', 'phanpy', 'treecko', 'houndour', 'delibird', 'skarmory', 'remoraid', 'shuckle', 'swinub', 'stantler', 'magby', 'dunsparce'],
+      rare: ['tyrogue', 'gligar', 'torchic', 'smeargle', 'teddiursa', 'heracross', 'snubbull'],
+      tresRare: ['umbreon', 'jumpluff', 'lanturn', 'wobbuffet', 'bellossom', 'slowking'],
+      legendaire: ['uxie', 'mesprit', 'azelf', 'dialga'],
+    },
+    niveau: 43,
+    requisDe: 'zone21',
+    decor: '/neige.png',
+  },
+
+  // ============ 23. Dojo des Cimes ============
+  {
+    id: 'zone23',
+    nom: 'Dojo des Cimes',
+    emoji: '🥋',
+    description: 'Zone 23 — Dojo des Cimes.',
+    pool: {
+      commun: ['elekid', 'torchic', 'smoochum', 'houndour', 'magby', 'sneasel', 'zigzagoon', 'corsola', 'shuckle', 'wurmple', 'phanpy', 'remoraid'],
+      rare: ['smeargle', 'delibird', 'slugma', 'stantler', 'treecko', 'mudkip', 'teddiursa'],
+      tresRare: ['slowking', 'jumpluff', 'forretress', 'skiploom', 'sudowoodo', 'steelix'],
+      legendaire: ['mesprit', 'azelf', 'dialga', 'palkia'],
+    },
+    niveau: 45,
+    requisDe: 'zone22',
+    decor: '/grotte.png',
+  },
+
+  // ============ 24. Arène Rocheuse ============
+  {
+    id: 'zone24',
+    nom: 'Arène Rocheuse',
+    emoji: '🥊',
+    description: 'Zone 24 — Arène Rocheuse.',
+    pool: {
+      commun: ['ralts', 'skarmory', 'torchic', 'wurmple', 'larvitar', 'mudkip', 'remoraid', 'zigzagoon', 'corsola', 'stantler', 'swinub', 'smeargle'],
+      rare: ['magby', 'phanpy', 'poochyena', 'tyrogue', 'treecko', 'wingull', 'seedot'],
+      tresRare: ['scizor', 'granbull', 'piloswine', 'umbreon', 'quagsire', 'jumpluff'],
+      legendaire: ['azelf', 'dialga', 'palkia', 'heatran'],
+    },
+    niveau: 47,
+    requisDe: 'zone23',
+    decor: '/cristal.png',
+  },
+
+  // ============ 25. Caverne de Cristal ============
+  {
+    id: 'zone25',
+    nom: 'Caverne de Cristal',
+    emoji: '💎',
+    description: 'Zone 25 — Caverne de Cristal.',
+    pool: {
+      commun: ['wurmple', 'smoochum', 'larvitar', 'slakoth', 'lotad', 'seedot', 'magby', 'smeargle', 'treecko', 'phanpy', 'torchic', 'ralts'],
+      rare: ['poochyena', 'shroomish', 'houndour', 'mudkip', 'nincada', 'miltank', 'tyrogue'],
+      tresRare: ['houndoom', 'steelix', 'mantine', 'espeon', 'hitmontop', 'octillery'],
+      legendaire: ['dialga', 'palkia', 'heatran', 'regigigas'],
+    },
+    niveau: 49,
+    requisDe: 'zone24',
+    decor: '/cristal.png',
+  },
+
+  // ============ 26. Mine Étincelante ============
+  {
+    id: 'zone26',
+    nom: 'Mine Étincelante',
+    emoji: '⛏️',
+    description: 'Zone 26 — Mine Étincelante.',
+    pool: {
+      commun: ['azurill', 'smoochum', 'seedot', 'elekid', 'tyrogue', 'nincada', 'mudkip', 'ralts', 'treecko', 'poochyena', 'nosepass', 'slakoth'],
+      rare: ['magby', 'larvitar', 'torchic', 'lotad', 'zigzagoon', 'wurmple', 'makuhita'],
+      tresRare: ['porygon2', 'donphan', 'grovyle', 'octillery', 'ursaring', 'tyranitar'],
+      legendaire: ['palkia', 'heatran', 'regigigas', 'giratina-altered'],
+    },
+    niveau: 51,
+    requisDe: 'zone25',
+    decor: '/cristal.png',
+  },
+
+  // ============ 27. Ruines Hantées ============
+  {
+    id: 'zone27',
+    nom: 'Ruines Hantées',
+    emoji: '👻',
+    description: 'Zone 27 — Ruines Hantées.',
+    pool: {
+      commun: ['skitty', 'seedot', 'mawile', 'meditite', 'whismur', 'zigzagoon', 'shroomish', 'torchic', 'larvitar', 'miltank', 'aron', 'wurmple'],
+      rare: ['wingull', 'nincada', 'poochyena', 'makuhita', 'azurill', 'sableye', 'ralts'],
+      tresRare: ['octillery', 'sceptile', 'blaziken', 'marshtomp', 'blissey', 'porygon2'],
+      legendaire: ['heatran', 'regigigas', 'giratina-altered', 'cresselia'],
+    },
+    niveau: 53,
+    requisDe: 'zone26',
+    decor: '/temple.png',
+  },
+
+  // ============ 28. Manoir Abandonné ============
+  {
+    id: 'zone28',
+    nom: 'Manoir Abandonné',
+    emoji: '🏚️',
+    description: 'Zone 28 — Manoir Abandonné.',
+    pool: {
+      commun: ['zigzagoon', 'wingull', 'surskit', 'sableye', 'nincada', 'poochyena', 'aron', 'volbeat', 'slakoth', 'seedot', 'illumise', 'lotad'],
+      rare: ['minun', 'shroomish', 'azurill', 'nosepass', 'ralts', 'whismur', 'wurmple'],
+      tresRare: ['combusken', 'dustox', 'tyranitar', 'porygon2', 'donphan', 'beautifly'],
+      legendaire: ['regigigas', 'giratina-altered', 'cresselia', 'phione'],
+    },
+    niveau: 55,
+    requisDe: 'zone27',
+    decor: '/temple.png',
+  },
+
+  // ============ 29. Volcan Ardent ============
+  {
+    id: 'zone29',
+    nom: 'Volcan Ardent',
+    emoji: '🌋',
+    description: 'Zone 29 — Volcan Ardent.',
+    pool: {
+      commun: ['nincada', 'minun', 'wingull', 'numel', 'electrike', 'slakoth', 'azurill', 'surskit', 'nosepass', 'sableye', 'shroomish', 'meditite'],
+      rare: ['ralts', 'mawile', 'volbeat', 'carvanha', 'aron', 'taillow', 'illumise'],
+      tresRare: ['pupitar', 'nuzleaf', 'sceptile', 'cascoon', 'mightyena', 'swampert'],
+      legendaire: ['giratina-altered', 'cresselia', 'phione', 'manaphy'],
+    },
+    niveau: 57,
+    requisDe: 'zone28',
+    decor: '/volcan.png',
+  },
+
+  // ============ 30. Cratère Fumant ============
+  {
+    id: 'zone30',
+    nom: 'Cratère Fumant',
+    emoji: '🔥',
+    description: 'Zone 30 — Cratère Fumant.',
+    pool: {
+      commun: ['meditite', 'torkoal', 'spoink', 'carvanha', 'numel', 'wailmer', 'illumise', 'gulpin', 'shroomish', 'nosepass', 'slakoth', 'cacnea'],
+      rare: ['trapinch', 'spinda', 'plusle', 'electrike', 'skitty', 'makuhita', 'nincada'],
+      tresRare: ['beautifly', 'marshtomp', 'linoone', 'swampert', 'masquerain', 'gardevoir'],
+      legendaire: ['cresselia', 'phione', 'manaphy', 'darkrai'],
+    },
+    niveau: 59,
+    requisDe: 'zone29',
+    decor: '/volcan.png',
+  },
+
+  // ============ 31. Abysses Obscures ============
+  {
+    id: 'zone31',
+    nom: 'Abysses Obscures',
+    emoji: '🌊',
+    description: 'Zone 31 — Abysses Obscures.',
+    pool: {
+      commun: ['trapinch', 'carvanha', 'swablu', 'numel', 'spoink', 'makuhita', 'gulpin', 'cacnea', 'nosepass', 'aron', 'electrike', 'volbeat'],
+      rare: ['minun', 'mawile', 'torkoal', 'illumise', 'seviper', 'meditite', 'spinda'],
+      tresRare: ['lombre', 'slaking', 'ninjask', 'shedinja', 'cascoon', 'breloom'],
+      legendaire: ['phione', 'manaphy', 'darkrai', 'shaymin-land'],
+    },
+    niveau: 61,
+    requisDe: 'zone30',
+    decor: '/abysses.png',
+  },
+
+  // ============ 32. Fosse Marine ============
+  {
+    id: 'zone32',
+    nom: 'Fosse Marine',
+    emoji: '🐙',
+    description: 'Zone 32 — Fosse Marine.',
+    pool: {
+      commun: ['corphish', 'cacnea', 'minun', 'baltoy', 'trapinch', 'numel', 'lileep', 'swablu', 'spoink', 'spinda', 'gulpin', 'zangoose'],
+      rare: ['electrike', 'carvanha', 'torkoal', 'plusle', 'illumise', 'wailmer', 'aron'],
+      tresRare: ['lairon', 'masquerain', 'delcatty', 'gardevoir', 'ninjask', 'exploud'],
+      legendaire: ['manaphy', 'darkrai', 'shaymin-land', 'arceus'],
+    },
+    niveau: 63,
+    requisDe: 'zone31',
+    decor: '/abysses.png',
+  },
+
+  // ============ 33. Antre des Dragons ============
+  {
+    id: 'zone33',
+    nom: 'Antre des Dragons',
+    emoji: '🐉',
+    description: 'Zone 33 — Antre des Dragons.',
+    pool: {
+      commun: ['minun', 'wailmer', 'anorith', 'barboach', 'carvanha', 'solrock', 'cacnea', 'swablu', 'lileep', 'gulpin', 'torkoal', 'spinda'],
+      rare: ['corphish', 'plusle', 'spoink', 'numel', 'baltoy', 'castform', 'kecleon'],
+      tresRare: ['pelipper', 'masquerain', 'hariyama', 'shedinja', 'slaking', 'delcatty'],
+      legendaire: ['darkrai', 'shaymin-land', 'arceus', 'victini'],
+    },
+    niveau: 65,
+    requisDe: 'zone32',
+    decor: '/dragon.png',
+  },
+
+  // ============ 34. Repaire Draconique ============
+  {
+    id: 'zone34',
+    nom: 'Repaire Draconique',
+    emoji: '🐲',
+    description: 'Zone 34 — Repaire Draconique.',
+    pool: {
+      commun: ['kecleon', 'zangoose', 'carvanha', 'spoink', 'solrock', 'swablu', 'numel', 'seviper', 'tropius', 'wailmer', 'lunatone', 'absol'],
+      rare: ['baltoy', 'spinda', 'feebas', 'cacnea', 'wynaut', 'duskull', 'trapinch'],
+      tresRare: ['roselia', 'delcatty', 'shedinja', 'aggron', 'medicham', 'swalot'],
+      legendaire: ['shaymin-land', 'arceus', 'victini', 'cobalion'],
+    },
+    niveau: 67,
+    requisDe: 'zone33',
+    decor: '/dragon.png',
+  },
+
+  // ============ 35. Clairière Féerique ============
+  {
+    id: 'zone35',
+    nom: 'Clairière Féerique',
+    emoji: '🧚',
+    description: 'Zone 35 — Clairière Féerique.',
+    pool: {
+      commun: ['anorith', 'kecleon', 'duskull', 'spheal', 'zangoose', 'castform', 'spinda', 'tropius', 'barboach', 'seviper', 'clamperl', 'shuppet'],
+      rare: ['solrock', 'baltoy', 'cacnea', 'lunatone', 'swablu', 'relicanth', 'wynaut'],
+      tresRare: ['sharpedo', 'roselia', 'whiscash', 'lairon', 'vibrava', 'hariyama'],
+      legendaire: ['arceus', 'victini', 'cobalion', 'terrakion'],
+    },
+    niveau: 69,
+    requisDe: 'zone34',
+    decor: '/prairie.png',
+  },
+
+  // ============ 36. Bosquet Enchanté ============
+  {
+    id: 'zone36',
+    nom: 'Bosquet Enchanté',
+    emoji: '✨',
+    description: 'Zone 36 — Bosquet Enchanté.',
+    pool: {
+      commun: ['clamperl', 'solrock', 'bagon', 'lileep', 'spheal', 'turtwig', 'anorith', 'chimchar', 'seviper', 'luvdisc', 'feebas', 'snorunt'],
+      rare: ['kecleon', 'barboach', 'absol', 'corphish', 'castform', 'tropius', 'duskull'],
+      tresRare: ['cacturne', 'whiscash', 'wailord', 'altaria', 'medicham', 'cradily'],
+      legendaire: ['victini', 'cobalion', 'terrakion', 'virizion'],
+    },
+    niveau: 71,
+    requisDe: 'zone35',
+    decor: '/foret.png',
+  },
+
+  // ============ 37. Jungle Luxuriante ============
+  {
+    id: 'zone37',
+    nom: 'Jungle Luxuriante',
+    emoji: '🌴',
+    description: 'Zone 37 — Jungle Luxuriante.',
+    pool: {
+      commun: ['spheal', 'absol', 'kricketot', 'duskull', 'shinx', 'relicanth', 'clamperl', 'bagon', 'beldum', 'castform', 'wynaut', 'feebas'],
+      rare: ['lileep', 'chimchar', 'anorith', 'bidoof', 'kecleon', 'corphish', 'starly'],
+      tresRare: ['claydol', 'crawdaunt', 'cacturne', 'vibrava', 'flygon', 'grumpig'],
+      legendaire: ['cobalion', 'terrakion', 'virizion', 'tornadus-incarnate'],
+    },
+    niveau: 73,
+    requisDe: 'zone36',
+    decor: '/foret.png',
+  },
+
+  // ============ 38. Canopée Tropicale ============
+  {
+    id: 'zone38',
+    nom: 'Canopée Tropicale',
+    emoji: '🦜',
+    description: 'Zone 38 — Canopée Tropicale.',
+    pool: {
+      commun: ['duskull', 'bidoof', 'snorunt', 'wynaut', 'piplup', 'kecleon', 'turtwig', 'shieldon', 'starly', 'burmy', 'cranidos', 'shinx'],
+      rare: ['chimchar', 'absol', 'castform', 'relicanth', 'beldum', 'tropius', 'clamperl'],
+      tresRare: ['sealeo', 'flygon', 'dusclops', 'crawdaunt', 'cradily', 'banette'],
+      legendaire: ['terrakion', 'virizion', 'tornadus-incarnate', 'thundurus-incarnate'],
+    },
+    niveau: 75,
+    requisDe: 'zone37',
+    decor: '/foret.png',
+  },
+
+  // ============ 39. Savane Dorée ============
+  {
+    id: 'zone39',
+    nom: 'Savane Dorée',
+    emoji: '🦁',
+    description: 'Zone 39 — Savane Dorée.',
+    pool: {
+      commun: ['combee', 'snorunt', 'piplup', 'relicanth', 'shieldon', 'bagon', 'budew', 'tropius', 'beldum', 'spheal', 'chimchar', 'starly'],
+      rare: ['absol', 'luvdisc', 'pachirisu', 'shinx', 'turtwig', 'cranidos', 'bidoof'],
+      tresRare: ['armaldo', 'glalie', 'metagross', 'claydol', 'dusclops', 'metang'],
+      legendaire: ['virizion', 'tornadus-incarnate', 'thundurus-incarnate', 'reshiram'],
+    },
+    niveau: 77,
+    requisDe: 'zone38',
+    decor: '/prairie.png',
+  },
+
+  // ============ 40. Steppe Sauvage ============
+  {
+    id: 'zone40',
+    nom: 'Steppe Sauvage',
+    emoji: '🐎',
+    description: 'Zone 40 — Steppe Sauvage.',
+    pool: {
+      commun: ['glameow', 'shellos', 'cherubi', 'budew', 'buneary', 'turtwig', 'combee', 'drifloon', 'starly', 'piplup', 'shinx', 'chimchar'],
+      rare: ['kricketot', 'pachirisu', 'spheal', 'beldum', 'relicanth', 'chingling', 'luvdisc'],
+      tresRare: ['infernape', 'grotle', 'sealeo', 'monferno', 'torterra', 'dusclops'],
+      legendaire: ['tornadus-incarnate', 'thundurus-incarnate', 'reshiram', 'zekrom'],
+    },
+    niveau: 79,
+    requisDe: 'zone39',
+    decor: '/prairie.png',
+  },
+
+  // ============ 41. Falaises Venteuses ============
+  {
+    id: 'zone41',
+    nom: 'Falaises Venteuses',
+    emoji: '🦅',
+    description: 'Zone 41 — Falaises Venteuses.',
+    pool: {
+      commun: ['piplup', 'shinx', 'buneary', 'bidoof', 'beldum', 'buizel', 'bonsly', 'kricketot', 'turtwig', 'budew', 'shellos', 'burmy'],
+      rare: ['cherubi', 'happiny', 'pachirisu', 'shieldon', 'mime-jr', 'drifloon', 'cranidos'],
+      tresRare: ['torterra', 'staraptor', 'luxray', 'monferno', 'infernape', 'empoleon'],
+      legendaire: ['thundurus-incarnate', 'reshiram', 'zekrom', 'landorus-incarnate'],
+    },
+    niveau: 81,
+    requisDe: 'zone40',
+    decor: '/grotte.png',
+  },
+
+  // ============ 42. Pic du Vautour ============
+  {
+    id: 'zone42',
+    nom: 'Pic du Vautour',
+    emoji: '🦅',
+    description: 'Zone 42 — Pic du Vautour.',
+    pool: {
+      commun: ['starly', 'shellos', 'mime-jr', 'shieldon', 'bronzor', 'buizel', 'kricketot', 'stunky', 'combee', 'shinx', 'happiny', 'chingling'],
+      rare: ['munchlax', 'pachirisu', 'glameow', 'burmy', 'cherubi', 'drifloon', 'bidoof'],
+      tresRare: ['metagross', 'rampardos', 'empoleon', 'luxray', 'bibarel', 'infernape'],
+      legendaire: ['reshiram', 'zekrom', 'landorus-incarnate', 'kyurem'],
+    },
+    niveau: 83,
+    requisDe: 'zone41',
+    decor: '/neige.png',
+  },
+
+  // ============ 43. Grotte Souterraine ============
+  {
+    id: 'zone43',
+    nom: 'Grotte Souterraine',
+    emoji: '🦇',
+    description: 'Zone 43 — Grotte Souterraine.',
+    pool: {
+      commun: ['chingling', 'stunky', 'gible', 'mime-jr', 'spiritomb', 'riolu', 'chatot', 'carnivine', 'glameow', 'cherubi', 'cranidos', 'munchlax'],
+      rare: ['shellos', 'skorupi', 'shieldon', 'bronzor', 'pachirisu', 'croagunk', 'bonsly'],
+      tresRare: ['kricketune', 'gastrodon', 'staraptor', 'wormadam-plant', 'mothim', 'staravia'],
+      legendaire: ['zekrom', 'landorus-incarnate', 'kyurem', 'keldeo-ordinary'],
+    },
+    niveau: 85,
+    requisDe: 'zone42',
+    decor: '/grotte.png',
+  },
+
+  // ============ 44. Galerie Profonde ============
+  {
+    id: 'zone44',
+    nom: 'Galerie Profonde',
+    emoji: '🕳️',
+    description: 'Zone 44 — Galerie Profonde.',
+    pool: {
+      commun: ['mantyke', 'buneary', 'rotom', 'gible', 'croagunk', 'bonsly', 'mime-jr', 'happiny', 'chingling', 'finneon', 'spiritomb', 'snover'],
+      rare: ['buizel', 'carnivine', 'hippopotas', 'bronzor', 'shellos', 'chatot', 'munchlax'],
+      tresRare: ['cherrim', 'gastrodon', 'wormadam-plant', 'floatzel', 'drifblim', 'mothim'],
+      legendaire: ['landorus-incarnate', 'kyurem', 'keldeo-ordinary', 'meloetta-aria'],
+    },
+    niveau: 87,
+    requisDe: 'zone43',
+    decor: '/grotte.png',
+  },
+
+  // ============ 45. Champ Magnétique ============
+  {
+    id: 'zone45',
+    nom: 'Champ Magnétique',
+    emoji: '🧲',
+    description: 'Zone 45 — Champ Magnétique.',
+    pool: {
+      commun: ['hippopotas', 'bronzor', 'gible', 'croagunk', 'lillipup', 'carnivine', 'mime-jr', 'snivy', 'skorupi', 'patrat', 'mantyke', 'bonsly'],
+      rare: ['finneon', 'spiritomb', 'oshawott', 'stunky', 'happiny', 'snover', 'chingling'],
+      tresRare: ['cherrim', 'bastiodon', 'lopunny', 'purugly', 'garchomp', 'bronzong'],
+      legendaire: ['kyurem', 'keldeo-ordinary', 'meloetta-aria', 'genesect'],
+    },
+    niveau: 89,
+    requisDe: 'zone44',
+    decor: '/electrique.png',
+  },
+
+  // ============ 46. Tour Foudroyée ============
+  {
+    id: 'zone46',
+    nom: 'Tour Foudroyée',
+    emoji: '🗼',
+    description: 'Zone 46 — Tour Foudroyée.',
+    pool: {
+      commun: ['tepig', 'oshawott', 'bronzor', 'chatot', 'snivy', 'rotom', 'lillipup', 'carnivine', 'mime-jr', 'spiritomb', 'finneon', 'munchlax'],
+      rare: ['snover', 'mantyke', 'purrloin', 'pansage', 'happiny', 'panpour', 'skorupi'],
+      tresRare: ['floatzel', 'skuntank', 'lumineon', 'bronzong', 'mismagius', 'honchkrow'],
+      legendaire: ['keldeo-ordinary', 'meloetta-aria', 'genesect', 'xerneas'],
+    },
+    niveau: 91,
+    requisDe: 'zone45',
+    decor: '/electrique.png',
+  },
+
+  // ============ 47. Lac Cristallin ============
+  {
+    id: 'zone47',
+    nom: 'Lac Cristallin',
+    emoji: '💧',
+    description: 'Zone 47 — Lac Cristallin.',
+    pool: {
+      commun: ['hippopotas', 'riolu', 'roggenrola', 'skorupi', 'croagunk', 'pansage', 'mantyke', 'carnivine', 'panpour', 'spiritomb', 'purrloin', 'snover'],
+      rare: ['patrat', 'lillipup', 'munna', 'pidove', 'snivy', 'munchlax', 'blitzle'],
+      tresRare: ['drifblim', 'honchkrow', 'abomasnow', 'lumineon', 'bronzong', 'garchomp'],
+      legendaire: ['meloetta-aria', 'genesect', 'xerneas', 'yveltal'],
+    },
+    niveau: 93,
+    requisDe: 'zone46',
+    decor: '/abysses.png',
+  },
+
+  // ============ 48. Source Sacrée ============
+  {
+    id: 'zone48',
+    nom: 'Source Sacrée',
+    emoji: '⛲',
+    description: 'Zone 48 — Source Sacrée.',
+    pool: {
+      commun: ['croagunk', 'oshawott', 'blitzle', 'tympole', 'snover', 'woobat', 'skorupi', 'pansage', 'purrloin', 'tepig', 'pidove', 'audino'],
+      rare: ['patrat', 'finneon', 'munna', 'timburr', 'drilbur', 'lillipup', 'panpour'],
+      tresRare: ['toxicroak', 'skuntank', 'garchomp', 'magmortar', 'rhyperior', 'lickilicky'],
+      legendaire: ['genesect', 'xerneas', 'yveltal', 'zygarde-50'],
+    },
+    niveau: 95,
+    requisDe: 'zone47',
+    decor: '/abysses.png',
+  },
+
+  // ============ 49. Désert de Verre ============
+  {
+    id: 'zone49',
+    nom: 'Désert de Verre',
+    emoji: '🏜️',
+    description: 'Zone 49 — Désert de Verre.',
+    pool: {
+      commun: ['rotom', 'munna', 'oshawott', 'tympole', 'audino', 'cottonee', 'woobat', 'pansear', 'purrloin', 'sawk', 'venipede', 'throh'],
+      rare: ['pidove', 'snover', 'pansage', 'sewaddle', 'blitzle', 'timburr', 'drilbur'],
+      tresRare: ['drapion', 'magnezone', 'lickilicky', 'togekiss', 'hippowdon', 'abomasnow'],
+      legendaire: ['xerneas', 'yveltal', 'zygarde-50', 'diancie'],
+    },
+    niveau: 97,
+    requisDe: 'zone48',
+    decor: '/desert.png',
+  },
+
+  // ============ 50. Mesa Aride ============
+  {
+    id: 'zone50',
+    nom: 'Mesa Aride',
+    emoji: '🌵',
+    description: 'Zone 50 — Mesa Aride.',
+    pool: {
+      commun: ['venipede', 'lillipup', 'tepig', 'timburr', 'cottonee', 'basculin-red-striped', 'sawk', 'oshawott', 'drilbur', 'woobat', 'audino', 'throh'],
+      rare: ['purrloin', 'sewaddle', 'petilil', 'pansear', 'munna', 'patrat', 'darumaka'],
+      tresRare: ['togekiss', 'froslass', 'yanmega', 'probopass', 'porygon-z', 'electivire'],
+      legendaire: ['yveltal', 'zygarde-50', 'diancie', 'hoopa'],
+    },
+    niveau: 99,
+    requisDe: 'zone49',
+    decor: '/desert.png',
+  },
+
+  // ============ 51. Forêt Pétrifiée ============
+  {
+    id: 'zone51',
+    nom: 'Forêt Pétrifiée',
+    emoji: '🪵',
+    description: 'Zone 51 — Forêt Pétrifiée.',
+    pool: {
+      commun: ['roggenrola', 'pansage', 'pidove', 'basculin-red-striped', 'dwebble', 'timburr', 'yamask', 'drilbur', 'tympole', 'sandile', 'scraggy', 'petilil'],
+      rare: ['munna', 'cottonee', 'sigilyph', 'sawk', 'darumaka', 'blitzle', 'pansear'],
+      tresRare: ['dewott', 'glaceon', 'porygon-z', 'gallade', 'gliscor', 'froslass'],
+      legendaire: ['zygarde-50', 'diancie', 'hoopa', 'volcanion'],
+    },
+    niveau: 101,
+    requisDe: 'zone50',
+    decor: '/foret.png',
+  },
+
+  // ============ 52. Bois Maudit ============
+  {
+    id: 'zone52',
+    nom: 'Bois Maudit',
+    emoji: '🌑',
+    description: 'Zone 52 — Bois Maudit.',
+    pool: {
+      commun: ['zorua', 'basculin-red-striped', 'audino', 'cottonee', 'woobat', 'petilil', 'minccino', 'tirtouga', 'sigilyph', 'drilbur', 'throh', 'sawk'],
+      rare: ['archen', 'roggenrola', 'blitzle', 'dwebble', 'sewaddle', 'yamask', 'sandile'],
+      tresRare: ['froslass', 'dewott', 'stoutland', 'glaceon', 'emboar', 'dusknoir'],
+      legendaire: ['diancie', 'hoopa', 'volcanion', 'type-null'],
+    },
+    niveau: 103,
+    requisDe: 'zone51',
+    decor: '/temple.png',
+  },
+
+  // ============ 53. Cimetière Ancien ============
+  {
+    id: 'zone53',
+    nom: 'Cimetière Ancien',
+    emoji: '⚰️',
+    description: 'Zone 53 — Cimetière Ancien.',
+    pool: {
+      commun: ['basculin-red-striped', 'timburr', 'darumaka', 'cottonee', 'sandile', 'audino', 'minccino', 'venipede', 'solosis', 'vanillite', 'dwebble', 'zorua'],
+      rare: ['gothita', 'sigilyph', 'sewaddle', 'ducklett', 'archen', 'sawk', 'throh'],
+      tresRare: ['gallade', 'probopass', 'pignite', 'stoutland', 'emboar', 'servine'],
+      legendaire: ['hoopa', 'volcanion', 'type-null', 'silvally'],
+    },
+    niveau: 105,
+    requisDe: 'zone52',
+    decor: '/temple.png',
+  },
+
+  // ============ 54. Crypte Oubliée ============
+  {
+    id: 'zone54',
+    nom: 'Crypte Oubliée',
+    emoji: '💀',
+    description: 'Zone 54 — Crypte Oubliée.',
+    pool: {
+      commun: ['darumaka', 'cottonee', 'gothita', 'sandile', 'venipede', 'dwebble', 'tirtouga', 'frillish-male', 'foongus', 'vanillite', 'trubbish', 'ducklett'],
+      rare: ['basculin-red-striped', 'maractus', 'minccino', 'deerling', 'karrablast', 'archen', 'petilil'],
+      tresRare: ['gigalith', 'musharna', 'simisear', 'unfezant', 'liepard', 'tranquill'],
+      legendaire: ['volcanion', 'type-null', 'silvally', 'tapu-koko'],
+    },
+    niveau: 107,
+    requisDe: 'zone53',
+    decor: '/temple.png',
+  },
+
+  // ============ 55. Champs de Lave ============
+  {
+    id: 'zone55',
+    nom: 'Champs de Lave',
+    emoji: '🌋',
+    description: 'Zone 55 — Champs de Lave.',
+    pool: {
+      commun: ['zorua', 'ferroseed', 'basculin-red-striped', 'joltik', 'archen', 'darumaka', 'sandile', 'maractus', 'yamask', 'dwebble', 'emolga', 'gothita'],
+      rare: ['karrablast', 'tirtouga', 'foongus', 'solosis', 'scraggy', 'alomomola', 'minccino'],
+      tresRare: ['swoobat', 'palpitoad', 'watchog', 'gigalith', 'boldore', 'stoutland'],
+      legendaire: ['type-null', 'silvally', 'tapu-koko', 'tapu-lele'],
+    },
+    niveau: 109,
+    requisDe: 'zone54',
+    decor: '/volcan.png',
+  },
+
+  // ============ 56. Caldeira ============
+  {
+    id: 'zone56',
+    nom: 'Caldeira',
+    emoji: '🔥',
+    description: 'Zone 56 — Caldeira.',
+    pool: {
+      commun: ['ferroseed', 'cubchoo', 'minccino', 'alomomola', 'emolga', 'archen', 'trubbish', 'scraggy', 'ducklett', 'tirtouga', 'deerling', 'litwick'],
+      rare: ['solosis', 'sigilyph', 'axew', 'frillish-male', 'tynamo', 'joltik', 'zorua'],
+      tresRare: ['whirlipede', 'swoobat', 'tranquill', 'seismitoad', 'boldore', 'musharna'],
+      legendaire: ['silvally', 'tapu-koko', 'tapu-lele', 'tapu-bulu'],
+    },
+    niveau: 111,
+    requisDe: 'zone55',
+    decor: '/volcan.png',
+  },
+
+  // ============ 57. Banquise Polaire ============
+  {
+    id: 'zone57',
+    nom: 'Banquise Polaire',
+    emoji: '🐧',
+    description: 'Zone 57 — Banquise Polaire.',
+    pool: {
+      commun: ['minccino', 'mienfoo', 'cubchoo', 'klink', 'deerling', 'karrablast', 'foongus', 'gothita', 'frillish-male', 'litwick', 'ducklett', 'archen'],
+      rare: ['cryogonal', 'ferroseed', 'joltik', 'alomomola', 'solosis', 'shelmet', 'tynamo'],
+      tresRare: ['gurdurr', 'unfezant', 'swadloon', 'scolipede', 'seismitoad', 'leavanny'],
+      legendaire: ['tapu-koko', 'tapu-lele', 'tapu-bulu', 'tapu-fini'],
+    },
+    niveau: 113,
+    requisDe: 'zone56',
+    decor: '/neige.png',
+  },
+
+  // ============ 58. Iceberg Dérivant ============
+  {
+    id: 'zone58',
+    nom: 'Iceberg Dérivant',
+    emoji: '🧊',
+    description: 'Zone 58 — Iceberg Dérivant.',
+    pool: {
+      commun: ['emolga', 'cryogonal', 'alomomola', 'deerling', 'golett', 'rufflet', 'klink', 'stunfisk', 'frillish-male', 'druddigon', 'vanillite', 'litwick'],
+      rare: ['axew', 'mienfoo', 'ducklett', 'bouffalant', 'cubchoo', 'elgyem', 'tynamo'],
+      tresRare: ['cofagrigus', 'gurdurr', 'leavanny', 'conkeldurr', 'carracosta', 'whirlipede'],
+      legendaire: ['tapu-lele', 'tapu-bulu', 'tapu-fini', 'cosmog'],
+    },
+    niveau: 115,
+    requisDe: 'zone57',
+    decor: '/neige.png',
+  },
+
+  // ============ 59. Récif Corallien ============
+  {
+    id: 'zone59',
+    nom: 'Récif Corallien',
+    emoji: '🐠',
+    description: 'Zone 59 — Récif Corallien.',
+    pool: {
+      commun: ['deino', 'emolga', 'cryogonal', 'litwick', 'karrablast', 'stunfisk', 'tynamo', 'cubchoo', 'ferroseed', 'joltik', 'pawniard', 'golett', 'voltorb'],
+      rare: ['shelmet', 'foongus', 'durant', 'alomomola', 'druddigon', 'klink', 'axew'],
+      tresRare: ['krokorok', 'lilligant', 'zoroark', 'archeops', 'whimsicott', 'krookodile'],
+      legendaire: ['tapu-bulu', 'tapu-fini', 'cosmog', 'cosmoem'],
+    },
+    niveau: 117,
+    requisDe: 'zone58',
+    decor: '/abysses.png',
+  },
+
+  // ============ 60. Grotte Sous-marine ============
+  {
+    id: 'zone60',
+    nom: 'Grotte Sous-marine',
+    emoji: '🦈',
+    description: 'Zone 60 — Grotte Sous-marine.',
+    pool: {
+      commun: ['stunfisk', 'fennekin', 'tynamo', 'litwick', 'durant', 'mienfoo', 'bunnelby', 'axew', 'druddigon', 'vullaby', 'froakie', 'cryogonal'],
+      rare: ['joltik', 'shelmet', 'cubchoo', 'golett', 'larvesta', 'elgyem', 'deino'],
+      tresRare: ['vanillish', 'zoroark', 'gothitelle', 'gothorita', 'darmanitan-standard', 'scrafty'],
+      legendaire: ['tapu-fini', 'cosmog', 'cosmoem', 'solgaleo'],
+    },
+    niveau: 119,
+    requisDe: 'zone59',
+    decor: '/abysses.png',
+  },
+
+  // ============ 61. Marécage Putride ============
+  {
+    id: 'zone61',
+    nom: 'Marécage Putride',
+    emoji: '🐸',
+    description: 'Zone 61 — Marécage Putride.',
+    pool: {
+      commun: ['golett', 'litwick', 'vullaby', 'durant', 'heatmor', 'stunfisk', 'deino', 'mienfoo', 'fennekin', 'pawniard', 'elgyem', 'froakie'],
+      rare: ['chespin', 'scatterbug', 'druddigon', 'litleo', 'shelmet', 'cubchoo', 'bouffalant'],
+      tresRare: ['sawsbuck', 'reuniclus', 'vanillish', 'swanna', 'escavalier', 'gothorita'],
+      legendaire: ['cosmog', 'cosmoem', 'solgaleo', 'lunala'],
+    },
+    niveau: 121,
+    requisDe: 'zone60',
+    decor: '/marais.png',
+  },
+
+  // ============ 62. Mangrove Sombre ============
+  {
+    id: 'zone62',
+    nom: 'Mangrove Sombre',
+    emoji: '🌿',
+    description: 'Zone 62 — Mangrove Sombre.',
+    pool: {
+      commun: ['deino', 'espurr', 'bunnelby', 'durant', 'heatmor', 'pawniard', 'froakie', 'druddigon', 'golett', 'vullaby', 'mienfoo', 'shelmet'],
+      rare: ['fletchling', 'chespin', 'scatterbug', 'bouffalant', 'flabebe', 'honedge', 'larvesta'],
+      tresRare: ['klinklang', 'zoroark', 'jellicent-male', 'klang', 'amoonguss', 'escavalier'],
+      legendaire: ['cosmoem', 'solgaleo', 'lunala', 'necrozma'],
+    },
+    niveau: 123,
+    requisDe: 'zone61',
+    decor: '/marais.png',
+  },
+
+  // ============ 63. Cime des Géants ============
+  {
+    id: 'zone63',
+    nom: 'Cime des Géants',
+    emoji: '⛰️',
+    description: 'Zone 63 — Cime des Géants.',
+    pool: {
+      commun: ['pawniard', 'durant', 'furfrou', 'litleo', 'inkay', 'skiddo', 'golett', 'scatterbug', 'bouffalant', 'pancham', 'froakie', 'rufflet'],
+      rare: ['deino', 'larvesta', 'spritzee', 'heatmor', 'swirlix', 'chespin', 'vullaby'],
+      tresRare: ['beheeyem', 'galvantula', 'vanilluxe', 'escavalier', 'chandelure', 'swanna'],
+      legendaire: ['solgaleo', 'lunala', 'necrozma', 'magearna'],
+    },
+    niveau: 125,
+    requisDe: 'zone62',
+    decor: '/dragon.png',
+  },
+
+  // ============ 64. Vallée du Tonnerre ============
+  {
+    id: 'zone64',
+    nom: 'Vallée du Tonnerre',
+    emoji: '⛈️',
+    description: 'Zone 64 — Vallée du Tonnerre.',
+    pool: {
+      commun: ['inkay', 'fletchling', 'clauncher', 'fennekin', 'deino', 'chespin', 'skiddo', 'helioptile', 'honedge', 'pancham', 'bunnelby', 'durant'],
+      rare: ['flabebe', 'furfrou', 'larvesta', 'heatmor', 'scatterbug', 'litleo', 'binacle'],
+      tresRare: ['klang', 'haxorus', 'sawsbuck', 'jellicent-male', 'chandelure', 'amoonguss'],
+      legendaire: ['lunala', 'necrozma', 'magearna', 'marshadow'],
+    },
+    niveau: 127,
+    requisDe: 'zone63',
+    decor: '/electrique.png',
+  },
+
+  // ============ 65. Plateau Venteux ============
+  {
+    id: 'zone65',
+    nom: 'Plateau Venteux',
+    emoji: '🍃',
+    description: 'Zone 65 — Plateau Venteux.',
+    pool: {
+      commun: ['honedge', 'fennekin', 'goomy', 'binacle', 'espurr', 'furfrou', 'froakie', 'swirlix', 'hawlucha', 'flabebe', 'helioptile', 'amaura'],
+      rare: ['inkay', 'bunnelby', 'scatterbug', 'litleo', 'carbink', 'pancham', 'spritzee'],
+      tresRare: ['braviary', 'mandibuzz', 'golurk', 'accelgor', 'klinklang', 'lampent'],
+      legendaire: ['necrozma', 'magearna', 'marshadow', 'zeraora'],
+    },
+    niveau: 129,
+    requisDe: 'zone64',
+    decor: '/prairie.png',
+  },
+
+  // ============ 66. Prairie Astrale ============
+  {
+    id: 'zone66',
+    nom: 'Prairie Astrale',
+    emoji: '🌠',
+    description: 'Zone 66 — Prairie Astrale.',
+    pool: {
+      commun: ['hawlucha', 'furfrou', 'inkay', 'skiddo', 'dedenne', 'noibat', 'honedge', 'pumpkaboo-average', 'swirlix', 'clauncher', 'klefki', 'skrelp'],
+      rare: ['spritzee', 'carbink', 'bergmite', 'goomy', 'tyrunt', 'litleo', 'binacle'],
+      tresRare: ['beheeyem', 'accelgor', 'mandibuzz', 'braviary', 'zweilous', 'lampent'],
+      legendaire: ['magearna', 'marshadow', 'zeraora', 'meltan'],
+    },
+    niveau: 131,
+    requisDe: 'zone65',
+    decor: '/sanctuaire.png',
+  },
+
+  // ============ 67. Jardin Céleste ============
+  {
+    id: 'zone67',
+    nom: 'Jardin Céleste',
+    emoji: '🌸',
+    description: 'Zone 67 — Jardin Céleste.',
+    pool: {
+      commun: ['dedenne', 'swirlix', 'spritzee', 'tyrunt', 'litten', 'honedge', 'inkay', 'hawlucha', 'pumpkaboo-average', 'phantump', 'carbink', 'helioptile'],
+      rare: ['pancham', 'popplio', 'skrelp', 'goomy', 'klefki', 'amaura', 'pikipek'],
+      tresRare: ['mienshao', 'quilladin', 'bisharp', 'chesnaught', 'hydreigon', 'diggersby'],
+      legendaire: ['marshadow', 'zeraora', 'meltan', 'melmetal'],
+    },
+    niveau: 133,
+    requisDe: 'zone66',
+    decor: '/sanctuaire.png',
+  },
+
+  // ============ 68. Temple Solaire ============
+  {
+    id: 'zone68',
+    nom: 'Temple Solaire',
+    emoji: '☀️',
+    description: 'Zone 68 — Temple Solaire.',
+    pool: {
+      commun: ['yungoos', 'pumpkaboo-average', 'clauncher', 'tyrunt', 'noibat', 'skrelp', 'popplio', 'swirlix', 'pikipek', 'hawlucha', 'inkay', 'phantump'],
+      rare: ['cutiefly', 'goomy', 'bergmite', 'rowlet', 'carbink', 'crabrawler', 'amaura'],
+      tresRare: ['mandibuzz', 'talonflame', 'vivillon', 'greninja', 'hydreigon', 'pyroar-male'],
+      legendaire: ['zeraora', 'meltan', 'melmetal', 'zacian'],
+    },
+    niveau: 135,
+    requisDe: 'zone67',
+    decor: '/temple.png',
+  },
+
+  // ============ 69. Temple Lunaire ============
+  {
+    id: 'zone69',
+    nom: 'Temple Lunaire',
+    emoji: '🌙',
+    description: 'Zone 69 — Temple Lunaire.',
+    pool: {
+      commun: ['pumpkaboo-average', 'rockruff', 'hawlucha', 'cutiefly', 'goomy', 'yungoos', 'noibat', 'pikipek', 'popplio', 'mudbray', 'grubbin', 'helioptile'],
+      rare: ['litten', 'tyrunt', 'carbink', 'bergmite', 'crabrawler', 'oricorio-baile', 'rowlet'],
+      tresRare: ['talonflame', 'spewpa', 'diggersby', 'delphox', 'braixen', 'chesnaught'],
+      legendaire: ['meltan', 'melmetal', 'zacian', 'zamazenta'],
+    },
+    niveau: 137,
+    requisDe: 'zone68',
+    decor: '/temple.png',
+  },
+
+  // ============ 70. Forêt Ancestrale ============
+  {
+    id: 'zone70',
+    nom: 'Forêt Ancestrale',
+    emoji: '🌳',
+    description: 'Zone 70 — Forêt Ancestrale.',
+    pool: {
+      commun: ['klefki', 'grubbin', 'mudbray', 'salandit', 'fomantis', 'dedenne', 'rockruff', 'noibat', 'popplio', 'pikipek', 'mareanie', 'bergmite'],
+      rare: ['crabrawler', 'carbink', 'goomy', 'oricorio-baile', 'stufful', 'litten', 'rowlet'],
+      tresRare: ['pangoro', 'vivillon', 'meowstic-male', 'frogadier', 'pyroar-male', 'aromatisse'],
+      legendaire: ['melmetal', 'zacian', 'zamazenta', 'eternatus'],
+    },
+    niveau: 139,
+    requisDe: 'zone69',
+    decor: '/foret.png',
+  },
+
+  // ============ 71. Bambouseraie ============
+  {
+    id: 'zone71',
+    nom: 'Bambouseraie',
+    emoji: '🎋',
+    description: 'Zone 71 — Bambouseraie.',
+    pool: {
+      commun: ['fomantis', 'cutiefly', 'dewpider', 'grubbin', 'pumpkaboo-average', 'wimpod', 'morelull', 'noibat', 'rowlet', 'bergmite', 'mareanie', 'wishiwashi-solo'],
+      rare: ['litten', 'oranguru', 'stufful', 'yungoos', 'passimian', 'crabrawler', 'bounsweet'],
+      tresRare: ['florges', 'talonflame', 'clawitzer', 'pyroar-male', 'aromatisse', 'meowstic-male'],
+      legendaire: ['zacian', 'zamazenta', 'eternatus', 'kubfu'],
+    },
+    niveau: 141,
+    requisDe: 'zone70',
+    decor: '/foret.png',
+  },
+
+  // ============ 72. Grotte de Glace ============
+  {
+    id: 'zone72',
+    nom: 'Grotte de Glace',
+    emoji: '🧊',
+    description: 'Zone 72 — Grotte de Glace.',
+    pool: {
+      commun: ['cutiefly', 'litten', 'grubbin', 'sandygast', 'pikipek', 'oricorio-baile', 'crabrawler', 'yungoos', 'komala', 'minior-red-meteor', 'mareanie', 'wishiwashi-solo'],
+      rare: ['rockruff', 'wimpod', 'pyukumuku', 'mudbray', 'popplio', 'passimian', 'fomantis'],
+      tresRare: ['goodra', 'sylveon', 'aegislash-shield', 'clawitzer', 'aromatisse', 'pangoro'],
+      legendaire: ['zamazenta', 'eternatus', 'kubfu', 'urshifu-single-strike'],
+    },
+    niveau: 143,
+    requisDe: 'zone71',
+    decor: '/neige.png',
+  },
+
+  // ============ 73. Caverne Magmatique ============
+  {
+    id: 'zone73',
+    nom: 'Caverne Magmatique',
+    emoji: '🔥',
+    description: 'Zone 73 — Caverne Magmatique.',
+    pool: {
+      commun: ['sandygast', 'oricorio-baile', 'mudbray', 'minior-red-meteor', 'salandit', 'wimpod', 'bruxish', 'mimikyu-disguised', 'oranguru', 'komala', 'fomantis', 'pyukumuku'],
+      rare: ['bounsweet', 'dewpider', 'mareanie', 'turtonator', 'drampa', 'wishiwashi-solo', 'togedemaru'],
+      tresRare: ['clawitzer', 'avalugg', 'gourgeist-average', 'tyrantrum', 'heliolisk', 'sliggoo'],
+      legendaire: ['eternatus', 'kubfu', 'urshifu-single-strike', 'zarude'],
+    },
+    niveau: 145,
+    requisDe: 'zone72',
+    decor: '/volcan.png',
+  },
+
+  // ============ 74. Marais Spectral ============
+  {
+    id: 'zone74',
+    nom: 'Marais Spectral',
+    emoji: '👻',
+    description: 'Zone 74 — Marais Spectral.',
+    pool: {
+      commun: ['drampa', 'mudbray', 'minior-red-meteor', 'stufful', 'togedemaru', 'passimian', 'bounsweet', 'mareanie', 'fomantis', 'oranguru', 'dewpider', 'turtonator'],
+      rare: ['mimikyu-disguised', 'komala', 'comfey', 'pyukumuku', 'salandit', 'wishiwashi-solo', 'nihilego'],
+      tresRare: ['torracat', 'trevenant', 'dragalge', 'noivern', 'clawitzer', 'barbaracle'],
+      legendaire: ['kubfu', 'urshifu-single-strike', 'zarude', 'regieleki'],
+    },
+    niveau: 147,
+    requisDe: 'zone73',
+    decor: '/marais.png',
+  },
+
+  // ============ 75. Dunes Mouvantes ============
+  {
+    id: 'zone75',
+    nom: 'Dunes Mouvantes',
+    emoji: '🏜️',
+    description: 'Zone 75 — Dunes Mouvantes.',
+    pool: {
+      commun: ['guzzlord', 'morelull', 'turtonator', 'dhelmise', 'drampa', 'mimikyu-disguised', 'kartana', 'bruxish', 'passimian', 'sandygast', 'togedemaru', 'komala'],
+      rare: ['oranguru', 'buzzwole', 'salandit', 'celesteela', 'wimpod', 'bounsweet', 'minior-red-meteor'],
+      tresRare: ['avalugg', 'incineroar', 'decidueye', 'primarina', 'sylveon', 'goodra'],
+      legendaire: ['urshifu-single-strike', 'zarude', 'regieleki', 'regidrago'],
+    },
+    niveau: 149,
+    requisDe: 'zone74',
+    decor: '/desert.png',
+  },
+
+  // ============ 76. Citadelle Rocheuse ============
+  {
+    id: 'zone76',
+    nom: 'Citadelle Rocheuse',
+    emoji: '🏰',
+    description: 'Zone 76 — Citadelle Rocheuse.',
+    pool: {
+      commun: ['drampa', 'kartana', 'oranguru', 'celesteela', 'blacephalon', 'minior-red-meteor', 'mimikyu-disguised', 'bruxish', 'buzzwole', 'xurkitree', 'poipole', 'turtonator'],
+      rare: ['wimpod', 'sandygast', 'pheromosa', 'togedemaru', 'komala', 'comfey', 'passimian'],
+      tresRare: ['ribombee', 'charjabug', 'gumshoos', 'brionne', 'torracat', 'noivern'],
+      legendaire: ['zarude', 'regieleki', 'regidrago', 'glastrier'],
+    },
+    niveau: 151,
+    requisDe: 'zone75',
+    decor: '/cristal.png',
+  },
+
+  // ============ 77. Mont Foudre ============
+  {
+    id: 'zone77',
+    nom: 'Mont Foudre',
+    emoji: '⚡',
+    description: 'Zone 77 — Mont Foudre.',
+    pool: {
+      commun: ['grookey', 'minior-red-meteor', 'turtonator', 'celesteela', 'kartana', 'scorbunny', 'blipbug', 'komala', 'nihilego', 'poipole', 'dhelmise', 'sobble'],
+      rare: ['jangmo-o', 'pyukumuku', 'pheromosa', 'guzzlord', 'skwovet', 'togedemaru', 'mimikyu-disguised'],
+      tresRare: ['lycanroc-midday', 'charjabug', 'ribombee', 'mudsdale', 'vikavolt', 'toucannon'],
+      legendaire: ['regieleki', 'regidrago', 'glastrier', 'spectrier'],
+    },
+    niveau: 153,
+    requisDe: 'zone76',
+    decor: '/electrique.png',
+  },
+
+  // ============ 78. Abîme Insondable ============
+  {
+    id: 'zone78',
+    nom: 'Abîme Insondable',
+    emoji: '🌑',
+    description: 'Zone 78 — Abîme Insondable.',
+    pool: {
+      commun: ['scorbunny', 'mimikyu-disguised', 'chewtle', 'drampa', 'skwovet', 'togedemaru', 'gossifleur', 'celesteela', 'xurkitree', 'buzzwole', 'jangmo-o', 'wooloo'],
+      rare: ['kartana', 'blipbug', 'nihilego', 'grookey', 'bruxish', 'stakataka', 'guzzlord'],
+      tresRare: ['palossand', 'toucannon', 'shiinotic', 'golisopod', 'gumshoos', 'steenee'],
+      legendaire: ['regidrago', 'glastrier', 'spectrier', 'calyrex'],
+    },
+    niveau: 155,
+    requisDe: 'zone77',
+    decor: '/abysses.png',
+  },
+
+  // ============ 79. Sanctuaire Draconique ============
+  {
+    id: 'zone79',
+    nom: 'Sanctuaire Draconique',
+    emoji: '🐉',
+    description: 'Zone 79 — Sanctuaire Draconique.',
+    pool: {
+      commun: ['poipole', 'nickit', 'guzzlord', 'blipbug', 'kartana', 'stakataka', 'wooloo', 'cramorant', 'rookidee', 'scorbunny', 'xurkitree', 'blacephalon'],
+      rare: ['buzzwole', 'grookey', 'applin', 'sobble', 'yamper', 'gossifleur', 'rolycoly'],
+      tresRare: ['araquanid', 'mudsdale', 'lycanroc-midday', 'steenee', 'shiinotic', 'palossand'],
+      legendaire: ['glastrier', 'spectrier', 'calyrex', 'enamorus-incarnate'],
+    },
+    niveau: 157,
+    requisDe: 'zone78',
+    decor: '/dragon.png',
+  },
+
+  // ============ 80. Nid de Wyverne ============
+  {
+    id: 'zone80',
+    nom: 'Nid de Wyverne',
+    emoji: '🦎',
+    description: 'Zone 80 — Nid de Wyverne.',
+    pool: {
+      commun: ['yamper', 'sizzlipede', 'rolycoly', 'grookey', 'toxel', 'sobble', 'clobbopus', 'scorbunny', 'stakataka', 'silicobra', 'blipbug', 'rookidee'],
+      rare: ['celesteela', 'blacephalon', 'applin', 'kartana', 'wooloo', 'poipole', 'nickit'],
+      tresRare: ['naganadel', 'palossand', 'cinderace', 'lurantis', 'raboot', 'rillaboom'],
+      legendaire: ['spectrier', 'calyrex', 'enamorus-incarnate', 'wo-chien'],
+    },
+    niveau: 159,
+    requisDe: 'zone79',
+    decor: '/dragon.png',
+  },
+
+  // ============ 81. Vallée Enchantée ============
+  {
+    id: 'zone81',
+    nom: 'Vallée Enchantée',
+    emoji: '🦄',
+    description: 'Zone 81 — Vallée Enchantée.',
+    pool: {
+      commun: ['sinistea', 'cramorant', 'clobbopus', 'sizzlipede', 'grookey', 'skwovet', 'rookidee', 'stakataka', 'arrokuda', 'applin', 'gossifleur', 'silicobra'],
+      rare: ['impidimp', 'blacephalon', 'hatenna', 'nickit', 'blipbug', 'falinks', 'wooloo'],
+      tresRare: ['rillaboom', 'golisopod', 'dottler', 'cinderace', 'steenee', 'hakamo-o'],
+      legendaire: ['calyrex', 'enamorus-incarnate', 'wo-chien', 'chien-pao'],
+    },
+    niveau: 161,
+    requisDe: 'zone80',
+    decor: '/prairie.png',
+  },
+
+  // ============ 82. Pré Fleuri ============
+  {
+    id: 'zone82',
+    nom: 'Pré Fleuri',
+    emoji: '🌷',
+    description: 'Zone 82 — Pré Fleuri.',
+    pool: {
+      commun: ['applin', 'snom', 'skwovet', 'stonjourner', 'chewtle', 'rolycoly', 'impidimp', 'pincurchin', 'yamper', 'wooloo', 'falinks', 'toxel'],
+      rare: ['blipbug', 'eiscue-ice', 'clobbopus', 'milcery', 'sobble', 'rookidee', 'sizzlipede'],
+      tresRare: ['inteleon', 'orbeetle', 'drizzile', 'corvisquire', 'kommo-o', 'thievul'],
+      legendaire: ['enamorus-incarnate', 'wo-chien', 'chien-pao', 'ting-lu'],
+    },
+    niveau: 163,
+    requisDe: 'zone81',
+    decor: '/prairie.png',
+  },
+
+  // ============ 83. Sylve Profonde ============
+  {
+    id: 'zone83',
+    nom: 'Sylve Profonde',
+    emoji: '🌲',
+    description: 'Zone 83 — Sylve Profonde.',
+    pool: {
+      commun: ['arrokuda', 'sizzlipede', 'stonjourner', 'snom', 'falinks', 'silicobra', 'rolycoly', 'milcery', 'morpeko-full-belly', 'sinistea', 'eiscue-ice', 'indeedee-male'],
+      rare: ['clobbopus', 'gossifleur', 'pincurchin', 'applin', 'toxel', 'arctozolt', 'impidimp'],
+      tresRare: ['carkol', 'dottler', 'coalossal', 'drizzile', 'eldegoss', 'boltund'],
+      legendaire: ['wo-chien', 'chien-pao', 'ting-lu', 'chi-yu'],
+    },
+    niveau: 165,
+    requisDe: 'zone82',
+    decor: '/foret.png',
+  },
+
+  // ============ 84. Caverne Écarlate ============
+  {
+    id: 'zone84',
+    nom: 'Caverne Écarlate',
+    emoji: '🔴',
+    description: 'Zone 84 — Caverne Écarlate.',
+    pool: {
+      commun: ['silicobra', 'arctozolt', 'arrokuda', 'arctovish', 'impidimp', 'hatenna', 'applin', 'sizzlipede', 'dracovish', 'indeedee-male', 'falinks', 'cufant'],
+      rare: ['snom', 'pincurchin', 'stonjourner', 'rolycoly', 'eiscue-ice', 'clobbopus', 'dracozolt'],
+      tresRare: ['dottler', 'orbeetle', 'toxtricity-amped', 'grapploct', 'barraskewda', 'dubwool'],
+      legendaire: ['chien-pao', 'ting-lu', 'chi-yu', 'koraidon'],
+    },
+    niveau: 167,
+    requisDe: 'zone83',
+    decor: '/grotte.png',
+  },
+
+  // ============ 85. Plaine Désolée ============
+  {
+    id: 'zone85',
+    nom: 'Plaine Désolée',
+    emoji: '💀',
+    description: 'Zone 85 — Plaine Désolée.',
+    pool: {
+      commun: ['pincurchin', 'sprigatito', 'arctovish', 'arctozolt', 'sizzlipede', 'fuecoco', 'morpeko-full-belly', 'impidimp', 'falinks', 'sinistea', 'duraludon', 'dreepy'],
+      rare: ['hatenna', 'indeedee-male', 'dracozolt', 'quaxly', 'milcery', 'eiscue-ice', 'toxel'],
+      tresRare: ['dubwool', 'carkol', 'boltund', 'hattrem', 'drednaw', 'barraskewda'],
+      legendaire: ['ting-lu', 'chi-yu', 'koraidon', 'miraidon'],
+    },
+    niveau: 169,
+    requisDe: 'zone84',
+    decor: '/desert.png',
+  },
+
+  // ============ 86. Lac de Lave ============
+  {
+    id: 'zone86',
+    nom: 'Lac de Lave',
+    emoji: '🌋',
+    description: 'Zone 86 — Lac de Lave.',
+    pool: {
+      commun: ['fuecoco', 'pincurchin', 'dracozolt', 'duraludon', 'stonjourner', 'pawmi', 'impidimp', 'eiscue-ice', 'tarountula', 'nymble', 'dracovish', 'cufant'],
+      rare: ['lechonk', 'fidough', 'quaxly', 'arctozolt', 'smoliv', 'sprigatito', 'indeedee-male'],
+      tresRare: ['sandaconda', 'sirfetchd', 'appletun', 'cursola', 'morgrem', 'coalossal'],
+      legendaire: ['chi-yu', 'koraidon', 'miraidon', 'okidogi'],
+    },
+    niveau: 171,
+    requisDe: 'zone85',
+    decor: '/volcan.png',
+  },
+
+  // ============ 87. Océan Déchaîné ============
+  {
+    id: 'zone87',
+    nom: 'Océan Déchaîné',
+    emoji: '🌊',
+    description: 'Zone 87 — Océan Déchaîné.',
+    pool: {
+      commun: ['dracovish', 'arctovish', 'pawmi', 'snom', 'sprigatito', 'nacli', 'lechonk', 'tarountula', 'eiscue-ice', 'fidough', 'stonjourner', 'tandemaus'],
+      rare: ['smoliv', 'tadbulb', 'arctozolt', 'dracozolt', 'dreepy', 'nymble', 'charcadet'],
+      tresRare: ['frosmoth', 'mr-rime', 'runerigus', 'centiskorch', 'alcremie', 'polteageist'],
+      legendaire: ['koraidon', 'miraidon', 'okidogi', 'munkidori'],
+    },
+    niveau: 173,
+    requisDe: 'zone86',
+    decor: '/abysses.png',
+  },
+
+  // ============ 88. Tempête Éternelle ============
+  {
+    id: 'zone88',
+    nom: 'Tempête Éternelle',
+    emoji: '🌩️',
+    description: 'Zone 88 — Tempête Éternelle.',
+    pool: {
+      commun: ['duraludon', 'fuecoco', 'squawkabilly-green-plumage', 'fidough', 'lechonk', 'pawmi', 'nacli', 'tadbulb', 'shroodle', 'smoliv', 'maschiff', 'wattrel'],
+      rare: ['charcadet', 'tandemaus', 'quaxly', 'arctozolt', 'tarountula', 'nymble', 'dreepy'],
+      tresRare: ['obstagoon', 'drakloak', 'mr-rime', 'morgrem', 'kleavor', 'grimmsnarl'],
+      legendaire: ['miraidon', 'okidogi', 'munkidori', 'fezandipiti'],
+    },
+    niveau: 175,
+    requisDe: 'zone87',
+    decor: '/electrique.png',
+  },
+
+  // ============ 89. Pic Glacial ============
+  {
+    id: 'zone89',
+    nom: 'Pic Glacial',
+    emoji: '🏔️',
+    description: 'Zone 89 — Pic Glacial.',
+    pool: {
+      commun: ['tadbulb', 'fidough', 'smoliv', 'quaxly', 'wattrel', 'tandemaus', 'sprigatito', 'dreepy', 'lechonk', 'klawf', 'toedscool', 'arctovish'],
+      rare: ['maschiff', 'rellor', 'capsakid', 'squawkabilly-green-plumage', 'charcadet', 'pawmi', 'tarountula'],
+      tresRare: ['wyrdeer', 'runerigus', 'mr-rime', 'basculegion-male', 'perrserker', 'cursola'],
+      legendaire: ['okidogi', 'munkidori', 'fezandipiti', 'ogerpon'],
+    },
+    niveau: 177,
+    requisDe: 'zone88',
+    decor: '/neige.png',
+  },
+
+  // ============ 90. Temple du Vide ============
+  {
+    id: 'zone90',
+    nom: 'Temple du Vide',
+    emoji: '🕳️',
+    description: 'Zone 90 — Temple du Vide.',
+    pool: {
+      commun: ['nacli', 'maschiff', 'klawf', 'rellor', 'flittle', 'wiglett', 'tarountula', 'fidough', 'wattrel', 'varoom', 'bombirdier', 'pawmi'],
+      rare: ['shroodle', 'charcadet', 'tinkatink', 'nymble', 'tandemaus', 'smoliv', 'capsakid'],
+      tresRare: ['kleavor', 'meowscarada', 'wyrdeer', 'quaxwell', 'quaquaval', 'overqwil'],
+      legendaire: ['munkidori', 'fezandipiti', 'ogerpon', 'terapagos'],
+    },
+    niveau: 179,
+    requisDe: 'zone89',
+    decor: '/temple.png',
+  },
+
+  // ============ 91. Forêt Spectrale ============
+  {
+    id: 'zone91',
+    nom: 'Forêt Spectrale',
+    emoji: '👻',
+    description: 'Zone 91 — Forêt Spectrale.',
+    pool: {
+      commun: ['smoliv', 'klawf', 'glimmet', 'cyclizar', 'wattrel', 'tinkatink', 'wiglett', 'tandemaus', 'maschiff', 'fidough', 'bramblin', 'finizen'],
+      rare: ['varoom', 'toedscool', 'capsakid', 'nacli', 'greavard', 'squawkabilly-green-plumage', 'charcadet'],
+      tresRare: ['kleavor', 'maushold-family-of-four', 'wyrdeer', 'pawmo', 'pawmot', 'sneasler'],
+      legendaire: ['fezandipiti', 'ogerpon', 'terapagos', 'pecharunt'],
+    },
+    niveau: 181,
+    requisDe: 'zone90',
+    decor: '/temple.png',
+  },
+
+  // ============ 92. Mont Dragon ============
+  {
+    id: 'zone92',
+    nom: 'Mont Dragon',
+    emoji: '🐲',
+    description: 'Zone 92 — Mont Dragon.',
+    pool: {
+      commun: ['greavard', 'wiglett', 'rellor', 'bramblin', 'orthworm', 'tadbulb', 'klawf', 'toedscool', 'varoom', 'flittle', 'wattrel', 'bombirdier'],
+      rare: ['cyclizar', 'finizen', 'flamigo', 'glimmet', 'charcadet', 'tatsugiri-curly', 'nacli'],
+      tresRare: ['dolliv', 'arboliva', 'spidops', 'dachsbun', 'oinkologne-male', 'maushold-family-of-four'],
+      legendaire: ['ogerpon', 'terapagos', 'pecharunt', 'articuno'],
+    },
+    niveau: 183,
+    requisDe: 'zone91',
+    decor: '/dragon.png',
+  },
+
+  // ============ 93. Scommet Céleste ============
+  {
+    id: 'zone93',
+    nom: 'Scommet Céleste',
+    emoji: '☁️',
+    description: 'Zone 93 — Scommet Céleste.',
+    pool: {
+      commun: ['orthworm', 'klawf', 'shroodle', 'flutter-mane', 'tinkatink', 'rellor', 'maschiff', 'flittle', 'bramblin', 'greavard', 'veluza', 'bombirdier'],
+      rare: ['wiglett', 'great-tusk', 'cetoddle', 'tatsugiri-curly', 'toedscool', 'dondozo', 'flamigo'],
+      tresRare: ['naclstack', 'pawmot', 'dachsbun', 'skeledirge', 'kilowattrel', 'garganacl'],
+      legendaire: ['terapagos', 'pecharunt', 'articuno', 'zapdos'],
+    },
+    niveau: 185,
+    requisDe: 'zone92',
+    decor: '/sanctuaire.png',
+  },
+
+  // ============ 94. Plaine des Origines ============
+  {
+    id: 'zone94',
+    nom: 'Plaine des Origines',
+    emoji: '🌌',
+    description: 'Zone 94 — Plaine des Origines.',
+    pool: {
+      commun: ['veluza', 'great-tusk', 'flutter-mane', 'iron-treads', 'flittle', 'greavard', 'flamigo', 'varoom', 'tatsugiri-curly', 'dondozo', 'scream-tail', 'capsakid'],
+      rare: ['sandy-shocks', 'slither-wing', 'wiglett', 'orthworm', 'cyclizar', 'iron-bundle', 'iron-hands'],
+      tresRare: ['dolliv', 'scovillain', 'garganacl', 'kilowattrel', 'bellibolt', 'mabosstiff'],
+      legendaire: ['pecharunt', 'articuno', 'zapdos', 'moltres'],
+    },
+    niveau: 187,
+    requisDe: 'zone93',
+    decor: '/sanctuaire.png',
+  },
+
+  // ============ 95. Ruines Élémentaires ============
+  {
+    id: 'zone95',
+    nom: 'Ruines Élémentaires',
+    emoji: '💠',
+    description: 'Zone 95 — Ruines Élémentaires.',
+    pool: {
+      commun: ['iron-moth', 'glimmet', 'iron-thorns', 'brute-bonnet', 'bombirdier', 'great-tusk', 'veluza', 'cetoddle', 'varoom', 'frigibax', 'flutter-mane', 'scream-tail'],
+      rare: ['cyclizar', 'wiglett', 'greavard', 'iron-treads', 'sandy-shocks', 'iron-jugulis', 'dondozo'],
+      tresRare: ['arboliva', 'armarouge', 'ceruledge', 'brambleghast', 'tinkaton', 'naclstack'],
+      legendaire: ['articuno', 'zapdos', 'moltres', 'mewtwo'],
+    },
+    niveau: 189,
+    requisDe: 'zone94',
+    decor: '/cristal.png',
+  },
+
+  // ============ 96. Caverne Primordiale ============
+  {
+    id: 'zone96',
+    nom: 'Caverne Primordiale',
+    emoji: '🦴',
+    description: 'Zone 96 — Caverne Primordiale.',
+    pool: {
+      commun: ['sandy-shocks', 'brute-bonnet', 'frigibax', 'flutter-mane', 'tatsugiri-curly', 'iron-bundle', 'great-tusk', 'scream-tail', 'glimmet', 'dondozo', 'orthworm', 'greavard'],
+      rare: ['iron-jugulis', 'slither-wing', 'roaring-moon', 'iron-valiant', 'veluza', 'iron-treads', 'flamigo'],
+      tresRare: ['palafin-zero', 'tinkatuff', 'cetitan', 'glimmora', 'bellibolt', 'mabosstiff'],
+      legendaire: ['zapdos', 'moltres', 'mewtwo', 'mew'],
+    },
+    niveau: 191,
+    requisDe: 'zone95',
+    decor: '/grotte.png',
+  },
+
+  // ============ 97. Vallée Sacrée ============
+  {
+    id: 'zone97',
+    nom: 'Vallée Sacrée',
+    emoji: '⛩️',
+    description: 'Zone 97 — Vallée Sacrée.',
+    pool: {
+      commun: ['raging-bolt', 'iron-leaves', 'scream-tail', 'flutter-mane', 'veluza', 'iron-treads', 'gouging-fire', 'iron-moth', 'walking-wake', 'poltchageist', 'iron-valiant', 'brute-bonnet'],
+      rare: ['great-tusk', 'dondozo', 'cetoddle', 'frigibax', 'iron-thorns', 'iron-hands', 'slither-wing'],
+      tresRare: ['clodsire', 'palafin-zero', 'scovillain', 'toedscruel', 'annihilape', 'dudunsparce-two-segment'],
+      legendaire: ['moltres', 'mewtwo', 'mew', 'raikou'],
+    },
+    niveau: 193,
+    requisDe: 'zone96',
+    decor: '/sanctuaire.png',
+  },
+
+  // ============ 98. Jardin des Légendes ============
+  {
+    id: 'zone98',
+    nom: 'Jardin des Légendes',
+    emoji: '🏆',
+    description: 'Zone 98 — Jardin des Légendes.',
+    pool: {
+      commun: ['gimmighoul', 'iron-moth', 'slither-wing', 'gouging-fire', 'iron-crown', 'brute-bonnet', 'sandy-shocks', 'scream-tail', 'iron-treads', 'iron-boulder', 'iron-hands', 'frigibax'],
+      rare: ['walking-wake', 'raging-bolt', 'iron-leaves', 'poltchageist', 'iron-valiant', 'iron-bundle', 'flutter-mane'],
+      tresRare: ['cetitan', 'clodsire', 'dipplin', 'glimmora', 'tinkatuff', 'revavroom'],
+      legendaire: ['mewtwo', 'mew', 'raikou', 'entei'],
+    },
+    niveau: 195,
+    requisDe: 'zone97',
+    decor: '/sanctuaire.png',
+  },
+
+  // ============ 99. Trône Céleste ============
+  {
+    id: 'zone99',
+    nom: 'Trône Céleste',
+    emoji: '👑',
+    description: 'Zone 99 — Trône Céleste.',
+    pool: {
+      commun: ['walking-wake', 'poltchageist', 'iron-treads', 'gimmighoul', 'iron-jugulis', 'iron-crown', 'iron-thorns', 'iron-bundle', 'gouging-fire', 'roaring-moon', 'frigibax', 'iron-moth'],
+      rare: ['raging-bolt', 'sandy-shocks', 'iron-valiant', 'iron-hands', 'iron-leaves', 'iron-boulder'],
+      tresRare: ['cetitan', 'dudunsparce-two-segment', 'houndstone', 'clodsire', 'hydrapple', 'baxcalibur'],
+      legendaire: ['mew', 'raikou', 'entei', 'suicune'],
+    },
+    niveau: 197,
+    requisDe: 'zone98',
+    decor: '/sanctuaire.png',
+  },
+
+  // ============ 100. Nexus Originel ============
+  {
+    id: 'zone100',
+    nom: 'Nexus Originel',
+    emoji: '✨',
+    description: 'Zone 100 — Nexus Originel.',
+    pool: {
+      commun: ['iron-thorns', 'frigibax', 'iron-crown', 'iron-boulder', 'iron-leaves', 'iron-valiant', 'gouging-fire', 'iron-moth', 'poltchageist', 'walking-wake', 'roaring-moon', 'gimmighoul'],
+      rare: ['raging-bolt'],
+      tresRare: ['hydrapple', 'gholdengo', 'farigiraf', 'sinistcha', 'baxcalibur', 'dudunsparce-two-segment'],
+      legendaire: ['raikou', 'entei', 'suicune', 'lugia'],
+    },
+    niveau: 199,
+    requisDe: 'zone99',
+    decor: '/sanctuaire.png',
+  },
+
+]
+
+
+export const VICTOIRES_POUR_DEBLOQUER = 25
+
+export function routeParId(id) {
+  return ROUTES.find((r) => r.id === id) || ROUTES[0]
+}
+
+export function routeDebloquee(route, bossVaincus) {
+  if (!route.requisDe) return true
+  return bossVaincus && bossVaincus[route.requisDe] === true
+}
+
+const POIDS_RARETE = { commun: 60, rare: 28, tresRare: 11, legendaire: 0.25 }
+
+export const MULTI_XP_RARETE = { commun: 1, rare: 1.5, tresRare: 2.5, legendaire: 6 }
+
+export function tirerPokemon(pool) {
+  const total = POIDS_RARETE.commun + POIDS_RARETE.rare + POIDS_RARETE.tresRare + POIDS_RARETE.legendaire
+  const tirage = Math.random() * total
+  let categorie
+  if (tirage < POIDS_RARETE.commun) categorie = 'commun'
+  else if (tirage < POIDS_RARETE.commun + POIDS_RARETE.rare) categorie = 'rare'
+  else if (tirage < POIDS_RARETE.commun + POIDS_RARETE.rare + POIDS_RARETE.tresRare) categorie = 'tresRare'
+  else categorie = 'legendaire'
+
+  const liste = pool[categorie] && pool[categorie].length > 0 ? pool[categorie] : pool.commun
+  const nom = liste[Math.floor(Math.random() * liste.length)]
+  return { nom, rarete: liste === pool.commun ? 'commun' : categorie }
+}
+
+export function bossDeLaRoute(route) {
+  const leg = route.pool.legendaire
+  if (leg && leg.length > 0) return leg[0]
+  return null
+}
+
+export const COMBATS_AVANT_BOSS = 25
+
+export const FORCE_BOSS = 4
