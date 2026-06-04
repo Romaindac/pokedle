@@ -760,6 +760,14 @@ function App() {
       estEvolution: true,
       familleId: poke.familleId ?? null,
     }
+    // Rôle + passif recalculés/conservés sur la forme évoluée (évite un rôle "undefined"
+    // après évolution, qui pourrait fausser la composition d'équipe).
+    base.role = poke.roleForce || poke.role || determinerRole(base)
+    base.roleForce = poke.roleForce
+    base.passifChoisi = poke.passifChoisi
+    base.jokerCase = poke.jokerCase
+    base.objetEquipe = poke.objetEquipe
+    base.passif = determinerPassif(base)
     return { ...base, ...statsFinales(base, BONUS_STAT_NIVEAU) }
   }
 
@@ -836,6 +844,13 @@ function App() {
             estEvolution: true,
             familleId: poke.familleId ?? infosEvo.familleId ?? null,
           }
+          // Conserve rôle/passif/objet du Pokémon d'origine (évite rôle undefined).
+          base.role = poke.roleForce || poke.role || determinerRole(base)
+          base.roleForce = poke.roleForce
+          base.passifChoisi = poke.passifChoisi
+          base.jokerCase = poke.jokerCase
+          base.objetEquipe = poke.objetEquipe
+          base.passif = determinerPassif(base)
           return { ...base, ...statsFinales(base, BONUS_STAT_NIVEAU) }
         })
       )
@@ -1074,43 +1089,76 @@ function App() {
   }
 
   async function lancerCombatSuivant() {
-    const route = routeParId(routeActiveRef.current)
-    const victoiresZone = (victoiresParRouteRef.current[route.id] || 0)
-    // Stratégie : -1 victoire requise par niveau, jamais sous 10.
-    const reduc = niveauAmelioration(ameliorationsRef.current, 'strategie')
-    const combatsAvantBoss = Math.max(10, COMBATS_AVANT_BOSS - reduc)
-    const cestLeBoss = victoiresZone >= combatsAvantBoss && !bossVaincusRef.current[route.id]
+    // ============================================================================
+    // FIX BUG « combat figé sur boss » : cette fonction est désormais INCREVABLE.
+    // Le drapeau transitionEnCours.current est rebaissé dans le finally QUOI QU'IL
+    // ARRIVE. Avant, si un chargement (boss/ennemis via PokeAPI) échouait, le drapeau
+    // restait coincé à true → la boucle de combat faisait toujours demi-tour sur
+    // `if (transitionEnCours.current) return` → aucune jauge ne bougeait (combat gelé),
+    // et ça persistait après actualisation. Le try/catch/finally règle ça pour de bon.
+    // ============================================================================
+    try {
+      const route = routeParId(routeActiveRef.current)
+      const victoiresZone = (victoiresParRouteRef.current[route.id] || 0)
+      // Stratégie : -1 victoire requise par niveau, jamais sous 10.
+      const reduc = niveauAmelioration(ameliorationsRef.current, 'strategie')
+      const combatsAvantBoss = Math.max(10, COMBATS_AVANT_BOSS - reduc)
+      const cestLeBoss = victoiresZone >= combatsAvantBoss && !bossVaincusRef.current[route.id]
 
-    let nouveaux
-    if (cestLeBoss) {
-      const boss = await chargerBoss(route)
-      if (boss) {
-        nouveaux = [boss]
-        setCombatBoss(true)
-        combatBossRef.current = true
-        ajouterAuJournal(`⚠️ BOSS : ${boss.nom} ✨ apparaît ! Préparez-vous !`, 'echec')
+      let nouveaux
+      if (cestLeBoss) {
+        // Le chargement du boss peut échouer (API PokeAPI). Si ça arrive, on NE reste
+        // PAS bloqué : on retombe proprement sur un combat normal.
+        let boss = null
+        try {
+          boss = await chargerBoss(route)
+        } catch (err) {
+          console.warn('Échec chargement boss, repli sur combat normal.', err)
+          boss = null
+        }
+        if (boss) {
+          nouveaux = [boss]
+          setCombatBoss(true)
+          combatBossRef.current = true
+          ajouterAuJournal(`⚠️ BOSS : ${boss.nom} ✨ apparaît ! Préparez-vous !`, 'echec')
+        } else {
+          nouveaux = await chargerEquipeEnnemie(route)
+          setCombatBoss(false)
+          combatBossRef.current = false
+        }
       } else {
         nouveaux = await chargerEquipeEnnemie(route)
         setCombatBoss(false)
         combatBossRef.current = false
       }
-    } else {
-      nouveaux = await chargerEquipeEnnemie(route)
-      setCombatBoss(false)
-      combatBossRef.current = false
-    }
 
-    setEquipeEnnemie(nouveaux)
-    equipeEnnemieRef.current = nouveaux
-    const pvE = nouveaux.map((p) => p.pvMax)
-    const jE = nouveaux.map(() => 0)
-    const eq = equipeIds.map((uid) => capturesRef.current.find((p) => p.uid === uid)).filter(Boolean)
-    const pvJ = eq.map((p) => p.pvMax)
-    const jJ = eq.map(() => 0)
-    setPvJoueur(pvJ); setJaugeJoueur(jJ)
-    etat.current = { pvJ, jJ, pvE, jE }
-    setPvEnnemis(pvE); setJaugeEnnemis(jE)
-    transitionEnCours.current = false
+      // Sécurité : si pour une raison quelconque l'équipe ennemie est vide, on évite
+      // de figer le combat (sinon la boucle return sur length === 0). On retente un
+      // combat normal une fois.
+      if (!nouveaux || nouveaux.length === 0) {
+        console.warn('Équipe ennemie vide, nouvelle tentative de combat normal.')
+        nouveaux = await chargerEquipeEnnemie(route)
+        setCombatBoss(false)
+        combatBossRef.current = false
+      }
+
+      setEquipeEnnemie(nouveaux)
+      equipeEnnemieRef.current = nouveaux
+      const pvE = nouveaux.map((p) => p.pvMax)
+      const jE = nouveaux.map(() => 0)
+      const eq = equipeIds.map((uid) => capturesRef.current.find((p) => p.uid === uid)).filter(Boolean)
+      const pvJ = eq.map((p) => p.pvMax)
+      const jJ = eq.map(() => 0)
+      setPvJoueur(pvJ); setJaugeJoueur(jJ)
+      etat.current = { pvJ, jJ, pvE, jE }
+      setPvEnnemis(pvE); setJaugeEnnemis(jE)
+    } catch (err) {
+      // Filet de sécurité ultime : on log, mais on ne laisse JAMAIS le combat figé.
+      console.error('Erreur dans lancerCombatSuivant :', err)
+    } finally {
+      // CLÉ DU FIX : le drapeau de transition redescend TOUJOURS, même en cas d'erreur.
+      transitionEnCours.current = false
+    }
   }
   // On garde une référence vers la fonction pour pouvoir l'appeler depuis
   // d'autres effets (ex: expiration du timer de boss) sans souci d'ordre de définition.
