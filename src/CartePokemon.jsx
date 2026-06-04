@@ -8,7 +8,8 @@ import { ultimeDuRole } from './ultimes'
 function CartePokemon({
   pokemon, pvActuels, jauge = 0, niveau, compact = false,
   // Props d'ultime (optionnelles : seule l'équipe joueur les passe).
-  chargeUltime = 0, coutUltime = 0, ultimePret = false, onUltime = null, ultimeEnnemi = false,
+  // Ultime : système temporel (auto à 7s). ultimeLance = true une fois déclenché ce combat.
+  ultimeLance = false, ultimeEnnemi = false,
 }) {
   const pourcentageVie = (pvActuels / pokemon.pvMax) * 100
   const ko = pvActuels <= 0
@@ -64,10 +65,9 @@ function CartePokemon({
   const infoRole = ROLES[role]
   const passif = passifDe(pokemon)
 
-  // Ultime du rôle + état de charge (seulement si on a reçu des props d'ultime).
+  // Ultime du rôle. Affiché comme un petit badge ; s'illumine une fois l'ultime lancé.
   const ultime = ultimeDuRole(role)
-  const afficheUltime = coutUltime > 0 && ultime && !ko
-  const pourcentageUltime = coutUltime > 0 ? Math.min(100, (chargeUltime / coutUltime) * 100) : 0
+  const afficheUltime = !!ultime && !ko
 
   return (
     <div className={`carte-pokemon ${compact ? 'compact' : ''} ${ko ? 'ko' : ''} ${pokemon.shiny ? 'est-shiny' : ''} ${prendCoup ? 'prend-coup' : ''} ${haloRole ? `halo-role halo-${roleCourant}` : ''}`}>
@@ -78,20 +78,16 @@ function CartePokemon({
         <span className="badge-shiny" title="Shiny !">✨</span>
       )}
 
-      {/* Bouton/jauge d'ultime. Joueur = cliquable ; ennemi = visible non-cliquable. */}
+      {/* Badge d'ultime : pastille du rôle. Grisée tant que l'ultime n'est pas lancé,
+          illuminée (couleur du rôle) une fois déclenché (auto à ~7s). Non cliquable. */}
       {afficheUltime && (
-        <button
-          className={`bouton-ultime ${ultimePret ? 'pret' : ''} ${ultimeEnnemi ? 'ultime-ennemi' : ''}`}
-          title={ultimeEnnemi
-            ? `Ultime ennemi ${ultime.nom} (${chargeUltime}/${coutUltime})`
-            : (ultimePret ? `${ultime.nom} prêt ! Clique pour lancer.` : `${ultime.nom} (${chargeUltime}/${coutUltime})`)}
-          onClick={() => { if (!ultimeEnnemi && ultimePret && onUltime) onUltime() }}
-          disabled={ultimeEnnemi || !ultimePret}
+        <div
+          className={`bouton-ultime ${ultimeLance ? 'pret' : ''} ${ultimeEnnemi ? 'ultime-ennemi' : ''}`}
+          title={ultimeLance ? `${ultime.nom} lancé !` : `${ultime.nom} (auto à 7s)`}
           style={{ '--couleur-ultime': ultime.couleur }}
         >
           <span className="bouton-ultime-emoji">{ultime.emoji}</span>
-          <span className="bouton-ultime-jauge" style={{ height: `${pourcentageUltime}%` }}></span>
-        </button>
+        </div>
       )}
 
       <div className="sprite-zone">

@@ -459,23 +459,21 @@ function App() {
   // Chiffres flottants de combat (dégâts/crit) : { id, montant, type, camp, index }.
   // camp = 'joueur' ou 'ennemi' (le camp de la cible touchée), index = position dans l'équipe.
   const [chiffresFlottants, setChiffresFlottants] = useState([])
-  // --- ULTIMES ---
-  // Charge d'ultime par Pokémon de l'équipe (en nombre d'attaques). Index = position équipe.
-  const [chargeUltime, setChargeUltime] = useState([0, 0, 0, 0, 0, 0])
-  // Charge d'ultime affichée pour l'équipe ennemie (jauge visible, non-cliquable).
-  const [chargeUltimeEnnemi, setChargeUltimeEnnemi] = useState([0, 0, 0, 0, 0, 0, 0])
-  // Mode de déclenchement des ultimes : 'manuel' (clic) ou 'auto'.
-  const [modeUltime, setModeUltime] = useState('manuel')
-  const modeUltimeRef = useRef('manuel')
-  useEffect(() => { modeUltimeRef.current = modeUltime }, [modeUltime])
+  // --- ULTIMES (système temporel) ---
+  // Chaque Pokémon lance son ultime UNE FOIS par combat, ~7 secondes réelles après
+  // le début du combat. Plus de jauge ni de clic : c'est automatique et minuté.
+  const DELAI_ULTIME_MS = 7000
+  // Timestamp (Date.now) du début du combat courant. Réinitialisé à chaque combat.
+  const debutCombatRef = useRef(0)
+  // Drapeaux "ultime déjà lancé ce combat" par index, pour chaque camp.
+  const ultimeLanceRef = useRef([false, false, false, false, false, false])
+  const ultimeLanceEnnemiRef = useRef([false, false, false, false, false, false, false])
+  // États d'affichage : true quand l'ultime du Pokémon a été lancé (pour un visuel sur la carte).
+  const [ultimeLanceJoueur, setUltimeLanceJoueur] = useState([false, false, false, false, false, false])
+  const [ultimeLanceEnnemiAff, setUltimeLanceEnnemiAff] = useState([false, false, false, false, false, false, false])
   // Tics de bouclier (Rempart) encore actifs. Lu par la boucle, décrémenté à chaque tic.
   const bouclierTicsRef = useRef(0)
-  // Suivi des attaques précédentes de chaque Pokémon (pour incrémenter la charge).
-  const attaquesPrecedentesRef = useRef([0, 0, 0, 0, 0, 0])
-  // Demande de déclenchement d'ultime en attente (index du Pokémon), traitée par la boucle.
-  const ultimeEnAttenteRef = useRef(null)
-  // Côté ENNEMI : charge d'ultime (réf, pas affichée) + tics de bouclier ennemi.
-  const attaquesPrecedentesEnnemiRef = useRef([0, 0, 0, 0, 0, 0, 0])
+  // Côté ENNEMI : tics de bouclier ennemi.
   const bouclierTicsEnnemiRef = useRef(0)
 
   const equipeJoueur = equipeIds.map((uid) => captures.find((p) => p.uid === uid)).filter(Boolean)
@@ -724,12 +722,6 @@ function App() {
     })
     if (captureTimer.current) clearTimeout(captureTimer.current)
     captureTimer.current = setTimeout(() => setCaptureRecente(null), 2200)
-  }
-
-  // Déclenche l'ultime du Pokémon d'index donné (clic manuel). La boucle le traite au prochain tic.
-  function declencherUltime(index) {
-    if ((chargeUltime[index] || 0) < COUT_ULTIME) return // pas encore prêt
-    ultimeEnAttenteRef.current = index
   }
 
   // Ajoute des chiffres flottants depuis les coups d'un tic de combat.
@@ -1215,8 +1207,13 @@ function App() {
 
       setEquipeEnnemie(nouveaux)
       equipeEnnemieRef.current = nouveaux
-      // Reset des charges d'ultime ennemies (nouvelle équipe).
-      attaquesPrecedentesEnnemiRef.current = [0, 0, 0, 0, 0, 0, 0]
+      // Reset des ultimes pour le nouveau combat : timer relancé, drapeaux remis à zéro.
+      debutCombatRef.current = Date.now()
+      ultimeLanceRef.current = [false, false, false, false, false, false]
+      ultimeLanceEnnemiRef.current = [false, false, false, false, false, false, false]
+      setUltimeLanceJoueur([false, false, false, false, false, false])
+      setUltimeLanceEnnemiAff([false, false, false, false, false, false, false])
+      bouclierTicsRef.current = 0
       bouclierTicsEnnemiRef.current = 0
       const pvE = nouveaux.map((p) => p.pvMax)
       const jE = nouveaux.map(() => 0)
@@ -1408,6 +1405,8 @@ function App() {
       // BLOCAGE DE COMPO : le combat principal ne tourne que si l'équipe respecte
       // 1 Tank / 1 Éclaireur / 2 Soutien / 2 DPS. Sinon on met le combat en pause.
       if (!compositionValideRef.current) return
+      // Initialise le chrono d'ultime au tout premier combat (si pas déjà fait).
+      if (debutCombatRef.current === 0) debutCombatRef.current = Date.now()
       let e = etat.current
       // Sécurité : si les tableaux de PV/jauge ne correspondent plus aux équipes
       // (ex: changement d'équipe en cours), on resynchronise avant de combattre.
@@ -1423,55 +1422,42 @@ function App() {
         e = { ...e, pvE, jE }
         etat.current = e
       }
-      // --- ULTIMES : déclenchement (manuel demandé OU auto si jauge pleine) ---
-      // On traite AVANT le tic pour que l'effet soit immédiat ce tour-ci.
-      const chargesActuelles = attaquesPrecedentesRef.current
-      let demandeIdx = ultimeEnAttenteRef.current
-      // En mode auto, on déclenche le premier Pokémon dont la jauge est pleine.
-      if (demandeIdx == null && modeUltimeRef.current === 'auto') {
+      // --- ULTIMES (système temporel) : à 7s réelles, chaque Pokémon lance son ultime UNE fois ---
+      // On compte le temps réel écoulé depuis le début du combat (indépendant de la vitesse).
+      const tempsEcoule = debutCombatRef.current > 0 ? (Date.now() - debutCombatRef.current) : 0
+      if (tempsEcoule >= DELAI_ULTIME_MS) {
+        // --- Côté JOUEUR ---
+        const lances = ultimeLanceRef.current
+        let majJoueur = false
         for (let k = 0; k < equipeJoueur.length; k++) {
-          if ((chargesActuelles[k] || 0) >= COUT_ULTIME && e.pvJ[k] > 0) { demandeIdx = k; break }
+          if (!lances[k] && equipeJoueur[k] && e.pvJ[k] > 0) {
+            const ult = ultimeDuRole(equipeJoueur[k].role || 'dps')
+            const res = appliquerUltime(k, ult, equipeJoueur, e.pvJ, e.jJ, equipeEnnemie, e.pvE)
+            if (res.bouclierTics > 0) bouclierTicsRef.current = res.bouclierTics
+            if (res.coups && res.coups.length) ajouterChiffres(res.coups)
+            if (ult) ajouterAuJournal(`${ult.emoji} ${equipeJoueur[k].nom} déclenche ${ult.nom} !`, 'victoire')
+            lances[k] = true
+            majJoueur = true
+          }
         }
-      }
-      if (demandeIdx != null && equipeJoueur[demandeIdx] && (chargesActuelles[demandeIdx] || 0) >= COUT_ULTIME && e.pvJ[demandeIdx] > 0) {
-        const roleU = equipeJoueur[demandeIdx].role || 'dps'
-        const ult = ultimeDuRole(roleU)
-        const res = appliquerUltime(demandeIdx, ult, equipeJoueur, e.pvJ, e.jJ, equipeEnnemie, e.pvE)
-        if (res.bouclierTics > 0) bouclierTicsRef.current = res.bouclierTics
-        if (res.coups && res.coups.length) ajouterChiffres(res.coups)
-        // Consomme la charge : on mémorise le compteur d'attaques au moment du déclenchement.
-        if (equipeJoueur[demandeIdx]) {
-          equipeJoueur[demandeIdx]._ultiResetAttaques = equipeJoueur[demandeIdx]._attaques || 0
-        }
-        chargesActuelles[demandeIdx] = 0
-        const nouvellesCharges = [...chargesActuelles]
-        setChargeUltime(nouvellesCharges)
-        if (ult) ajouterAuJournal(`${ult.emoji} ${equipeJoueur[demandeIdx].nom} déclenche ${ult.nom} !`, 'victoire')
-      }
-      ultimeEnAttenteRef.current = null
+        if (majJoueur) setUltimeLanceJoueur([...lances])
 
-      // --- ULTIMES ENNEMIS (auto) : le 1er ennemi dont la jauge est pleine déclenche ---
-      const chargesEnnemi = attaquesPrecedentesEnnemiRef.current
-      for (let k = 0; k < equipeEnnemie.length; k++) {
-        const atk = (equipeEnnemie[k] && equipeEnnemie[k]._attaques) || 0
-        const reset = (equipeEnnemie[k] && equipeEnnemie[k]._ultiResetAttaques) || 0
-        chargesEnnemi[k] = Math.min(COUT_ULTIME, Math.max(0, atk - reset))
-      }
-      // Met à jour l'affichage de la jauge ennemie (copie pour déclencher le rendu).
-      setChargeUltimeEnnemi([...chargesEnnemi])
-      for (let k = 0; k < equipeEnnemie.length; k++) {
-        if (chargesEnnemi[k] >= COUT_ULTIME && e.pvE[k] > 0) {
-          const roleE = equipeEnnemie[k].role || 'dps'
-          const ultE = ultimeDuRole(roleE)
-          // On inverse les équipes : l'ennemi déclenche → tape le joueur / soigne les ennemis.
-          const resE = appliquerUltime(k, ultE, equipeEnnemie, e.pvE, e.jE, equipeJoueur, e.pvJ, 'ennemi')
-          if (resE.bouclierTics > 0) bouclierTicsEnnemiRef.current = resE.bouclierTics
-          if (resE.coups && resE.coups.length) ajouterChiffres(resE.coups)
-          if (equipeEnnemie[k]) equipeEnnemie[k]._ultiResetAttaques = equipeEnnemie[k]._attaques || 0
-          chargesEnnemi[k] = 0
-          if (ultE) ajouterAuJournal(`${ultE.emoji} ${equipeEnnemie[k].nom} (ennemi) déclenche ${ultE.nom} !`, 'echec')
-          break // un seul ultime ennemi par tic, pour rester lisible
+        // --- Côté ENNEMI (même règle) ---
+        const lancesE = ultimeLanceEnnemiRef.current
+        let majEnnemi = false
+        for (let k = 0; k < equipeEnnemie.length; k++) {
+          if (!lancesE[k] && equipeEnnemie[k] && e.pvE[k] > 0) {
+            const ultE = ultimeDuRole(equipeEnnemie[k].role || 'dps')
+            // Équipes inversées : l'ennemi déclenche → tape le joueur / soigne les ennemis.
+            const resE = appliquerUltime(k, ultE, equipeEnnemie, e.pvE, e.jE, equipeJoueur, e.pvJ, 'ennemi')
+            if (resE.bouclierTics > 0) bouclierTicsEnnemiRef.current = resE.bouclierTics
+            if (resE.coups && resE.coups.length) ajouterChiffres(resE.coups)
+            if (ultE) ajouterAuJournal(`${ultE.emoji} ${equipeEnnemie[k].nom} (ennemi) déclenche ${ultE.nom} !`, 'echec')
+            lancesE[k] = true
+            majEnnemi = true
+          }
         }
+        if (majEnnemi) setUltimeLanceEnnemiAff([...lancesE])
       }
 
       // Bouclier actif (Rempart) : joueur ET ennemi. Passés au tic puis décrémentés.
@@ -1491,20 +1477,6 @@ function App() {
       setPvEnnemis(r.pvEnnemis); setJaugeEnnemis(r.jaugeEnnemis)
       // Chiffres flottants de dégâts/crit (feedback visuel).
       if (r.coups && r.coups.length) ajouterChiffres(r.coups)
-
-      // --- ULTIMES : mise à jour de la charge selon les attaques portées ce tic ---
-      // Charge = (attaques cumulées) - (attaques au dernier déclenchement), plafonné à COUT_ULTIME.
-      let chargesChangees = false
-      const charges = [...attaquesPrecedentesRef.current]
-      for (let k = 0; k < equipeJoueur.length; k++) {
-        const atk = (equipeJoueur[k] && equipeJoueur[k]._attaques) || 0
-        const dernierReset = (equipeJoueur[k] && equipeJoueur[k]._ultiResetAttaques) || 0
-        const c = Math.min(COUT_ULTIME, Math.max(0, atk - dernierReset))
-        if (c !== charges[k]) chargesChangees = true
-        charges[k] = c
-      }
-      attaquesPrecedentesRef.current = charges
-      if (chargesChangees) setChargeUltime(charges)
 
       r.ennemisTombes.forEach((index) => {
         const ennemi = equipeEnnemieRef.current[index]
@@ -2682,10 +2654,7 @@ function App() {
                     jauge={jaugeJoueur[i]}
                     niveau={poke.niveau}
                     compact
-                    chargeUltime={chargeUltime[i] || 0}
-                    coutUltime={COUT_ULTIME}
-                    ultimePret={(chargeUltime[i] || 0) >= COUT_ULTIME}
-                    onUltime={() => declencherUltime(i)}
+                    ultimeLance={ultimeLanceJoueur[i] || false}
                   />
                   <div className="chiffres-couche">
                     {chiffresFlottants.filter((c) => c.camp === 'joueur' && c.index === i).map((c) => (
@@ -2709,9 +2678,7 @@ function App() {
                     jauge={jaugeEnnemis[i]}
                     niveau={poke.niveau}
                     compact
-                    chargeUltime={chargeUltimeEnnemi[i] || 0}
-                    coutUltime={COUT_ULTIME}
-                    ultimePret={(chargeUltimeEnnemi[i] || 0) >= COUT_ULTIME}
+                    ultimeLance={ultimeLanceEnnemiAff[i] || false}
                     ultimeEnnemi
                   />
                   <div className="chiffres-couche">
@@ -2815,14 +2782,8 @@ function App() {
             <div className="panneau-titre">
               <span className="panneau-icone-emoji">⚡</span> Ultimes
             </div>
-            <div className="ctrl-rangee">
-              <button className={`mode-btn ${modeUltime === 'manuel' ? 'actif' : ''}`} onClick={() => setModeUltime('manuel')}>✋ Manuel</button>
-              <button className={`mode-btn ${modeUltime === 'auto' ? 'actif' : ''}`} onClick={() => setModeUltime('auto')}>🤖 Auto</button>
-            </div>
             <p className="ultime-aide">
-              {modeUltime === 'manuel'
-                ? 'Clique sur l\'icône ⚡ d\'un Pokémon quand elle brille pour lancer son ultime.'
-                : 'Les ultimes se déclenchent automatiquement dès qu\'ils sont prêts.'}
+              Chaque Pokémon déclenche automatiquement son ultime environ 7 secondes après le début du combat (une fois par combat).
             </p>
           </div>
 
