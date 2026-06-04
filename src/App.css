@@ -10058,3 +10058,675 @@ img[src*="PokeAPI/sprites"] {
    (les .panneau restent en parchemin plein ; ici on ne touche QUE l'espace
    autour, pas les panneaux eux-mêmes). */
 .colonne { background: transparent; }
+
+/* ============================================================
+   POP-UP ÉQUIPE — rhabillage parchemin doré (cohérent menu Routes)
+   À COLLER À LA FIN de src/App.css.
+   Ne touche QUE l'apparence (couleurs/bordures/ombres). Aucun z-index/position.
+   ============================================================ */
+
+/* Conteneur : un peu plus de respiration. */
+.panneau-equipe-doree { /* hérite du style doré existant ; on affine en dessous */ }
+
+/* ---------- INDICATEUR DE COMPOSITION ---------- */
+.compo-indicateur {
+  border-radius: 12px;
+  border: 2px solid #b89348;
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+  padding: 9px 12px;
+  margin-bottom: 10px;
+}
+.compo-indicateur.compo-ok { border-color: #6bbf6e; background: linear-gradient(180deg, #eefaef, #d9f0da); }
+.compo-indicateur.compo-ko { border-color: #e0b93d; }
+.compo-titre { color: #5a4520; font-size: 0.8rem; font-weight: bold; margin-bottom: 7px; }
+.compo-ok .compo-titre { color: #2e7d32; }
+.compo-roles { display: flex; gap: 7px; flex-wrap: wrap; }
+.compo-role {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 8px;
+  border: 2px solid;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 0.74rem; color: #4a3410;
+}
+.compo-role.role-ok { background: rgba(214, 247, 216, 0.7); }
+.compo-role.role-ko { opacity: 0.7; }
+.compo-role-compte { font-weight: bold; }
+
+/* ---------- AIDE + BOUTON AUTO-ÉQUIPE ---------- */
+.banc-aide { color: #8a7038; font-size: 0.76rem; font-style: italic; margin: 4px 0 10px; }
+.bouton-auto-equipe {
+  width: 100%; box-sizing: border-box; padding: 10px;
+  margin-bottom: 12px; border: none; border-radius: 10px;
+  background: linear-gradient(180deg, #ffd451, #e0a81e);
+  color: #4a3410; font-family: inherit; font-weight: bold; font-size: 0.86rem;
+  cursor: pointer; box-shadow: 0 3px 0 #b8861a; transition: transform 0.08s;
+}
+.bouton-auto-equipe:hover { transform: translateY(-1px); }
+.bouton-auto-equipe:active { transform: translateY(2px); box-shadow: 0 1px 0 #b8861a; }
+
+/* ---------- BARRE D'OUTILS (recherche + filtres) ---------- */
+.banc-recherche, .tri-select {
+  border: 2px solid #b89348; border-radius: 9px;
+  background: #fff7e0; color: #4a3410;
+  font-family: inherit; font-size: 0.8rem; padding: 7px 10px; outline: none;
+}
+.banc-recherche::placeholder { color: #b09a64; }
+.banc-recherche:focus, .tri-select:focus { border-color: #e0b93d; background: #fffdf4; }
+.tri-toggle {
+  border: 2px solid #b89348; border-radius: 9px;
+  background: #fff7e0; color: #4a3410;
+  font-family: inherit; font-size: 0.78rem; padding: 7px 11px; cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.tri-toggle:hover { border-color: #e0b93d; }
+.tri-toggle.actif { background: linear-gradient(180deg, #ffe9a8, #f4d36a); border-color: #e0b93d; }
+
+/* ---------- CARTES DE LA COLLECTION / ÉQUIPE ---------- */
+.banc-carte {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348;
+  border-radius: 12px;
+  color: #4a3410;
+  transition: transform 0.08s, border-color 0.12s, box-shadow 0.12s;
+}
+.banc-carte.cliquable:hover {
+  border-color: #e0b93d;
+  box-shadow: 0 3px 10px rgba(224, 185, 61, 0.4);
+  transform: translateY(-2px);
+}
+.banc-carte.slot-vide {
+  background: rgba(255, 247, 224, 0.4);
+  border: 2px dashed #b89348;
+  color: #a08a52;
+}
+.banc-carte.slot-vide:hover { border-color: #e0b93d; background: rgba(255, 247, 224, 0.6); }
+.slot-plus, .fiche-objet-slot-plus { color: #c8a23a; }
+.banc-nom { color: #4a3410; }
+.banc-iv { color: #8a7038; }
+.banc-titre.reserve { color: #7a5a1e; border-bottom: 2px dashed #c8a23a; padding-bottom: 6px; }
+.banc-vide { color: #b09a64; }
+
+/* Boutons retirer / retour. */
+.bouton-retirer {
+  background: linear-gradient(180deg, #f6c0c0, #e88a8a);
+  border: 2px solid #c0392b; border-radius: 8px;
+  color: #6a1410; font-family: inherit; font-size: 0.7rem;
+  padding: 3px 8px; cursor: pointer;
+}
+.bouton-retirer:hover { filter: brightness(1.05); }
+.bouton-retour {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348; border-radius: 9px;
+  color: #4a3410; font-family: inherit; font-size: 0.8rem;
+  padding: 6px 12px; cursor: pointer; margin-bottom: 10px;
+}
+.bouton-retour:hover { border-color: #e0b93d; }
+
+/* ---------- FICHE DÉTAILLÉE (v2) ---------- */
+.fiche-entete {
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+  border: 2px solid #b89348; border-radius: 14px;
+  padding: 12px; margin-bottom: 12px;
+}
+.fiche-sprite-cadre {
+  background: radial-gradient(circle, #fff 0%, #f0e0b0 100%);
+  border: 2px solid #c8a23a; border-radius: 12px;
+}
+.fiche-nom-v2 { color: #4a3410; }
+.fiche-niv-badge {
+  background: #7a5a1e; color: #fff3cf;
+  border-radius: 6px; padding: 1px 7px; font-size: 0.72rem;
+}
+.fiche-num-v2 { color: #8a7038; }
+
+/* Sections de la fiche : encadrés parchemin légers. */
+.fiche-parchemins, .fiche-joker-case, .fiche-passif-choix,
+.fiche-xp-v2, .fiche-stats-v2, .fiche-iv-qualite,
+.fiche-objet-v2, .fiche-pierres-v2 {
+  background: rgba(255, 250, 235, 0.6);
+  border: 1px solid #d8c08a;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.fiche-objet-titre-v2 { color: #7a5a1e; font-weight: bold; font-size: 0.82rem; margin-bottom: 7px; }
+
+/* Cartes de passif / parchemin / case joker. */
+.passif-choix-carte, .fiche-parchemin-btn, .joker-case-btn, .fiche-objet-case {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  color: #4a3410;
+  cursor: pointer;
+  transition: transform 0.08s, border-color 0.12s, box-shadow 0.12s;
+}
+.passif-choix-carte:hover, .fiche-parchemin-btn:hover,
+.joker-case-btn:hover, .fiche-objet-case:hover {
+  box-shadow: 0 2px 8px rgba(224, 185, 61, 0.35);
+  transform: translateY(-1px);
+}
+.passif-choix-carte.actif, .joker-case-btn.actif {
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+  box-shadow: 0 0 0 1px #e0b93d inset;
+}
+.passif-choix-nom { color: #5a4520; font-weight: bold; }
+.passif-choix-desc { color: #8a7038; }
+.passif-choix-actif { color: #2e7d32; font-weight: bold; }
+
+/* Slot d'objet équipé. */
+.fiche-objet-slot {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348; border-radius: 12px; cursor: pointer;
+}
+.fiche-objet-slot.vide { border-style: dashed; }
+.fiche-objet-slot:hover { border-color: #e0b93d; }
+.fiche-objet-nom { color: #5a4520; font-weight: bold; }
+.fiche-objet-effet-v2, .fiche-objet-vide-v2 { color: #8a7038; }
+.bouton-retirer-objet-v2 {
+  background: linear-gradient(180deg, #f6c0c0, #e88a8a);
+  border: 2px solid #c0392b; border-radius: 7px;
+  color: #6a1410; font-family: inherit; font-size: 0.7rem;
+  padding: 3px 9px; cursor: pointer; margin-top: 4px;
+}
+
+/* Bouton pierre d'évolution. */
+.bouton-pierre {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348; border-radius: 9px;
+  color: #4a3410; font-family: inherit; font-size: 0.78rem;
+  padding: 6px 10px; cursor: pointer; margin: 3px 0; display: block; width: 100%;
+  text-align: left;
+}
+.bouton-pierre:hover { border-color: #e0b93d; }
+
+/* Barres de stats (couleurs déjà inline, on soigne la piste). */
+.stat-barre-piste { background: #e3d2a4; border-radius: 6px; border: 1px solid #c8a23a; }
+.stat-barre-label, .stat-barre-val { color: #5a4520; }
+
+/* ============================================================
+   POP-UP ÉQUIPE v2 — DA du menu Routes (parchemin clair + doré)
+   À COLLER À LA FIN de src/App.css.
+   Chaque règle est préfixée par .equipe-v2 → prend le dessus sur l'ancien
+   style sombre (panneau-equipe-doree) SANS avoir à le modifier.
+   ⚠️ Retire d'abord l'ancien bloc "POP-UP ÉQUIPE — rhabillage parchemin doré"
+   si tu l'avais collé (il faisait doublon).
+   ============================================================ */
+
+/* ---------- CONTENEUR : fond parchemin clair (écrase le fond sombre) ---------- */
+.panneau-banc.equipe-v2 {
+  background: linear-gradient(180deg, #fff7e0, #f0ddae) !important;
+  border: 4px solid #c8a23a !important;
+  border-radius: 16px;
+  color: #4a3410;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* En-tête (titre + croix) */
+.equipe-v2 .pokedex-entete { border-bottom: 2px dashed #c8a23a; }
+.equipe-v2 .pokedex-entete h2 { color: #5a4520; }
+
+/* ---------- INDICATEUR DE COMPOSITION ---------- */
+.equipe-v2 .compo-indicateur {
+  border-radius: 12px;
+  border: 2px solid #b89348;
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+  padding: 9px 12px;
+  margin-bottom: 10px;
+}
+.equipe-v2 .compo-indicateur.compo-ok { border-color: #6bbf6e; background: linear-gradient(180deg, #eefaef, #d9f0da); }
+.equipe-v2 .compo-titre { color: #5a4520; font-size: 0.8rem; font-weight: bold; margin-bottom: 7px; }
+.equipe-v2 .compo-ok .compo-titre { color: #2e7d32; }
+.equipe-v2 .compo-roles { display: flex; gap: 7px; flex-wrap: wrap; }
+.equipe-v2 .compo-role {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 8px; border: 2px solid;
+  background: rgba(255, 255, 255, 0.6); font-size: 0.74rem; color: #4a3410;
+}
+.equipe-v2 .compo-role.role-ok { background: rgba(214, 247, 216, 0.8); }
+.equipe-v2 .compo-role.role-ko { opacity: 0.65; }
+.equipe-v2 .compo-role-compte { font-weight: bold; }
+
+/* ---------- AIDE + AUTO-ÉQUIPE ---------- */
+.equipe-v2 .banc-aide { color: #8a7038; font-size: 0.76rem; font-style: italic; margin: 4px 0 10px; }
+.equipe-v2 .bouton-auto-equipe {
+  width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 12px;
+  border: none; border-radius: 10px;
+  background: linear-gradient(180deg, #ffd451, #e0a81e);
+  color: #4a3410; font-family: inherit; font-weight: bold; font-size: 0.86rem;
+  cursor: pointer; box-shadow: 0 3px 0 #b8861a; transition: transform 0.08s;
+}
+.equipe-v2 .bouton-auto-equipe:hover { transform: translateY(-1px); }
+.equipe-v2 .bouton-auto-equipe:active { transform: translateY(2px); box-shadow: 0 1px 0 #b8861a; }
+
+/* ---------- BARRE D'OUTILS (recherche + filtres) ---------- */
+.equipe-v2 .banc-recherche,
+.equipe-v2 .tri-select {
+  border: 2px solid #b89348; border-radius: 9px;
+  background: #fff7e0; color: #4a3410;
+  font-family: inherit; font-size: 0.8rem; padding: 7px 10px; outline: none;
+}
+.equipe-v2 .banc-recherche::placeholder { color: #b09a64; }
+.equipe-v2 .banc-recherche:focus,
+.equipe-v2 .tri-select:focus { border-color: #e0b93d; background: #fffdf4; }
+.equipe-v2 .tri-toggle {
+  border: 2px solid #b89348; border-radius: 9px;
+  background: #fff7e0; color: #4a3410;
+  font-family: inherit; font-size: 0.78rem; padding: 7px 11px; cursor: pointer;
+}
+.equipe-v2 .tri-toggle:hover { border-color: #e0b93d; }
+.equipe-v2 .tri-toggle.actif { background: linear-gradient(180deg, #ffe9a8, #f4d36a); border-color: #e0b93d; }
+
+/* ---------- CARTES (équipe + collection) ---------- */
+.equipe-v2 .banc-carte {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important;
+  border-radius: 12px;
+  color: #4a3410 !important;
+  transition: transform 0.08s, border-color 0.12s, box-shadow 0.12s;
+}
+.equipe-v2 .banc-carte.cliquable:hover {
+  border-color: #e0b93d !important;
+  box-shadow: 0 3px 10px rgba(224, 185, 61, 0.4);
+  transform: translateY(-2px);
+}
+.equipe-v2 .banc-carte.slot-vide {
+  background: rgba(255, 247, 224, 0.45) !important;
+  border: 2px dashed #b89348 !important;
+  color: #a08a52 !important;
+}
+.equipe-v2 .banc-carte.slot-vide:hover { border-color: #e0b93d !important; background: rgba(255, 247, 224, 0.65) !important; }
+.equipe-v2 .slot-plus { color: #c8a23a; font-size: 1.6rem; }
+.equipe-v2 .banc-nom { color: #4a3410 !important; }
+.equipe-v2 .banc-iv { color: #8a7038 !important; }
+.equipe-v2 .banc-sprite { image-rendering: pixelated; }
+.equipe-v2 .banc-titre.reserve { color: #7a5a1e !important; border-bottom: 2px dashed #c8a23a; padding-bottom: 6px; }
+.equipe-v2 .banc-vide { color: #b09a64; }
+
+/* Boutons retirer / retour */
+.equipe-v2 .bouton-retirer {
+  background: linear-gradient(180deg, #f6c0c0, #e88a8a); border: 2px solid #c0392b;
+  border-radius: 8px; color: #6a1410; font-family: inherit; font-size: 0.7rem;
+  padding: 3px 8px; cursor: pointer;
+}
+.equipe-v2 .bouton-retour {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4); border: 2px solid #b89348;
+  border-radius: 9px; color: #4a3410; font-family: inherit; font-size: 0.8rem;
+  padding: 6px 12px; cursor: pointer; margin-bottom: 10px;
+}
+.equipe-v2 .bouton-retour:hover { border-color: #e0b93d; }
+
+/* ---------- FICHE DÉTAILLÉE ---------- */
+.equipe-v2 .fiche-entete {
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+  border: 2px solid #b89348; border-radius: 14px; padding: 12px; margin-bottom: 12px;
+}
+.equipe-v2 .fiche-sprite-cadre {
+  background: radial-gradient(circle, #fff 0%, #f0e0b0 100%);
+  border: 2px solid #c8a23a; border-radius: 12px;
+}
+.equipe-v2 .fiche-nom-v2 { color: #4a3410 !important; }
+.equipe-v2 .fiche-niv-badge { background: #7a5a1e; color: #fff3cf; border-radius: 6px; padding: 1px 7px; font-size: 0.72rem; }
+.equipe-v2 .fiche-num-v2 { color: #8a7038 !important; }
+
+.equipe-v2 .fiche-parchemins,
+.equipe-v2 .fiche-joker-case,
+.equipe-v2 .fiche-passif-choix,
+.equipe-v2 .fiche-xp-v2,
+.equipe-v2 .fiche-stats-v2,
+.equipe-v2 .fiche-iv-qualite,
+.equipe-v2 .fiche-objet-v2,
+.equipe-v2 .fiche-pierres-v2 {
+  background: rgba(255, 250, 235, 0.7);
+  border: 1px solid #d8c08a; border-radius: 12px;
+  padding: 10px 12px; margin-bottom: 10px;
+}
+.equipe-v2 .fiche-objet-titre-v2 { color: #7a5a1e !important; font-weight: bold; font-size: 0.82rem; margin-bottom: 7px; }
+
+.equipe-v2 .passif-choix-carte,
+.equipe-v2 .fiche-parchemin-btn,
+.equipe-v2 .joker-case-btn,
+.equipe-v2 .fiche-objet-case {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid transparent; border-radius: 10px; color: #4a3410 !important;
+  cursor: pointer; transition: transform 0.08s, box-shadow 0.12s;
+}
+.equipe-v2 .passif-choix-carte:hover,
+.equipe-v2 .fiche-parchemin-btn:hover,
+.equipe-v2 .joker-case-btn:hover,
+.equipe-v2 .fiche-objet-case:hover { box-shadow: 0 2px 8px rgba(224, 185, 61, 0.35); transform: translateY(-1px); }
+.equipe-v2 .passif-choix-carte.actif,
+.equipe-v2 .joker-case-btn.actif { background: linear-gradient(180deg, #fffaee, #f7e9c2) !important; box-shadow: 0 0 0 2px #e0b93d inset; }
+.equipe-v2 .passif-choix-nom { color: #5a4520 !important; font-weight: bold; }
+.equipe-v2 .passif-choix-desc { color: #8a7038 !important; }
+.equipe-v2 .passif-choix-actif { color: #2e7d32 !important; font-weight: bold; }
+.equipe-v2 .joker-case-nom, .equipe-v2 .fiche-parchemin-nom, .equipe-v2 .fiche-objet-case-nom { color: #5a4520 !important; }
+.equipe-v2 .fiche-parchemin-stock, .equipe-v2 .fiche-objet-case-stock { color: #8a7038 !important; }
+
+.equipe-v2 .fiche-objet-slot {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important; border-radius: 12px; cursor: pointer;
+}
+.equipe-v2 .fiche-objet-slot.vide { border-style: dashed !important; }
+.equipe-v2 .fiche-objet-slot:hover { border-color: #e0b93d !important; }
+.equipe-v2 .fiche-objet-slot-plus { color: #c8a23a; font-size: 1.6rem; }
+.equipe-v2 .fiche-objet-nom { color: #5a4520 !important; font-weight: bold; }
+.equipe-v2 .fiche-objet-effet-v2,
+.equipe-v2 .fiche-objet-vide-v2 { color: #8a7038 !important; }
+.equipe-v2 .bouton-retirer-objet-v2 {
+  background: linear-gradient(180deg, #f6c0c0, #e88a8a); border: 2px solid #c0392b;
+  border-radius: 7px; color: #6a1410; font-family: inherit; font-size: 0.7rem;
+  padding: 3px 9px; cursor: pointer; margin-top: 4px;
+}
+
+.equipe-v2 .bouton-pierre {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important; border-radius: 9px; color: #4a3410 !important;
+  font-family: inherit; font-size: 0.78rem; padding: 6px 10px; cursor: pointer;
+  margin: 3px 0; display: block; width: 100%; text-align: left;
+}
+.equipe-v2 .bouton-pierre:hover { border-color: #e0b93d !important; }
+
+/* Barres de stats */
+.equipe-v2 .stat-barre-piste { background: #e3d2a4 !important; border-radius: 6px; border: 1px solid #c8a23a; }
+.equipe-v2 .stat-barre-label,
+.equipe-v2 .stat-barre-val { color: #5a4520 !important; }
+
+/* XP + IV qualité (textes lisibles sur clair) */
+.equipe-v2 .fiche-xp-label-v2,
+.equipe-v2 .fiche-iv-qualite-label { color: #8a7038 !important; }
+.equipe-v2 .barre-xp { background: #e3d2a4; border: 1px solid #c8a23a; border-radius: 6px; }
+.equipe-v2 .fiche-iv-qualite-barre { background: #e3d2a4; border: 1px solid #c8a23a; border-radius: 6px; }
+/* ============================================================
+   POP-UP ÉQUIPE v2 — DA du menu Routes (parchemin clair + doré)
+   À COLLER À LA FIN de src/App.css.
+   Chaque règle est préfixée par .equipe-v2 → prend le dessus sur l'ancien
+   style sombre (panneau-equipe-doree) SANS avoir à le modifier.
+   ⚠️ Retire d'abord l'ancien bloc "POP-UP ÉQUIPE — rhabillage parchemin doré"
+   si tu l'avais collé (il faisait doublon).
+   ============================================================ */
+
+/* ---------- CONTENEUR : fond parchemin clair (écrase le fond sombre) ---------- */
+.panneau-banc.equipe-v2 {
+  background: linear-gradient(180deg, #fff7e0, #f0ddae) !important;
+  border: 4px solid #c8a23a !important;
+  border-radius: 16px;
+  color: #4a3410;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* En-tête (titre + croix) */
+.equipe-v2 .pokedex-entete { border-bottom: 2px dashed #c8a23a; }
+.equipe-v2 .pokedex-entete h2 { color: #5a4520; }
+
+/* ---------- INDICATEUR DE COMPOSITION ---------- */
+.equipe-v2 .compo-indicateur {
+  border-radius: 12px;
+  border: 2px solid #b89348;
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+  padding: 9px 12px;
+  margin-bottom: 10px;
+}
+.equipe-v2 .compo-indicateur.compo-ok { border-color: #6bbf6e; background: linear-gradient(180deg, #eefaef, #d9f0da); }
+.equipe-v2 .compo-titre { color: #5a4520; font-size: 0.8rem; font-weight: bold; margin-bottom: 7px; }
+.equipe-v2 .compo-ok .compo-titre { color: #2e7d32; }
+.equipe-v2 .compo-roles { display: flex; gap: 7px; flex-wrap: wrap; }
+.equipe-v2 .compo-role {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 8px; border: 2px solid;
+  background: rgba(255, 255, 255, 0.6); font-size: 0.74rem; color: #4a3410;
+}
+.equipe-v2 .compo-role.role-ok { background: rgba(214, 247, 216, 0.8); }
+.equipe-v2 .compo-role.role-ko { opacity: 0.65; }
+.equipe-v2 .compo-role-compte { font-weight: bold; }
+
+/* ---------- AIDE + AUTO-ÉQUIPE ---------- */
+.equipe-v2 .banc-aide { color: #8a7038; font-size: 0.76rem; font-style: italic; margin: 4px 0 10px; }
+.equipe-v2 .bouton-auto-equipe {
+  width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 12px;
+  border: none; border-radius: 10px;
+  background: linear-gradient(180deg, #ffd451, #e0a81e);
+  color: #4a3410; font-family: inherit; font-weight: bold; font-size: 0.86rem;
+  cursor: pointer; box-shadow: 0 3px 0 #b8861a; transition: transform 0.08s;
+}
+.equipe-v2 .bouton-auto-equipe:hover { transform: translateY(-1px); }
+.equipe-v2 .bouton-auto-equipe:active { transform: translateY(2px); box-shadow: 0 1px 0 #b8861a; }
+
+/* ---------- BARRE D'OUTILS (recherche + filtres) ---------- */
+.equipe-v2 .banc-recherche,
+.equipe-v2 .tri-select {
+  border: 2px solid #b89348; border-radius: 9px;
+  background: #fff7e0; color: #4a3410;
+  font-family: inherit; font-size: 0.8rem; padding: 7px 10px; outline: none;
+}
+.equipe-v2 .banc-recherche::placeholder { color: #b09a64; }
+.equipe-v2 .banc-recherche:focus,
+.equipe-v2 .tri-select:focus { border-color: #e0b93d; background: #fffdf4; }
+.equipe-v2 .tri-toggle {
+  border: 2px solid #b89348; border-radius: 9px;
+  background: #fff7e0; color: #4a3410;
+  font-family: inherit; font-size: 0.78rem; padding: 7px 11px; cursor: pointer;
+}
+.equipe-v2 .tri-toggle:hover { border-color: #e0b93d; }
+.equipe-v2 .tri-toggle.actif { background: linear-gradient(180deg, #ffe9a8, #f4d36a); border-color: #e0b93d; }
+
+/* ---------- CARTES (équipe + collection) ---------- */
+.equipe-v2 .banc-carte {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important;
+  border-radius: 12px;
+  color: #4a3410 !important;
+  transition: transform 0.08s, border-color 0.12s, box-shadow 0.12s;
+}
+.equipe-v2 .banc-carte.cliquable:hover {
+  border-color: #e0b93d !important;
+  box-shadow: 0 3px 10px rgba(224, 185, 61, 0.4);
+  transform: translateY(-2px);
+}
+.equipe-v2 .banc-carte.slot-vide {
+  background: rgba(255, 247, 224, 0.45) !important;
+  border: 2px dashed #b89348 !important;
+  color: #a08a52 !important;
+}
+.equipe-v2 .banc-carte.slot-vide:hover { border-color: #e0b93d !important; background: rgba(255, 247, 224, 0.65) !important; }
+.equipe-v2 .slot-plus { color: #c8a23a; font-size: 1.6rem; }
+.equipe-v2 .banc-nom { color: #4a3410 !important; }
+.equipe-v2 .banc-iv { color: #8a7038 !important; }
+.equipe-v2 .banc-sprite { image-rendering: pixelated; }
+.equipe-v2 .banc-titre.reserve { color: #7a5a1e !important; border-bottom: 2px dashed #c8a23a; padding-bottom: 6px; }
+.equipe-v2 .banc-vide { color: #b09a64; }
+
+/* Boutons retirer / retour */
+.equipe-v2 .bouton-retirer {
+  background: linear-gradient(180deg, #f6c0c0, #e88a8a); border: 2px solid #c0392b;
+  border-radius: 8px; color: #6a1410; font-family: inherit; font-size: 0.7rem;
+  padding: 3px 8px; cursor: pointer;
+}
+.equipe-v2 .bouton-retour {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4); border: 2px solid #b89348;
+  border-radius: 9px; color: #4a3410; font-family: inherit; font-size: 0.8rem;
+  padding: 6px 12px; cursor: pointer; margin-bottom: 10px;
+}
+.equipe-v2 .bouton-retour:hover { border-color: #e0b93d; }
+
+/* ---------- FICHE DÉTAILLÉE ---------- */
+.equipe-v2 .fiche-entete {
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+  border: 2px solid #b89348; border-radius: 14px; padding: 12px; margin-bottom: 12px;
+}
+.equipe-v2 .fiche-sprite-cadre {
+  background: radial-gradient(circle, #fff 0%, #f0e0b0 100%);
+  border: 2px solid #c8a23a; border-radius: 12px;
+}
+.equipe-v2 .fiche-nom-v2 { color: #4a3410 !important; }
+.equipe-v2 .fiche-niv-badge { background: #7a5a1e; color: #fff3cf; border-radius: 6px; padding: 1px 7px; font-size: 0.72rem; }
+.equipe-v2 .fiche-num-v2 { color: #8a7038 !important; }
+
+.equipe-v2 .fiche-parchemins,
+.equipe-v2 .fiche-joker-case,
+.equipe-v2 .fiche-passif-choix,
+.equipe-v2 .fiche-xp-v2,
+.equipe-v2 .fiche-stats-v2,
+.equipe-v2 .fiche-iv-qualite,
+.equipe-v2 .fiche-objet-v2,
+.equipe-v2 .fiche-pierres-v2 {
+  background: rgba(255, 250, 235, 0.7);
+  border: 1px solid #d8c08a; border-radius: 12px;
+  padding: 10px 12px; margin-bottom: 10px;
+}
+.equipe-v2 .fiche-objet-titre-v2 { color: #7a5a1e !important; font-weight: bold; font-size: 0.82rem; margin-bottom: 7px; }
+
+.equipe-v2 .passif-choix-carte,
+.equipe-v2 .fiche-parchemin-btn,
+.equipe-v2 .joker-case-btn,
+.equipe-v2 .fiche-objet-case {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid transparent; border-radius: 10px; color: #4a3410 !important;
+  cursor: pointer; transition: transform 0.08s, box-shadow 0.12s;
+}
+.equipe-v2 .passif-choix-carte:hover,
+.equipe-v2 .fiche-parchemin-btn:hover,
+.equipe-v2 .joker-case-btn:hover,
+.equipe-v2 .fiche-objet-case:hover { box-shadow: 0 2px 8px rgba(224, 185, 61, 0.35); transform: translateY(-1px); }
+.equipe-v2 .passif-choix-carte.actif,
+.equipe-v2 .joker-case-btn.actif { background: linear-gradient(180deg, #fffaee, #f7e9c2) !important; box-shadow: 0 0 0 2px #e0b93d inset; }
+.equipe-v2 .passif-choix-nom { color: #5a4520 !important; font-weight: bold; }
+.equipe-v2 .passif-choix-desc { color: #8a7038 !important; }
+.equipe-v2 .passif-choix-actif { color: #2e7d32 !important; font-weight: bold; }
+.equipe-v2 .joker-case-nom, .equipe-v2 .fiche-parchemin-nom, .equipe-v2 .fiche-objet-case-nom { color: #5a4520 !important; }
+.equipe-v2 .fiche-parchemin-stock, .equipe-v2 .fiche-objet-case-stock { color: #8a7038 !important; }
+
+.equipe-v2 .fiche-objet-slot {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important; border-radius: 12px; cursor: pointer;
+}
+.equipe-v2 .fiche-objet-slot.vide { border-style: dashed !important; }
+.equipe-v2 .fiche-objet-slot:hover { border-color: #e0b93d !important; }
+.equipe-v2 .fiche-objet-slot-plus { color: #c8a23a; font-size: 1.6rem; }
+.equipe-v2 .fiche-objet-nom { color: #5a4520 !important; font-weight: bold; }
+.equipe-v2 .fiche-objet-effet-v2,
+.equipe-v2 .fiche-objet-vide-v2 { color: #8a7038 !important; }
+.equipe-v2 .bouton-retirer-objet-v2 {
+  background: linear-gradient(180deg, #f6c0c0, #e88a8a); border: 2px solid #c0392b;
+  border-radius: 7px; color: #6a1410; font-family: inherit; font-size: 0.7rem;
+  padding: 3px 9px; cursor: pointer; margin-top: 4px;
+}
+
+.equipe-v2 .bouton-pierre {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important; border-radius: 9px; color: #4a3410 !important;
+  font-family: inherit; font-size: 0.78rem; padding: 6px 10px; cursor: pointer;
+  margin: 3px 0; display: block; width: 100%; text-align: left;
+}
+.equipe-v2 .bouton-pierre:hover { border-color: #e0b93d !important; }
+
+/* Barres de stats */
+.equipe-v2 .stat-barre-piste { background: #e3d2a4 !important; border-radius: 6px; border: 1px solid #c8a23a; }
+.equipe-v2 .stat-barre-label,
+.equipe-v2 .stat-barre-val { color: #5a4520 !important; }
+
+/* XP + IV qualité (textes lisibles sur clair) */
+.equipe-v2 .fiche-xp-label-v2,
+.equipe-v2 .fiche-iv-qualite-label { color: #8a7038 !important; }
+.equipe-v2 .barre-xp { background: #e3d2a4; border: 1px solid #c8a23a; border-radius: 6px; }
+.equipe-v2 .fiche-iv-qualite-barre { background: #e3d2a4; border: 1px solid #c8a23a; border-radius: 6px; }
+
+/* ---------- ANNULER LES OMBRES DE TEXTE (illisibles sur fond clair) ----------
+   Les text-shadow venaient du style sombre d'origine. Sur le parchemin clair
+   ils rendent le texte flou → on les retire dans toute la pop-up Équipe. */
+.equipe-v2,
+.equipe-v2 * {
+  text-shadow: none !important;
+}
+
+/* ============================================================
+   CORRECTIFS LISIBILITÉ  (à coller À LA FIN de src/App.css)
+   1) Annule les ombres de texte du MENU PRINCIPAL (bavent sur fond clair).
+   2) Fonce les textes gris trop pâles de la POP-UP ÉQUIPE.
+   ============================================================ */
+
+/* ---------- 1) MENU PRINCIPAL : pas d'ombre de texte ---------- */
+/* Les panneaux/HUD sont passés en parchemin clair → les text-shadow gênent. */
+.app.app-layout .panneau,
+.app.app-layout .panneau *,
+.app.app-layout .bandeau-zone,
+.app.app-layout .bandeau-zone *,
+.app.app-layout .hud,
+.app.app-layout .hud *,
+.app.app-layout .console,
+.app.app-layout .console * {
+  text-shadow: none !important;
+}
+
+/* ---------- 2) POP-UP ÉQUIPE : textes gris plus foncés (meilleur contraste) ---------- */
+/* Avant : #8a7038 / #a08a52 / #b09a64 (trop pâles sur le parchemin).
+   On les remonte vers un brun bien lisible. */
+.equipe-v2 .banc-iv,
+.equipe-v2 .compo-role,
+.equipe-v2 .banc-aide,
+.equipe-v2 .fiche-objet-titre-v2,
+.equipe-v2 .fiche-num-v2,
+.equipe-v2 .passif-choix-desc,
+.equipe-v2 .fiche-objet-effet-v2,
+.equipe-v2 .fiche-objet-vide-v2,
+.equipe-v2 .fiche-parchemin-stock,
+.equipe-v2 .fiche-objet-case-stock,
+.equipe-v2 .fiche-xp-label-v2,
+.equipe-v2 .fiche-iv-qualite-label {
+  color: #5a4520 !important;   /* brun foncé lisible */
+}
+
+/* Le "vide / aucun résultat" peut rester un peu plus doux mais lisible. */
+.equipe-v2 .banc-vide { color: #7a6334 !important; }
+
+/* Sécurité : tout texte resté gris clair dans la fiche passe en brun foncé. */
+.equipe-v2 .fiche-v2 span,
+.equipe-v2 .fiche-v2 p { color: #4a3410; }
+/* ============================================================
+   ÉQUIPE — LISIBILITÉ MAX (à coller À LA FIN de src/App.css,
+   APRÈS le bloc "POP-UP ÉQUIPE v2").
+   Force TOUS les textes en brun foncé lisible, SAUF ceux qui doivent
+   garder une couleur (rôle, qualité IV, "Actif", badges de type).
+   ============================================================ */
+
+/* Règle large : tout le texte de la pop-up Équipe en brun foncé. */
+.equipe-v2,
+.equipe-v2 h2,
+.equipe-v2 h3,
+.equipe-v2 p,
+.equipe-v2 span,
+.equipe-v2 button,
+.equipe-v2 select,
+.equipe-v2 input {
+  color: #4a3410 !important;
+}
+
+/* Niveaux N.x : bien foncés. */
+.equipe-v2 .banc-iv { color: #5a4520 !important; font-weight: bold; }
+
+/* Labels de compo (TANK/ÉCLAIREUR/…) : foncés. */
+.equipe-v2 .compo-role,
+.equipe-v2 .compo-role-txt,
+.equipe-v2 .compo-role-compte { color: #4a3410 !important; }
+
+/* ---------- EXCEPTIONS : on REMET les couleurs voulues ----------
+   (placées APRÈS la règle large pour gagner.) */
+
+/* Badges de type : texte blanc sur fond coloré (la couleur de fond est inline). */
+.equipe-v2 .fiche-type-badge { color: #fff !important; }
+
+/* "✓ Actif" d'un passif : vert. */
+.equipe-v2 .passif-choix-actif { color: #2e7d32 !important; }
+
+/* Compo valide : titre vert. */
+.equipe-v2 .compo-ok .compo-titre { color: #2e7d32 !important; }
+
+/* Le nom du rôle et la qualité IV utilisent une couleur en style inline
+   (style={{color:...}}) → l'inline gagne déjà sur le CSS, donc ils gardent
+   automatiquement leur couleur. Rien à faire pour eux. */
+
+/* Croix de fermeture : reste lisible (fond rouge). */
+.equipe-v2 .bouton-fermer { color: #fff !important; }
+
+/* Boutons "Retirer" : texte rouge foncé sur fond rose. */
+.equipe-v2 .bouton-retirer,
+.equipe-v2 .bouton-retirer-objet-v2 { color: #6a1410 !important; }

@@ -429,7 +429,7 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}
     const dispo = trierFiltrer(dispoBrut)
     return (
       <div className="overlay" onClick={onFermer}>
-        <div className="panneau-banc panneau-equipe-doree" onClick={(e) => e.stopPropagation()}>
+        <div className="panneau-banc panneau-equipe-doree equipe-v2" onClick={(e) => e.stopPropagation()}>
           <div className="pokedex-entete">
             <h2>Ajouter à l'équipe</h2>
             <button className="bouton-fermer" onClick={() => setAjoutEnCours(false)}>✕</button>
@@ -467,7 +467,7 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}
     const pokemonAJour = collection.find((p) => p.uid === selection.uid) || selection
     return (
       <div className="overlay" onClick={onFermer}>
-        <div className="panneau-banc panneau-equipe-doree" onClick={(e) => e.stopPropagation()}>
+        <div className="panneau-banc panneau-equipe-doree equipe-v2" onClick={(e) => e.stopPropagation()}>
           <div className="pokedex-entete">
             <h2>Détails</h2>
             <button className="bouton-fermer" onClick={onFermer}>✕</button>
@@ -493,7 +493,7 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}
 
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="panneau-banc panneau-equipe-doree" onClick={(e) => e.stopPropagation()}>
+      <div className="panneau-banc panneau-equipe-doree equipe-v2" onClick={(e) => e.stopPropagation()}>
         <div className="pokedex-entete">
           <h2>Mon équipe ({equipe.length}/{NB_SLOTS})</h2>
           <button className="bouton-fermer" onClick={onFermer}>✕</button>
