@@ -1030,9 +1030,47 @@ function App() {
       return
     }
 
-    const existantActuel = capturesRef.current.find((p) => p.id === ennemi.id)
+    const familleCible = ennemi.familleId ?? null
+    const memeFamille = (p) =>
+      familleCible != null ? p.familleId === familleCible : p.id === ennemi.id
 
-    if (!existantActuel) {
+    // On possède déjà au moins un membre de la famille dans le bon statut (shiny voulu) ?
+    const existantMemeStatut = capturesRef.current.find(
+      (p) => memeFamille(p) && (p.shiny ?? false) === (ennemi.shiny ?? false)
+    )
+    // On possède au moins un membre de la famille (peu importe le statut shiny) ?
+    const familleEnCollection = capturesRef.current.some((p) => memeFamille(p))
+
+    // CAS 1 : shiny capturé alors qu'on a la famille en non-shiny → toute la famille devient shiny.
+    if (ennemi.shiny && familleEnCollection && !existantMemeStatut) {
+      ajouterAuJournal(`${ennemi.nom} ✨ SHINY capturé ! Toute la famille passe en doré ! 🎉`, 'capture')
+      marquerVu(ennemi.id)
+      marquerShiny(ennemi.id)
+      // Marque aussi au Pokédex shiny toutes les espèces de la famille déjà possédées.
+      const idsFamille = new Set(capturesRef.current.filter((p) => memeFamille(p)).map((p) => p.id))
+      idsFamille.forEach((id) => { marquerVu(id); marquerShiny(id) })
+      montrerCapture(ennemi)
+      const majListe = capturesRef.current.map((p) => {
+        if (!memeFamille(p)) return p
+        // Chaque membre garde SON propre sprite shiny (Dardargnan → shiny de Dardargnan).
+        const spriteShinyMembre = p.spriteShiny ?? (p.id === ennemi.id ? ennemi.spriteShiny : null) ?? p.sprite
+        const maj = {
+          ...p,
+          shiny: true,
+          iv: fusionnerIV(p.iv, ennemi.iv),
+          sprite: spriteShinyMembre,
+          spriteShiny: p.spriteShiny ?? (p.id === ennemi.id ? ennemi.spriteShiny : p.spriteShiny),
+          spriteNormal: p.spriteNormal ?? (p.id === ennemi.id ? ennemi.spriteNormal : p.sprite),
+        }
+        return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
+      })
+      capturesRef.current = majListe
+      setCaptures(majListe)
+      return
+    }
+
+    // CAS 2 : on ne possède pas encore ce statut pour la famille → nouvelle entrée.
+    if (!existantMemeStatut) {
       const messageShiny = ennemi.shiny ? ' ✨ SHINY !' : ''
       ajouterAuJournal(`${ennemi.nom} capturé ! 🎉${messageShiny} ${BALLS[ball].emoji} (IV: ${ennemi.iv.pv}/${ennemi.iv.attaque}/${ennemi.iv.vitesse})`, 'capture')
       marquerVu(ennemi.id)
@@ -1063,33 +1101,14 @@ function App() {
       if (ennemi.evolueEn) {
         setTimeout(() => completerEvolution(nouvelUidCapture, ennemi.evolueEn), 0)
       }
-    } else if (ennemi.shiny && !existantActuel.shiny) {
-      ajouterAuJournal(`${ennemi.nom} ✨ SHINY capturé ! Skin doré débloqué ! 🎉`, 'capture')
-      marquerVu(ennemi.id)
-      marquerShiny(ennemi.id)
-      montrerCapture(ennemi)
-      const majListe = capturesRef.current.map((p) => {
-        if (p.id !== ennemi.id) return p
-        const maj = {
-          ...p,
-          shiny: true,
-          sprite: ennemi.spriteShiny ?? p.sprite,
-          spriteShiny: ennemi.spriteShiny ?? p.spriteShiny,
-          spriteNormal: ennemi.spriteNormal ?? p.spriteNormal,
-        }
-        return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
-      })
-      capturesRef.current = majListe
-      setCaptures(majListe)
-    } else {
-      const familleCible = ennemi.familleId ?? null
-      const memeFamille = (p) =>
-        (familleCible != null ? p.familleId === familleCible : p.id === ennemi.id) &&
-        (p.shiny === ennemi.shiny)
+      return
+    }
 
+    // CAS 3 : on possède déjà ce statut → on améliore les IV de la famille (même statut).
+    {
       let auMoinsUnAmeliore = false
       const majListe = capturesRef.current.map((p) => {
-        if (!memeFamille(p)) return p
+        if (!memeFamille(p) || (p.shiny ?? false) !== (ennemi.shiny ?? false)) return p
         const nouveauxIV = fusionnerIV(p.iv, ennemi.iv)
         if (JSON.stringify(nouveauxIV) !== JSON.stringify(p.iv)) auMoinsUnAmeliore = true
         const maj = { ...p, iv: nouveauxIV }
@@ -1194,11 +1213,50 @@ function App() {
             }
           }
           data.captures = capturesRecalc
+
+          // Passe rétroactive shiny : si une espèce d'une famille est shiny,
+          // tous les membres possédés de cette famille deviennent shiny aussi.
+          const cleFamille = (p) => (p.familleId != null ? `f${p.familleId}` : `i${p.id}`)
+          const famillesShiny = new Set()
+          for (const p of capturesRecalc) {
+            if (p && p.shiny) famillesShiny.add(cleFamille(p))
+          }
+          let nbShinyRattrapes = 0
+          const idsShinyRattrapes = new Set()
+          if (famillesShiny.size > 0) {
+            for (let i = 0; i < capturesRecalc.length; i++) {
+              const p = capturesRecalc[i]
+              if (!p || p.shiny) continue
+              if (famillesShiny.has(cleFamille(p))) {
+                const spriteShinyMembre = p.spriteShiny ?? p.sprite
+                const maj = {
+                  ...p,
+                  shiny: true,
+                  sprite: spriteShinyMembre,
+                  spriteNormal: p.spriteNormal ?? p.sprite,
+                }
+                capturesRecalc[i] = { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
+                idsShinyRattrapes.add(p.id)
+                nbShinyRattrapes += 1
+              }
+            }
+          }
+          data.captures = capturesRecalc
+
           setCaptures(capturesRecalc)
           setEquipeIds(trierIdsParRole(data.equipeIds || [], capturesRecalc))
           setPokedexVus(data.pokedexVus || [])
           if (data.pokedexSpeciaux) setPokedexSpeciaux(data.pokedexSpeciaux)
-          setPokedexShiny(data.pokedexShiny || [])
+          // Complète le Pokédex shiny avec les espèces rattrapées.
+          {
+            const baseShiny = data.pokedexShiny || []
+            const fusion = new Set(baseShiny)
+            idsShinyRattrapes.forEach((id) => fusion.add(id))
+            setPokedexShiny([...fusion])
+          }
+          if (nbShinyRattrapes > 0) {
+            setTimeout(() => ajouterAuJournal(`✨ ${nbShinyRattrapes} Pokémon de familles shiny mis à jour en doré.`, 'capture'), 1800)
+          }
           setVaincus(data.vaincus || 0)
           setPokeDollars(data.pokeDollars || 0)
           setBalls(data.balls || { poke: 0, super: 0, hyper: 0, master: 0 })
