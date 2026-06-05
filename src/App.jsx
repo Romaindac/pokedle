@@ -46,8 +46,14 @@ import { chargerTableNoms } from './pokedexNoms'
 const CLE_SAUVEGARDE = 'pokedex-idle-save-v11'
 // Reset d'histoire forcé (une fois pour tous) : si la save n'a pas ce numéro,
 // on remet la progression d'histoire à zéro au chargement (zones, victoires, boss).
-// Pour reforcer un reset plus tard, incrémenter ce numéro (2, 3, ...).
+//
+// ⚠️ INTERRUPTEUR : mettre RESET_HISTOIRE_ACTIF à false = AUCUN reset auto (état normal).
+// Pour reforcer un reset pour tout le monde plus tard :
+//   1. incrémenter VERSION_RESET_HISTOIRE (3, 4, ...)
+//   2. remettre RESET_HISTOIRE_ACTIF à true
+//   3. pousser. Une fois tout le monde reset, repasser RESET_HISTOIRE_ACTIF à false.
 const VERSION_RESET_HISTOIRE = 2
+const RESET_HISTOIRE_ACTIF = false
 
 // Correspondance type de ball -> icône image (sans toucher à config.js)
 // Icônes = sprites officiels PokeAPI (dérivés de config.js). Look authentique Pokémon.
@@ -1143,7 +1149,8 @@ function App() {
           if (data.dresseursVaincus && !Array.isArray(data.dresseursVaincus)) {
             setDresseursVaincus(data.dresseursVaincus)
           }
-          const histoireDejaReset = data.resetHistoire === VERSION_RESET_HISTOIRE
+          // Si l'interrupteur est désactivé, on charge TOUJOURS l'histoire (zéro reset).
+          const histoireDejaReset = !RESET_HISTOIRE_ACTIF || data.resetHistoire === VERSION_RESET_HISTOIRE
           setVictoiresParRoute(histoireDejaReset ? (data.victoiresParRoute || {}) : {})
           setBossVaincus(histoireDejaReset ? (data.bossVaincus || {}) : {})
           setSuccesDebloques(data.succesDebloques || [])
