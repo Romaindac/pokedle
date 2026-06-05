@@ -32,7 +32,8 @@ import Sac from './Sac'
 import PanneauSucces from './PanneauSucces'
 import { SUCCES } from './succes'
 import PanneauAmeliorations from './PanneauAmeliorations'
-import { coutAmelioration, multiplicateur, niveauAmelioration, PALIER_MAX, facteurNegociateur } from './ameliorations'
+import PanneauSauvegarde from './PanneauSauvegarde'
+import { coutAmelioration, multiplicateur, niveauAmelioration, PALIER_MAX, facteurNegociateur, OBJETS_BOSS, coutEndgame, peutPayerEndgame, endgameDebloque } from './ameliorations'
 import { recompensesDisponibles, PALIERS_GLOBAUX, PALIERS_GENERATION, GENERATIONS as GENS_RECOMP } from './recompenses'
 import { medaillesGagnables, multiplicateursPrestige, totalInvesti, BONUS_PRESTIGE } from './prestige'
 import { chargerInfosEspece, corrigerNom } from './evolution'
@@ -54,6 +55,14 @@ const CLE_SAUVEGARDE = 'pokedex-idle-save-v11'
 //   3. pousser. Une fois tout le monde reset, repasser RESET_HISTOIRE_ACTIF à false.
 const VERSION_RESET_HISTOIRE = 2
 const RESET_HISTOIRE_ACTIF = false
+
+// --- Drops d'objets de boss (monnaie endgame) ---
+// Probabilités par type de boss. Jamais garanti. Sous les plafonds voulus.
+const TAUX_OBJET_BOSS = {
+  zone:  { rouage: 0.0010, cristal: 0.0007, relique: 0.0005 },
+  arene: { rouage: 0.0012, cristal: 0.0008, relique: 0.0005 },
+  raid:  { rouage: 0.0015, cristal: 0.0010, relique: 0.0006 },
+}
 
 // Correspondance type de ball -> icône image (sans toucher à config.js)
 // Icônes = sprites officiels PokeAPI (dérivés de config.js). Look authentique Pokémon.
@@ -386,6 +395,7 @@ function App() {
   const [pierres, setPierres] = useState({})
   const [bonbons, setBonbons] = useState({})
   const [objets, setObjets] = useState({})
+  const [objetsBoss, setObjetsBoss] = useState({ rouage: 0, cristal: 0, relique: 0 })
   const [parchemins, setParchemins] = useState({})
   const [achatsItems, setAchatsItems] = useState({})
   const [recompensesReclamees, setRecompensesReclamees] = useState([])
@@ -434,6 +444,7 @@ function App() {
   const [vitesse, setVitesse] = useState(1)
   const [choixStarterRequis, setChoixStarterRequis] = useState(false)
   const [captureRecente, setCaptureRecente] = useState(null)
+  const [dropRecent, setDropRecent] = useState(null)
   const [chiffresFlottants, setChiffresFlottants] = useState([])
   const DELAI_ULTIME_MS = 7000
   const debutCombatRef = useRef(0)
@@ -668,6 +679,44 @@ function App() {
     })
     if (captureTimer.current) clearTimeout(captureTimer.current)
     captureTimer.current = setTimeout(() => setCaptureRecente(null), 2200)
+  }
+
+  // Encart de drop d'objet de boss (Cristal / Relique uniquement).
+  const dropTimer = useRef(null)
+  function montrerDrop(cleObjet) {
+    const info = OBJETS_BOSS[cleObjet]
+    if (!info) return
+    setDropRecent({
+      nom: info.nom,
+      sprite: info.sprite,
+      emoji: info.emoji,
+      legendaire: cleObjet === 'relique',
+      cle: Date.now(),
+    })
+    if (dropTimer.current) clearTimeout(dropTimer.current)
+    dropTimer.current = setTimeout(() => setDropRecent(null), 2600)
+  }
+
+  // Tire les drops d'objets de boss selon le type de boss ('zone' | 'arene' | 'raid').
+  // Ajoute au stock, journalise, et montre l'encart pour cristal/relique.
+  function tirerObjetsBoss(typeBoss) {
+    const taux = TAUX_OBJET_BOSS[typeBoss] || TAUX_OBJET_BOSS.zone
+    const gagnes = {}
+    for (const cle of ['rouage', 'cristal', 'relique']) {
+      if (Math.random() < taux[cle]) gagnes[cle] = (gagnes[cle] || 0) + 1
+    }
+    const cles = Object.keys(gagnes)
+    if (cles.length === 0) return
+    setObjetsBoss((stock) => {
+      const maj = { ...stock }
+      for (const cle of cles) maj[cle] = (maj[cle] || 0) + gagnes[cle]
+      return maj
+    })
+    for (const cle of cles) {
+      const info = OBJETS_BOSS[cle]
+      ajouterAuJournal(`${info.emoji} Butin de boss : ${info.nom} !`, 'capture')
+      if (cle === 'cristal' || cle === 'relique') montrerDrop(cle)
+    }
   }
 
   const compteurChiffre = useRef(0)
@@ -1135,6 +1184,7 @@ function App() {
           setPierres(data.pierres || {})
           setBonbons(data.bonbons || {})
           setObjets(data.objets || {})
+          if (data.objetsBoss) setObjetsBoss({ rouage: 0, cristal: 0, relique: 0, ...data.objetsBoss })
           if (data.parchemins) setParchemins(data.parchemins)
           setAchatsItems(data.achatsItems || {})
           setRecompensesReclamees(data.recompensesReclamees || [])
@@ -1199,9 +1249,9 @@ function App() {
 
   useEffect(() => {
     if (!partieChargee || captures.length === 0) return
-    const data = { resetHistoire: VERSION_RESET_HISTOIRE, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
+    const data = { resetHistoire: VERSION_RESET_HISTOIRE, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
     localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify(data))
-  }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds])
+  }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds])
 
   function statsClassement() {
     const nbShiny = captures.filter((p) => p.shiny).length
@@ -1368,6 +1418,7 @@ function App() {
             })
             const bonbonsBoss = 1 + (Math.random() < (multiplicateur(ameliorationsRef.current, 'gourmandise') - 1) ? 1 : 0)
             setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + bonbonsBoss }))
+            tirerObjetsBoss('zone')
             if (boss) {
               ajouterAuJournal(`👑 BOSS VAINCU ! ${boss.nom} ✨ terrassé ! (+${gainBoss} 💰)`, 'victoire')
             }
@@ -1547,6 +1598,22 @@ function App() {
       setPokeDollars((a) => a - cout)
       setAmeliorations((am) => ({ ...am, [cle]: (am[cle] || 0) + 1 }))
     }
+  }
+
+  // Achat d'un niveau d'amélioration ENDGAME (payé en objets de boss).
+  function acheterAmeliorationEndgame(cleEg) {
+    const niveau = ameliorations[cleEg] || 0
+    if (niveau >= PALIER_MAX) return
+    if (!endgameDebloque(ameliorations, cleEg)) return
+    const cout = coutEndgame(niveau)
+    if (!peutPayerEndgame(objetsBoss, cout)) return
+    setObjetsBoss((stock) => ({
+      rouage: (stock.rouage || 0) - cout.rouage,
+      cristal: (stock.cristal || 0) - cout.cristal,
+      relique: (stock.relique || 0) - cout.relique,
+    }))
+    setAmeliorations((am) => ({ ...am, [cleEg]: (am[cleEg] || 0) + 1 }))
+    ajouterAuJournal(`★ Amélioration endgame renforcée !`, 'victoire')
   }
 
   function reclamerRecompense(palier) {
@@ -2039,6 +2106,7 @@ function App() {
         if (r.argent) setPokeDollars((a) => a + r.argent)
         if (r.bonbons) setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + r.bonbons }))
         ajouterAuJournal(`🏆 Raid « ${raidActif.nom} » réussi ! +${r.argent || 0} 💰`, 'victoire')
+        tirerObjetsBoss('raid')
 
         const boss = raidActif.boss
         const dejaPossede = pokedexSpeciaux.includes(boss.id)
@@ -2184,6 +2252,7 @@ function App() {
         if (r.argent) setPokeDollars((a) => a + Math.round(r.argent * multiplicateur(ameliorationsRef.current, 'champion')))
         if (r.bonbon) setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + r.bonbon }))
         if (r.objet) setObjets((o) => ({ ...o, [r.objet]: (o[r.objet] || 0) + 1 }))
+        tirerObjetsBoss('arene')
         const creneau = creneauActuel()
         const dejaVaincu = dresseursVaincus[dresseurActif.id] === creneau
         setDresseursVaincus((v) => ({ ...v, [dresseurActif.id]: creneau }))
@@ -2329,6 +2398,10 @@ function App() {
             <span className="hud-label">Prestige</span>
           </button>
           */}
+          <button className="hud-icone hud-icone-relative" onClick={() => setVueOuverte('sauvegarde')} title="Sauvegarde (transfert tel/PC)">
+            <span className="hud-emoji-icone">💾</span>
+            <span className="hud-label">Save</span>
+          </button>
           <button className="hud-icone hud-icone-relative" onClick={() => setTutoMode('guide')} title="Aide / Guide du jeu">
             <span className="hud-emoji-icone">❓</span>
             <span className="hud-label">Aide</span>
@@ -2628,6 +2701,32 @@ function App() {
               </div>
             </div>
 
+            {(objetsBoss.rouage > 0 || objetsBoss.cristal > 0 || objetsBoss.relique > 0) && (
+              <div className="res-section">
+                <span className="res-section-titre">Objets de boss</span>
+                <div className="ressources-objets">
+                  {objetsBoss.rouage > 0 && (
+                    <span className="res-item" title={OBJETS_BOSS.rouage.nom}>
+                      <img src={OBJETS_BOSS.rouage.sprite} alt="" className="res-ball-img"
+                        onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(OBJETS_BOSS.rouage.emoji)) }} /> {objetsBoss.rouage}
+                    </span>
+                  )}
+                  {objetsBoss.cristal > 0 && (
+                    <span className="res-item" title={OBJETS_BOSS.cristal.nom}>
+                      <img src={OBJETS_BOSS.cristal.sprite} alt="" className="res-ball-img"
+                        onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(OBJETS_BOSS.cristal.emoji)) }} /> {objetsBoss.cristal}
+                    </span>
+                  )}
+                  {objetsBoss.relique > 0 && (
+                    <span className="res-item" title={OBJETS_BOSS.relique.nom}>
+                      <img src={OBJETS_BOSS.relique.sprite} alt="" className="res-ball-img"
+                        onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(OBJETS_BOSS.relique.emoji)) }} /> {objetsBoss.relique}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
             {Object.entries(pierres).filter(([, n]) => n > 0).length > 0 && (
               <div className="res-section">
                 <span className="res-section-titre">Pierres</span>
@@ -2670,6 +2769,23 @@ function App() {
             <div className="encart-capture-texte">
               <span className="encart-capture-titre">{captureRecente.shiny ? '✨ SHINY capturé !' : 'Capturé !'}</span>
               <span className="encart-capture-nom">{captureRecente.nom}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {dropRecent && (
+        <div className="encart-drop" key={dropRecent.cle}>
+          <div className={`encart-drop-boite ${dropRecent.legendaire ? 'legendaire' : ''}`}>
+            <img
+              src={dropRecent.sprite}
+              alt={dropRecent.nom}
+              className="encart-drop-sprite"
+              onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(dropRecent.emoji)) }}
+            />
+            <div className="encart-drop-texte">
+              <span className="encart-drop-titre">{dropRecent.legendaire ? '👑 Butin légendaire !' : 'Butin de boss !'}</span>
+              <span className="encart-drop-nom">{dropRecent.nom}</span>
             </div>
           </div>
         </div>
@@ -2833,9 +2949,15 @@ function App() {
         <PanneauAmeliorations
           ameliorations={ameliorations}
           pokeDollars={pokeDollars}
+          objetsBoss={objetsBoss}
           onAcheter={acheterAmelioration}
+          onAcheterEndgame={acheterAmeliorationEndgame}
           onFermer={() => setVueOuverte(null)}
         />
+      )}
+
+      {vueOuverte === 'sauvegarde' && (
+        <PanneauSauvegarde onFermer={() => setVueOuverte(null)} />
       )}
 
       {renduTutoriel}
