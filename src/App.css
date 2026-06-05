@@ -11725,3 +11725,169 @@ img[src*="PokeAPI/sprites"] {
   border-radius: 8px !important; border: 1px solid #fff7e0 !important;
   z-index: 2; pointer-events: none;
 }
+/* ============================================================
+   POP-UP CLASSEMENT v2 — DA du menu Routes (parchemin clair + doré)
+   À COLLER À LA FIN de src/App.css.
+   ============================================================ */
+
+/* ---------- CONTENEUR ---------- */
+.panneau-banc.classement-v2 {
+  background: linear-gradient(180deg, #fff7e0, #f0ddae) !important;
+  border: 4px solid #c8a23a !important;
+  border-radius: 16px;
+  color: #4a3410;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+.classement-v2 .pokedex-entete { border-bottom: 2px dashed #c8a23a; }
+.classement-v2 .pokedex-entete h2 { color: #5a4520 !important; }
+
+/* ---------- ONGLETS ---------- */
+.classement-v2 .classement-onglets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.classement-v2 .classement-onglet {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348; border-radius: 9px; color: #4a3410 !important;
+  font-family: inherit; font-size: 0.8rem; padding: 7px 13px; cursor: pointer;
+  transition: transform 0.08s, border-color 0.12s;
+}
+.classement-v2 .classement-onglet:hover { border-color: #e0b93d; transform: translateY(-1px); }
+.classement-v2 .classement-onglet.actif {
+  background: linear-gradient(180deg, #ffe9a8, #f4d36a);
+  border-color: #e0b93d; box-shadow: 0 0 0 1px #e0b93d inset;
+}
+
+/* ---------- INFO (chargement / vide) ---------- */
+.classement-v2 .classement-info { color: #8a7038 !important; font-size: 0.84rem; font-style: italic; padding: 16px 4px; text-align: center; }
+
+/* ---------- LISTE ---------- */
+.classement-v2 .classement-liste { display: flex; flex-direction: column; gap: 6px; }
+.classement-v2 .classement-ligne {
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 1px solid #d8c08a; border-radius: 9px; padding: 8px 12px;
+}
+.classement-v2 .classement-rang {
+  width: 26px; height: 26px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #e3d2a4; border: 1px solid #c8a23a; border-radius: 50%;
+  color: #5a4520 !important; font-weight: bold; font-size: 0.78rem;
+}
+.classement-v2 .classement-pseudo { flex: 1; min-width: 0; color: #4a3410 !important; font-weight: bold; font-size: 0.84rem; }
+.classement-v2 .classement-valeur { color: #5a4520 !important; font-weight: bold; font-size: 0.84rem; }
+.classement-v2 .classement-pvp-rang { color: #8a7038 !important; font-weight: normal; }
+.classement-v2 .classement-pvp-vd { color: #8a7038 !important; font-weight: normal; }
+
+/* Ligne « moi » mise en avant */
+.classement-v2 .classement-ligne.moi {
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+  border-color: #e0b93d; box-shadow: 0 0 0 1px #e0b93d inset;
+}
+
+/* Podium (top 3) */
+.classement-v2 .classement-ligne.podium-1 .classement-rang { background: linear-gradient(180deg, #ffe169, #e6b800); color: #5a4520 !important; }
+.classement-v2 .classement-ligne.podium-2 .classement-rang { background: linear-gradient(180deg, #e8e8e8, #b8b8b8); color: #444 !important; }
+.classement-v2 .classement-ligne.podium-3 .classement-rang { background: linear-gradient(180deg, #e6b07a, #c17a3a); color: #4a2410 !important; }
+.classement-v2 .classement-ligne.podium-1 { border-color: #e6b800; }
+
+/* ---------- TEXTE : foncé + pas d'ombre ---------- */
+.classement-v2,
+.classement-v2 h2, .classement-v2 p, .classement-v2 span, .classement-v2 div, .classement-v2 button {
+  color: #4a3410;
+}
+.classement-v2, .classement-v2 * { text-shadow: none !important; }
+.classement-v2 .bouton-fermer { color: #fff !important; }
+/* ============================================================
+   ÉCRAN PvP v2 — éléments SPÉCIFIQUES au PvP
+   À COLLER À LA FIN de src/App.css (APRÈS le bloc arène v2).
+   La zone PvP a aussi la classe .arene-v2 → elle hérite déjà du style
+   arène (équipe, collection, filtres, bouton combattre…). Ici on ajoute
+   juste ce qui est propre au PvP (bandeau score, onglets, rangs, adversaires).
+   ============================================================ */
+
+/* ---------- BANDEAU DE SCORE ---------- */
+.pvp-v2 .pvp-bandeau {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+  border: 2px solid #c8a23a; border-radius: 12px; padding: 10px 14px; margin-bottom: 10px;
+}
+.pvp-v2 .pvp-bandeau-label { color: #5a4520 !important; font-weight: bold; font-size: 0.85rem; }
+.pvp-v2 .pvp-niveau-max {
+  margin-left: auto; color: #7a5a1e !important; font-size: 0.76rem; font-weight: bold;
+  background: rgba(255, 255, 255, 0.5); border: 1px solid #c8a23a; border-radius: 8px; padding: 3px 8px;
+}
+
+/* Badge de rang (pastille colorée, la couleur vient du style inline). */
+.pvp-v2 .pvp-rang-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 2px solid; border-radius: 8px; padding: 2px 9px;
+  font-size: 0.78rem; font-weight: bold; background: rgba(255, 255, 255, 0.6);
+}
+
+/* ---------- EXPLICATION DU CAP ---------- */
+.pvp-v2 .pvp-explication-cap {
+  background: rgba(255, 250, 235, 0.7); border: 1px dashed #c8a23a; border-radius: 9px;
+  color: #6b5526 !important; font-size: 0.76rem; line-height: 1.4; padding: 9px 12px; margin-bottom: 10px;
+}
+.pvp-v2 .pvp-explication-cap strong { color: #7a5a1e !important; }
+.pvp-v2 .pvp-message {
+  background: linear-gradient(180deg, #fff3cf, #ffe49a);
+  border: 2px solid #e0b93d; border-radius: 9px; color: #5a4520 !important;
+  font-size: 0.82rem; font-weight: bold; padding: 8px 12px; margin-bottom: 10px;
+}
+
+/* ---------- ONGLETS PvP (Attaquer / Défense) ---------- */
+.pvp-v2 .pvp-onglets { display: flex; gap: 8px; margin-bottom: 12px; }
+.pvp-v2 .pvp-onglet {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348; border-radius: 10px; color: #4a3410 !important;
+  font-family: inherit; font-size: 0.84rem; font-weight: bold; padding: 8px 16px; cursor: pointer;
+  transition: transform 0.08s, border-color 0.12s;
+}
+.pvp-v2 .pvp-onglet:hover { border-color: #e0b93d; transform: translateY(-1px); }
+.pvp-v2 .pvp-onglet.actif {
+  background: linear-gradient(180deg, #ffe9a8, #f4d36a);
+  border-color: #e0b93d; box-shadow: 0 0 0 1px #e0b93d inset;
+}
+
+/* ---------- LISTE D'ADVERSAIRES ---------- */
+.pvp-v2 .pvp-adversaires-entete { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pvp-v2 .pvp-bouton-rafraichir {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4); border: 2px solid #b89348;
+  border-radius: 9px; color: #4a3410 !important; font-family: inherit; font-size: 0.76rem;
+  padding: 6px 12px; cursor: pointer;
+}
+.pvp-v2 .pvp-bouton-rafraichir:hover { border-color: #e0b93d; }
+.pvp-v2 .pvp-liste { display: flex; flex-direction: column; gap: 8px; }
+.pvp-v2 .pvp-adversaire {
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348; border-radius: 12px; padding: 10px 12px;
+}
+.pvp-v2 .pvp-adversaire-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pvp-v2 .pvp-adversaire-pseudo { color: #4a3410 !important; font-weight: bold; font-size: 0.86rem; }
+
+/* Aperçu mini-sprites de la défense adverse */
+.pvp-v2 .pvp-apercu { display: flex; gap: 3px; }
+.pvp-v2 .pvp-apercu-sprite {
+  width: 34px; height: 34px; object-fit: contain; image-rendering: pixelated;
+  background: rgba(255, 255, 255, 0.5); border: 1px solid #d8c08a; border-radius: 6px;
+}
+
+/* ---------- ZONE PUBLIER (défense) ---------- */
+.pvp-v2 .pvp-publier-zone { margin-top: 12px; display: flex; justify-content: center; }
+.pvp-v2 .pvp-bouton-publier { padding: 10px 24px; font-size: 0.86rem; }
+
+/* ---------- LÉGENDE DES RANGS ---------- */
+.pvp-v2 .pvp-rangs-legende {
+  display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+  margin-top: 16px; padding-top: 12px; border-top: 2px dashed #c8a23a;
+}
+.pvp-v2 .pvp-rang-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 2px solid; border-radius: 8px; padding: 3px 9px;
+  font-size: 0.74rem; font-weight: bold; background: rgba(255, 255, 255, 0.6);
+}
+.pvp-v2 .pvp-rang-chip small { opacity: 0.75; font-weight: normal; }
+
+/* ---------- pas d'ombre ---------- */
+.pvp-v2 .pvp-bandeau, .pvp-v2 .pvp-onglets, .pvp-v2 .pvp-liste,
+.pvp-v2 .pvp-rangs-legende, .pvp-v2 .pvp-explication-cap { text-shadow: none !important; }

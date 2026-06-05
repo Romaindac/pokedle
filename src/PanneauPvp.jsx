@@ -212,7 +212,7 @@ function PanneauPvp({
         <button className="bouton-retour-arene" onClick={onRetour}>← Retour au jeu</button>
       </header>
 
-      <div className="arene-ecran arene-ecran-doree pvp-ecran">
+      <div className="arene-ecran arene-ecran-doree arene-v2 pvp-ecran pvp-v2">
         {/* Bandeau de score */}
         <div className="pvp-bandeau">
           <span className="pvp-bandeau-label">Ton classement PvP :</span>
