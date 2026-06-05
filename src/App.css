@@ -11094,3 +11094,116 @@ img[src*="PokeAPI/sprites"] {
 .boutique-v2 .bonbon-stock-ligne .item-ball-img {
   width: 48px !important; height: 48px !important; object-fit: contain !important;
 }
+/* ============================================================
+   POP-UP SAC v2 — DA du menu Routes (parchemin clair + doré)
+   À COLLER À LA FIN de src/App.css.
+   Préfixé .sac-v2. Tailles d'images maîtrisées dès le départ (pas de rognage).
+   ============================================================ */
+
+/* ---------- CONTENEUR ---------- */
+.panneau-banc.sac-v2 {
+  background: linear-gradient(180deg, #fff7e0, #f0ddae) !important;
+  border: 4px solid #c8a23a !important;
+  border-radius: 16px;
+  color: #4a3410;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+.sac-v2 .pokedex-entete { border-bottom: 2px dashed #c8a23a; }
+.sac-v2 .pokedex-entete h2 { color: #5a4520 !important; }
+
+/* ---------- BANNIÈRE ---------- */
+.sac-v2 .banniere-mode {
+  background: linear-gradient(180deg, #fffaee, #f7e9c2) !important;
+  border: 2px solid #b89348; border-radius: 10px;
+  color: #5a4520 !important; padding: 8px 12px; font-size: 0.82rem; margin-bottom: 10px;
+}
+
+/* ---------- ONGLETS ---------- */
+.sac-v2 .boutique-onglets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.sac-v2 .mode-btn {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important; border-radius: 9px;
+  color: #4a3410 !important; font-family: inherit; font-size: 0.78rem;
+  padding: 7px 11px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: transform 0.08s, border-color 0.12s;
+}
+.sac-v2 .mode-btn:hover { border-color: #e0b93d !important; transform: translateY(-1px); }
+.sac-v2 .mode-btn.actif {
+  background: linear-gradient(180deg, #ffe9a8, #f4d36a) !important;
+  border-color: #e0b93d !important; box-shadow: 0 0 0 1px #e0b93d inset;
+}
+.sac-v2 .onglet-ball-img { width: 18px; height: 18px; object-fit: contain; image-rendering: pixelated; }
+
+/* ---------- GRILLE D'ITEMS DU SAC ---------- */
+.sac-v2 .sac-grille {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+.sac-v2 .sac-item {
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important; border-radius: 12px;
+  padding: 10px 12px; min-height: 60px; box-sizing: border-box;
+  color: #4a3410 !important;
+}
+.sac-v2 .sac-item.cliquable { cursor: pointer; transition: transform 0.08s, border-color 0.12s, box-shadow 0.12s; }
+.sac-v2 .sac-item.cliquable:hover:not(:disabled) {
+  border-color: #e0b93d !important; transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(224, 185, 61, 0.4);
+}
+.sac-v2 .sac-item.sac-item-vide { opacity: 0.55; filter: grayscale(0.4); }
+.sac-v2 .sac-item:disabled { cursor: not-allowed; }
+
+/* Icône d'item : zone fixe, sprite entier (pas de cercle, pas de rognage). */
+.sac-v2 .sac-item-emoji {
+  width: 40px; height: 40px; min-width: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; overflow: visible; background: transparent;
+  font-size: 1.4rem;
+}
+.sac-v2 .sac-item-emoji .item-ball-img,
+.sac-v2 .sac-item-emoji img {
+  width: 36px !important; height: 36px !important;
+  max-width: 36px !important; max-height: 36px !important;
+  border-radius: 0 !important; object-fit: contain !important; image-rendering: pixelated;
+}
+.sac-v2 .sac-item-nom { flex: 1; color: #4a3410 !important; font-weight: bold; font-size: 0.82rem; }
+.sac-v2 .sac-item-desc { color: #8a7038 !important; font-weight: normal; font-size: 0.7rem; }
+.sac-v2 .sac-item-qte { color: #5a4520 !important; font-weight: bold; font-size: 0.84rem; }
+
+/* ---------- VUE DÉTAIL (pierre/bonbon → Pokémon) ---------- */
+.sac-v2 .sac-detail-titre {
+  color: #5a4520 !important; font-size: 0.95rem;
+  display: flex; align-items: center; gap: 8px; margin: 8px 0;
+}
+.sac-v2 .sac-detail-titre .item-ball-img { width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated; }
+.sac-v2 .banc-aide { color: #8a7038 !important; font-size: 0.78rem; font-style: italic; margin: 4px 0 10px; }
+.sac-v2 .bouton-retour {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4); border: 2px solid #b89348;
+  border-radius: 9px; color: #4a3410; font-family: inherit; font-size: 0.8rem;
+  padding: 6px 12px; cursor: pointer; margin-bottom: 10px;
+}
+.sac-v2 .bouton-retour:hover { border-color: #e0b93d; }
+
+/* Cartes de Pokémon dans le détail (réutilise banc-carte). */
+.sac-v2 .banc-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.sac-v2 .banc-carte {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important; border-radius: 12px; color: #4a3410 !important;
+  display: flex; flex-direction: column; align-items: center; padding: 6px 4px;
+  cursor: pointer; transition: transform 0.08s, border-color 0.12s, box-shadow 0.12s;
+}
+.sac-v2 .banc-carte:hover { border-color: #e0b93d !important; transform: translateY(-2px); box-shadow: 0 3px 10px rgba(224, 185, 61, 0.4); }
+.sac-v2 .banc-sprite { width: 56px; height: 56px; object-fit: contain; image-rendering: pixelated; }
+.sac-v2 .banc-nom { color: #4a3410 !important; font-size: 0.72rem; }
+.sac-v2 .banc-iv { color: #8a7038 !important; font-size: 0.68rem; }
+.sac-v2 .banc-vide { color: #7a6334 !important; }
+
+/* ---------- TEXTE : foncé partout + pas d'ombre ---------- */
+.sac-v2,
+.sac-v2 h2, .sac-v2 h3, .sac-v2 p, .sac-v2 span, .sac-v2 button {
+  color: #4a3410;
+}
+.sac-v2, .sac-v2 * { text-shadow: none !important; }
+.sac-v2 .bouton-fermer { color: #fff !important; }

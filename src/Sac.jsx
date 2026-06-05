@@ -50,7 +50,7 @@ function Sac({ balls, pierres, bonbons = {}, collection, onEvoluerPierre, onUtil
 
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="panneau-banc theme-sac panneau-sac-doree" onClick={(e) => e.stopPropagation()}>
+      <div className="panneau-banc theme-sac panneau-sac-doree sac-v2" onClick={(e) => e.stopPropagation()}>
         <div className="pokedex-entete">
           <h2>🎒 Sac</h2>
           <button className="bouton-fermer" onClick={onFermer}>✕</button>
