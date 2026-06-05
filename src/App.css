@@ -12042,3 +12042,241 @@ img[src*="PokeAPI/sprites"] {
 }
 /* ===== Bouton équipe auto dans l'Arène ===== */
 .arene-auto-equipe { margin: 0 0 10px; }
+/* ============================================================
+   FIX BOUTON "AMÉLIORER" — POP-UP BOOST (v2)
+   À coller à la TOUTE FIN de App.css.
+   Le bouton existait dans le DOM mais sans aucun style
+   (texte marron sur fond transparent = invisible).
+   ============================================================ */
+
+.boost-v2 .boutique-item-boutons {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.boost-v2 .bouton-achat-lot {
+  width: 100%;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #4a3410;
+  background: linear-gradient(180deg, #f7e9b8 0%, #e8cf86 100%);
+  border: 2px solid #b8923f;
+  border-radius: 8px;
+  box-shadow: 0 2px 0 #9a7833, inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+}
+
+.boost-v2 .bouton-achat-lot:hover {
+  filter: brightness(1.06);
+}
+
+.boost-v2 .bouton-achat-lot:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 #9a7833, inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.boost-v2 .bouton-achat-lot:disabled {
+  background: linear-gradient(180deg, #e6ddc4 0%, #d4c7a0 100%);
+  color: #9a8a66;
+  border-color: #b3a47c;
+  box-shadow: 0 2px 0 #a4926a;
+  cursor: not-allowed;
+  filter: none;
+  opacity: 0.85;
+}
+
+/* Badge "MAX ✓" quand l'amélioration est au niveau 10/10 */
+.boost-v2 .amelio-max {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  margin-top: 8px;
+  padding: 8px 14px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: #6b5a2a;
+  background: rgba(184, 146, 63, 0.18);
+  border: 2px dashed #b8923f;
+  border-radius: 8px;
+}
+/* ============================================================
+   POP-UP AMÉLIORATIONS (BOOST) v3 — auto-suffisant
+   Classes uniques boostv3- : aucune interférence possible
+   avec l'ancien CSS. À coller à la TOUTE FIN de App.css.
+   ============================================================ */
+
+.boostv3 {
+  width: min(900px, 94vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.boostv3-entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.boostv3-entete h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #4a3410;
+}
+
+.boostv3-fermer {
+  background: #c95a4b;
+  color: #fff;
+  border: 2px solid #9a3f33;
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1;
+}
+.boostv3-fermer:hover { filter: brightness(1.08); }
+
+.boostv3-argent {
+  margin: 0 0 12px;
+  font-weight: bold;
+  color: #6b5320;
+  font-size: 0.95rem;
+}
+
+/* La grille : 2-3 colonnes selon la largeur, défilement vertical propre */
+.boostv3-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  overflow-y: auto;
+  padding: 4px 4px 8px;
+  align-content: start;
+}
+
+/* Chaque carte : colonne, le bouton TOUJOURS en bas, jamais recouvert */
+.boostv3-carte {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(180deg, #fdf6e3 0%, #f3e6c4 100%);
+  border: 2px solid #b8923f;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.boostv3-haut {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.boostv3-emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.boostv3-texte {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.boostv3-nom {
+  font-weight: bold;
+  color: #4a3410;
+  font-size: 0.95rem;
+}
+
+.boostv3-niv {
+  font-size: 0.78rem;
+  color: #8a6f30;
+}
+
+.boostv3-desc {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #5c4a22;
+  line-height: 1.3;
+  min-height: 2.1em;
+}
+
+/* Pips de niveau (les 10 points) */
+.boostv3-pips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.boostv3-pip {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(120, 95, 40, 0.18);
+  border: 1px solid #b8923f;
+}
+
+.boostv3-pip-rempli {
+  background: linear-gradient(180deg, #ffd451 0%, #e8a93a 100%);
+  box-shadow: 0 0 4px rgba(232, 169, 58, 0.7);
+}
+
+/* Zone d'action : pousse le bouton en bas de la carte */
+.boostv3-action {
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.boostv3-bouton {
+  width: 100%;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #4a3410;
+  background: linear-gradient(180deg, #ffe9a8 0%, #f0c75c 100%);
+  border: 2px solid #b8923f;
+  border-radius: 9px;
+  box-shadow: 0 2px 0 #9a7833, inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+}
+
+.boostv3-bouton:hover { filter: brightness(1.06); }
+
+.boostv3-bouton:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 #9a7833, inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.boostv3-bouton:disabled {
+  background: linear-gradient(180deg, #e9e1c8 0%, #d6c9a2 100%);
+  color: #9a8a66;
+  border-color: #b3a47c;
+  box-shadow: 0 2px 0 #a4926a;
+  cursor: not-allowed;
+  filter: none;
+  opacity: 0.85;
+}
+
+.boostv3-max {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 9px 12px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: #2f7d3a;
+  background: rgba(72, 160, 88, 0.16);
+  border: 2px dashed #4fa05c;
+  border-radius: 9px;
+}
