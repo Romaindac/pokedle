@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BALLS, PIERRES, BONBONS } from './config'
+import { BONBONS_IV } from './ameliorations'
 
 const ICONES_BALLS = {
   poke: '/icons/ball-poke.png',
@@ -31,10 +32,12 @@ function imageObjet(info, fallback) {
   return (info && info.sprite) || fallback || null
 }
 
-function Sac({ balls, pierres, bonbons = {}, collection, onEvoluerPierre, onUtiliserBonbon, onFermer }) {
+function Sac({ balls, pierres, bonbons = {}, objetsBoss = {}, collection, onEvoluerPierre, onUtiliserBonbon, onUtiliserBonbonIV, onFermer }) {
   const [onglet, setOnglet] = useState('balls')
   const [pierreSelectionnee, setPierreSelectionnee] = useState(null)
   const [bonbonSelectionne, setBonbonSelectionne] = useState(null)
+  const [bonbonIVSelectionne, setBonbonIVSelectionne] = useState(null)
+  const [rechercheIV, setRechercheIV] = useState('')
 
   const pokemonsPourPierre = pierreSelectionnee
     ? collection.filter((p) =>
@@ -46,6 +49,22 @@ function Sac({ balls, pierres, bonbons = {}, collection, onEvoluerPierre, onUtil
     setOnglet(o)
     setPierreSelectionnee(null)
     setBonbonSelectionne(null)
+    setBonbonIVSelectionne(null)
+    setRechercheIV('')
+  }
+
+  // Collection filtrée par recherche (pour les bonbons d'IV).
+  const collectionIV = (() => {
+    const q = rechercheIV.trim().toLowerCase()
+    if (!q) return collection
+    return collection.filter((p) => (p.nom || '').toLowerCase().includes(q))
+  })()
+
+  // Stat d'un bonbon d'IV → clé dans l'objet iv du Pokémon.
+  function ivDuPoke(poke, cleBonbon) {
+    const stat = BONBONS_IV[cleBonbon]?.stat
+    if (!stat || !poke.iv) return 0
+    return Number.isFinite(poke.iv[stat]) ? poke.iv[stat] : 0
   }
 
   return (
@@ -63,6 +82,7 @@ function Sac({ balls, pierres, bonbons = {}, collection, onEvoluerPierre, onUtil
           <button className={`mode-btn ${onglet === 'balls' ? 'actif' : ''}`} onClick={() => changerOnglet('balls')}><img src={imageObjet(BALLS.poke, ICONES_BALLS.poke)} alt="" className="onglet-ball-img" /> Balls</button>
           <button className={`mode-btn ${onglet === 'pierres' ? 'actif' : ''}`} onClick={() => changerOnglet('pierres')}>💎 Pierres</button>
           <button className={`mode-btn ${onglet === 'objets' ? 'actif' : ''}`} onClick={() => changerOnglet('objets')}>🍬 Objets</button>
+          <button className={`mode-btn ${onglet === 'iv' ? 'actif' : ''}`} onClick={() => changerOnglet('iv')}>✨ Bonbons IV</button>
         </div>
 
         {/* Onglet Poké Balls */}
@@ -187,6 +207,76 @@ function Sac({ balls, pierres, bonbons = {}, collection, onEvoluerPierre, onUtil
                     <span className="banc-iv">N.{poke.niveau || 1}</span>
                   </button>
                 ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Onglet Bonbons d'IV */}
+        {onglet === 'iv' && !bonbonIVSelectionne && (
+          <>
+            <p className="banc-aide">Les bonbons d'IV (butin de boss) augmentent de +1 l'IV d'une stat d'un Pokémon (max 31).</p>
+            <div className="sac-grille">
+              {Object.entries(BONBONS_IV).map(([cle, info]) => {
+                const qte = objetsBoss[cle] || 0
+                return (
+                  <button
+                    key={cle}
+                    className={`sac-item cliquable ${qte === 0 ? 'sac-item-vide' : ''}`}
+                    onClick={() => setBonbonIVSelectionne(cle)}
+                    disabled={qte === 0}
+                    title={qte === 0 ? 'Tu n\'en as pas (butin de boss)' : 'Choisir un Pokémon'}
+                  >
+                    <span className="sac-item-emoji">
+                      {info.sprite
+                        ? <img src={info.sprite} alt={info.nom} className="item-ball-img" onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(info.emoji)) }} />
+                        : info.emoji}
+                    </span>
+                    <span className="sac-item-nom">{info.nom}</span>
+                    <span className="sac-item-qte">×{qte}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+
+        {onglet === 'iv' && bonbonIVSelectionne && (
+          <div className="sac-detail">
+            <button className="bouton-retour" onClick={() => { setBonbonIVSelectionne(null); setRechercheIV('') }}>← Retour</button>
+            <h3 className="sac-detail-titre">
+              {(() => { const info = BONBONS_IV[bonbonIVSelectionne]; return info.sprite ? <img src={info.sprite} alt="" className="item-ball-img" onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(info.emoji)) }} /> : info.emoji })()} {BONBONS_IV[bonbonIVSelectionne].nom} (×{objetsBoss[bonbonIVSelectionne] || 0})
+            </h3>
+            <p className="banc-aide">Clique sur un Pokémon pour +1 IV {BONBONS_IV[bonbonIVSelectionne].stat} (max 31) :</p>
+            <input
+              type="text"
+              className="banc-recherche"
+              placeholder="🔍 Rechercher un Pokémon..."
+              value={rechercheIV}
+              onChange={(e) => setRechercheIV(e.target.value)}
+            />
+            <div className="banc-grille">
+              {collectionIV.length === 0 ? (
+                <p className="banc-vide">Aucun Pokémon ne correspond.</p>
+              ) : (
+                collectionIV.map((poke) => {
+                  const ivVal = ivDuPoke(poke, bonbonIVSelectionne)
+                  const auMax = ivVal >= 31
+                  return (
+                    <button
+                      key={poke.uid}
+                      className={`banc-carte cliquable ${auMax ? 'sac-item-vide' : ''}`}
+                      disabled={auMax}
+                      title={auMax ? 'IV déjà au max (31)' : `IV ${BONBONS_IV[bonbonIVSelectionne].stat} : ${ivVal}/31`}
+                      onClick={() => { if (!auMax) onUtiliserBonbonIV(poke.uid, bonbonIVSelectionne) }}
+                    >
+                      {poke.shiny && <span className="banc-shiny-mark">✨</span>}
+                      <img src={poke.sprite} alt={poke.nom} className="banc-sprite" loading="lazy" />
+                      <span className="banc-nom">{poke.nom}</span>
+                      <span className="banc-iv">{auMax ? 'MAX' : `${ivVal}/31`}</span>
+                    </button>
+                  )
+                })
               )}
             </div>
           </div>

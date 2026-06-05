@@ -3,13 +3,14 @@
 import { determinerRole, determinerPassif, bonusDuPassif } from './roles'
 import { bonusStatsObjet } from './objets'
 
-const STAT_MAX_IV = 31
+export const STAT_MAX_IV = 31
 
 export function genererIV() {
   return {
     pv: Math.floor(Math.random() * (STAT_MAX_IV + 1)),
     attaque: Math.floor(Math.random() * (STAT_MAX_IV + 1)),
     vitesse: Math.floor(Math.random() * (STAT_MAX_IV + 1)),
+    defense: Math.floor(Math.random() * (STAT_MAX_IV + 1)),
   }
 }
 
@@ -18,15 +19,27 @@ function nombreSur(valeur, repli) {
   return Number.isFinite(valeur) ? valeur : repli
 }
 
+// Normalise un objet IV : garantit les 4 stats (migration des vieux IV à 3 stats).
+// Les anciens Pokémon n'ont pas d'IV de défense → on lui donne une valeur aléatoire
+// une seule fois (à la migration), pour ne pas tous les bloquer à 0.
+export function normaliserIV(iv) {
+  const src = iv || {}
+  return {
+    pv: nombreSur(src.pv, 0),
+    attaque: nombreSur(src.attaque, 0),
+    vitesse: nombreSur(src.vitesse, 0),
+    defense: Number.isFinite(src.defense)
+      ? src.defense
+      : Math.floor(Math.random() * (STAT_MAX_IV + 1)),
+  }
+}
+
 // Montée d'XP "marathon" assouplie pour aller jusqu'au niveau ~500 sans mur.
-// (Avant : 1 + niveau*0.025. Adouci à 0.02 pour une fin plus fluide.)
 function multiplicateurProgressif(niveau) {
   return 1 + niveau * 0.02
 }
 
 // XP nécessaire pour passer du niveau actuel au suivant.
-// Exposant assoupli de 1.8 → 1.55 : la fin (niv 200-500) reste longue mais jouable
-// (« xp non-stop »), cohérent avec les zones/arène qui montent jusqu'à ~500.
 export function xpRequise(niveau, xpBase) {
   const n = nombreSur(niveau, 1)
   const base = nombreSur(xpBase, 20) * Math.pow(n, 1.55)
@@ -41,6 +54,7 @@ export function statsFinales(pokemon, bonusNiveau = 0.08) {
     pv: nombreSur(ivBrut.pv, 0),
     attaque: nombreSur(ivBrut.attaque, 0),
     vitesse: nombreSur(ivBrut.vitesse, 0),
+    defense: nombreSur(ivBrut.defense, 0),
   }
   const niveau = nombreSur(p.niveau, 1)
   const mult = 1 + nombreSur(bonusNiveau, 0.08) * (niveau - 1)
@@ -71,7 +85,7 @@ export function statsFinales(pokemon, bonusNiveau = 0.08) {
     pvMax: finir((pvBase + iv.pv) * mult * pvMult * objPv, 1),
     attaque: finir((attaqueBase + iv.attaque) * mult * objAtt, 1),
     vitesse: finir((vitesseBase + iv.vitesse) * mult * objVit, 1),
-    defense: finir(defBase * mult * defMult * objDef, 1),
+    defense: finir((defBase + iv.defense) * mult * defMult * objDef, 1),
     role,
   }
 }
@@ -83,6 +97,7 @@ export function fusionnerIV(ivAncien, ivNouveau) {
     pv: Math.max(nombreSur(a.pv, 0), nombreSur(b.pv, 0)),
     attaque: Math.max(nombreSur(a.attaque, 0), nombreSur(b.attaque, 0)),
     vitesse: Math.max(nombreSur(a.vitesse, 0), nombreSur(b.vitesse, 0)),
+    defense: Math.max(nombreSur(a.defense, 0), nombreSur(b.defense, 0)),
   }
 }
 

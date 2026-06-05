@@ -12786,3 +12786,484 @@ img[src*="PokeAPI/sprites"] {
   flex: 1;
   min-width: 180px;
 }
+/* ============================================================
+   4 BARRES D'IV DISTINCTES (fiche Pokémon) — PV/ATT/VIT/DÉF /31
+   À coller à la TOUTE FIN de App.css.
+   ============================================================ */
+
+.fiche-iv-detail {
+  margin: 12px 0;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #fdf6e3 0%, #f3e6c4 100%);
+  border: 2px solid #b8923f;
+  border-radius: 12px;
+}
+
+.fiche-iv-detail-haut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.fiche-iv-detail-titre {
+  font-size: 0.82rem;
+  font-weight: bold;
+  color: #8a6f30;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fiche-iv-detail-total {
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.iv-barre-ligne {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 5px 0;
+}
+
+.iv-barre-label {
+  flex-shrink: 0;
+  width: 34px;
+  font-size: 0.74rem;
+  font-weight: bold;
+  color: #6b5320;
+}
+
+.iv-barre-piste {
+  flex: 1;
+  height: 12px;
+  background: rgba(120, 95, 40, 0.18);
+  border: 1px solid #b8923f;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.iv-barre-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.iv-barre-val {
+  flex-shrink: 0;
+  width: 44px;
+  text-align: right;
+  font-size: 0.72rem;
+  font-weight: bold;
+  color: #4a3410;
+  font-variant-numeric: tabular-nums;
+}
+/* ============================================================
+   REFARM BOSS — petit texte d'aide sous la barre de progression
+   À coller à la TOUTE FIN de App.css.
+   ============================================================ */
+
+.zone-progression-aide {
+  margin: 6px 0 0;
+  font-size: 0.72rem;
+  color: #8a6f30;
+  text-align: center;
+  line-height: 1.3;
+}
+/* ============================================================
+   BARRE DE CONTRÔLE (topbar) — zone rapide, compteur boss, vitesse, accès
+   À coller à la TOUTE FIN de App.css.
+   ============================================================ */
+
+.barre-controle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(20, 23, 42, 0.35);
+  border: 2px solid #b8923f;
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+
+.bc-bloc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* --- Zone rapide --- */
+.bc-zone { flex: 1 1 220px; min-width: 200px; }
+
+.bc-zone-btn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #4a3410;
+  background: linear-gradient(180deg, #ffe9a8 0%, #f0c75c 100%);
+  border: 2px solid #b8923f;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.bc-zone-btn:hover:not(:disabled) { filter: brightness(1.06); }
+.bc-zone-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.bc-zone-nom {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bc-zone-compteur {
+  font-size: 0.66rem;
+  color: #ffcd75;
+  font-weight: normal;
+}
+
+/* --- Compteur boss --- */
+.bc-boss { flex: 1 1 200px; min-width: 180px; }
+
+.bc-boss-label { flex-shrink: 0; font-size: 1rem; }
+
+.bc-boss-piste {
+  flex: 1;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #b8923f;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.bc-boss-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f0a020 0%, #ffcd75 100%);
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.bc-boss-txt {
+  flex-shrink: 0;
+  font-size: 0.74rem;
+  font-weight: bold;
+  color: #ffcd75;
+  font-variant-numeric: tabular-nums;
+  min-width: 56px;
+  text-align: right;
+}
+
+/* --- Vitesse --- */
+.bc-vitesse { flex: 0 0 auto; gap: 3px; }
+
+.bc-vit-btn {
+  width: 34px;
+  height: 30px;
+  font-size: 0.78rem;
+  font-weight: bold;
+  color: #ffe9a8;
+  background: rgba(20, 23, 42, 0.55);
+  border: 2px solid #7a6428;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+.bc-vit-btn:hover { filter: brightness(1.15); }
+.bc-vit-btn.actif {
+  color: #4a3410;
+  background: linear-gradient(180deg, #ffe9a8 0%, #f0c75c 100%);
+  border-color: #b8923f;
+}
+
+/* --- Accès rapides --- */
+.bc-acces { flex: 0 0 auto; gap: 6px; }
+
+.bc-acces-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: bold;
+  color: #4a3410;
+  background: linear-gradient(180deg, #fdf0d0 0%, #ecd49a 100%);
+  border: 2px solid #b8923f;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+.bc-acces-btn:hover { filter: brightness(1.06); }
+
+.bc-acces-img {
+  width: 18px;
+  height: 18px;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+
+/* Responsive : sous 700px, la barre s'empile proprement */
+@media (max-width: 700px) {
+  .barre-controle { gap: 8px; }
+  .bc-zone, .bc-boss { flex: 1 1 100%; }
+  .bc-vitesse, .bc-acces { flex: 1 1 100%; justify-content: center; }
+}
+/* ============================================================
+   JAUGE DE BOSS ANIMÉE (bandeau zone du centre)
+   Barre remplie + reflet de lumière qui balaie + couronne qui pulse.
+   À coller à la TOUTE FIN de App.css.
+   ============================================================ */
+
+.boss-jauge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.boss-jauge-piste {
+  position: relative;
+  display: inline-block;
+  width: 160px;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid #b8923f;
+  border-radius: 9px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.boss-jauge-fill {
+  position: relative;
+  display: block;
+  height: 100%;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #e8951a 0%, #ffcd75 50%, #ffe9a8 100%);
+  background-size: 200% 100%;
+  /* Remplissage fluide quand la valeur change */
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Léger dégradé qui ondule en continu */
+  animation: bossJaugeOnde 3s ease-in-out infinite;
+  overflow: hidden;
+}
+
+@keyframes bossJaugeOnde {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Reflet de lumière qui balaie la barre */
+.boss-jauge-brillance {
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 30%,
+    rgba(255, 255, 255, 0.75) 50%,
+    rgba(255, 255, 255, 0.1) 70%,
+    transparent 100%
+  );
+  transform: skewX(-18deg);
+  animation: bossBrillance 2.4s ease-in-out infinite;
+}
+
+@keyframes bossBrillance {
+  0% { left: -45%; }
+  60%, 100% { left: 115%; }
+}
+
+.boss-jauge-txt {
+  font-size: 0.78rem;
+  font-weight: bold;
+  color: #ffcd75;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.boss-jauge-couronne {
+  display: inline-block;
+  animation: bossCouronne 1.8s ease-in-out infinite;
+}
+
+@keyframes bossCouronne {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.15); }
+}
+
+/* Respect des préférences de réduction d'animation */
+@media (prefers-reduced-motion: reduce) {
+  .boss-jauge-fill,
+  .boss-jauge-brillance,
+  .boss-jauge-couronne {
+    animation: none;
+  }
+}
+
+/* Responsive : barre plus courte sur petit écran */
+@media (max-width: 700px) {
+  .boss-jauge-piste { width: 110px; }
+}
+/* ============================================================
+   POP-UP NOUVEAUTÉS (patch notes) — style pixel-art doré
+   À coller à la TOUTE FIN de App.css.
+   ============================================================ */
+
+.nouv-panneau {
+  width: 460px;
+  max-width: 94vw;
+  padding: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fdf6e3 0%, #f3e6c4 100%);
+  border: 3px solid #b8923f;
+  border-radius: 16px;
+  box-shadow: 0 8px 0 #8a6f30, 0 14px 30px rgba(0, 0, 0, 0.4);
+}
+
+.nouv-entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: linear-gradient(180deg, #5a4a2a 0%, #4a3d28 100%);
+  border-bottom: 3px solid #b8923f;
+}
+
+.nouv-titre-haut {
+  color: #ffe9a8;
+  font-size: 1.05rem;
+  font-weight: bold;
+}
+
+.nouv-step {
+  color: #ffcd75;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.nouv-corps {
+  padding: 22px 24px;
+  min-height: 230px;
+}
+
+.nouv-sprites {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 14px;
+  min-height: 80px;
+  margin-bottom: 10px;
+}
+
+.nouv-sprite {
+  width: 72px;
+  height: 72px;
+  image-rendering: pixelated;
+  object-fit: contain;
+  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.18));
+  animation: nouvSpriteFloat 2.6s ease-in-out infinite;
+}
+.nouv-sprites img:nth-child(2) { animation-delay: 0.3s; }
+.nouv-sprites img:nth-child(3) { animation-delay: 0.6s; }
+.nouv-sprites img:nth-child(4) { animation-delay: 0.9s; }
+
+@keyframes nouvSpriteFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.nouv-sprite-fallback {
+  font-size: 48px;
+  line-height: 72px;
+}
+
+.nouv-titre {
+  text-align: center;
+  color: #6b4f1a;
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.nouv-texte {
+  color: #5a4a2a;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  text-align: left;
+}
+.nouv-texte b { color: #6b4f1a; }
+
+.nouv-pied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 2px solid #d8c089;
+}
+
+.nouv-btn {
+  padding: 9px 16px;
+  font-size: 0.82rem;
+  font-weight: bold;
+  border: 2px solid #b8923f;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+.nouv-btn:hover:not(:disabled) { filter: brightness(1.06); }
+
+.nouv-btn-prev {
+  color: #6b5320;
+  background: #ecd9a8;
+}
+.nouv-btn-prev:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.nouv-btn-next {
+  color: #4a3410;
+  background: linear-gradient(180deg, #ffe9a8 0%, #f0c75c 100%);
+}
+
+.nouv-dots {
+  display: flex;
+  gap: 7px;
+}
+
+.nouv-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #b8923f;
+  opacity: 0.3;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.nouv-dot.actif {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nouv-sprite { animation: none; }
+}
+
+@media (max-width: 520px) {
+  .nouv-sprite { width: 56px; height: 56px; }
+  .nouv-corps { min-height: 250px; }
+}

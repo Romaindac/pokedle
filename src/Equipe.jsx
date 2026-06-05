@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { xpRequise } from './stats'
+import { xpRequise, STAT_MAX_IV } from './stats'
 import { XP_BASE_NIVEAU, PIERRES } from './config'
 import { ROLES, determinerRole, passifDe, passifEffectif, passifsDuRole, passifPourMode, compterRoles, compterSpeciaux, compositionValide, COMPOSITION_REQUISE, MIN_PAR_ROLE, MAX_PAR_ROLE, MAX_SPECIAL, estJoker, roleEffectif, CASES_JOKER } from './roles'
 import { OBJETS } from './objets'
@@ -98,9 +98,29 @@ function BarreStat({ label, valeur, pctMax, couleur }) {
   )
 }
 
+// Une barre d'IV (sur STAT_MAX_IV = 31). Couleur selon la qualité de l'IV.
+function BarreIV({ label, valeur }) {
+  const v = Math.max(0, Math.min(STAT_MAX_IV, valeur || 0))
+  const pct = (v / STAT_MAX_IV) * 100
+  const couleur =
+    v >= 28 ? '#5fbf60' :
+    v >= 20 ? '#a4d24a' :
+    v >= 12 ? '#f0c040' :
+    v >= 6 ? '#f0a020' : '#e06060'
+  return (
+    <div className="iv-barre-ligne">
+      <span className="iv-barre-label">{label}</span>
+      <div className="iv-barre-piste">
+        <div className="iv-barre-fill" style={{ width: `${Math.max(4, pct)}%`, background: couleur }}></div>
+      </div>
+      <span className="iv-barre-val">{v}/{STAT_MAX_IV}</span>
+    </div>
+  )
+}
+
 function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet, onEvoluerPierre, onChoisirPassif, onChoisirCaseJoker, onAppliquerParchemin, onRetour }) {
   const [grilleOuverte, setGrilleOuverte] = useState(false)
-  const iv = pokemon.iv || { pv: 0, attaque: 0, vitesse: 0 }
+  const iv = pokemon.iv || { pv: 0, attaque: 0, vitesse: 0, defense: 0 }
   const niv = pokemon.niveau || 1
   const requise = xpRequise(niv, XP_BASE_NIVEAU)
   const xp = pokemon.xp || 0
@@ -285,29 +305,27 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet,
         <BarreStat label="VIT" valeur={vitesse} pctMax={(vitesse / statMax) * 100} couleur="#50a0e0" />
         <BarreStat label="DÉF" valeur={defense} pctMax={(defense / statMax) * 100} couleur="#c060c0" />
       </div>
+
+      {/* 4 barres d'IV distinctes (PV / ATT / VIT / DÉF), chacune sur 31. */}
       {(() => {
-        const totalIV = iv.pv + iv.attaque + iv.vitesse
-        const pctQualite = Math.round((totalIV / 93) * 100)
+        const total = (iv.pv || 0) + (iv.attaque || 0) + (iv.vitesse || 0) + (iv.defense || 0)
+        const pctQualite = Math.round((total / (STAT_MAX_IV * 4)) * 100)
         const couleurQualite =
           pctQualite >= 80 ? '#5fbf60' :
           pctQualite >= 55 ? '#f0c040' :
           pctQualite >= 30 ? '#f0a020' : '#e06060'
-        const mention =
-          pctQualite >= 90 ? 'Parfait !' :
-          pctQualite >= 75 ? 'Excellent' :
-          pctQualite >= 50 ? 'Bon' :
-          pctQualite >= 25 ? 'Moyen' : 'Faible'
         return (
-          <div className="fiche-iv-qualite">
-            <div className="fiche-iv-qualite-haut">
-              <span className="fiche-iv-qualite-label">Qualité (IV)</span>
-              <span className="fiche-iv-qualite-valeur" style={{ color: couleurQualite }}>
-                {pctQualite}% · {mention}
+          <div className="fiche-iv-detail">
+            <div className="fiche-iv-detail-haut">
+              <span className="fiche-iv-detail-titre">Potentiel (IV)</span>
+              <span className="fiche-iv-detail-total" style={{ color: couleurQualite }}>
+                {total}/{STAT_MAX_IV * 4} · {pctQualite}%
               </span>
             </div>
-            <div className="fiche-iv-qualite-barre">
-              <div className="fiche-iv-qualite-fill" style={{ width: `${pctQualite}%`, background: couleurQualite }}></div>
-            </div>
+            <BarreIV label="PV" valeur={iv.pv} />
+            <BarreIV label="ATT" valeur={iv.attaque} />
+            <BarreIV label="VIT" valeur={iv.vitesse} />
+            <BarreIV label="DÉF" valeur={iv.defense} />
           </div>
         )
       })()}

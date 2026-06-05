@@ -96,6 +96,32 @@ export const OBJETS_BOSS = {
 }
 
 /* ============================================================
+   BONBONS D'IV (drops de boss, séparés de la monnaie endgame)
+   Chacun augmente de +1 l'IV d'une stat d'un Pokémon (plafond 31).
+   Stockés dans le même state objetsBoss, mais sous leurs propres clés
+   → ils n'interfèrent PAS avec coutEndgame/peutPayerEndgame (qui ne
+   lisent que rouage/cristal/relique).
+   ============================================================ */
+export const BONBONS_IV = {
+  iv_pv: {
+    nom: 'Bonbon PV', emoji: '❤️', stat: 'pv',
+    sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/hp-up.png',
+  },
+  iv_attaque: {
+    nom: 'Bonbon Attaque', emoji: '⚔️', stat: 'attaque',
+    sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/protein.png',
+  },
+  iv_vitesse: {
+    nom: 'Bonbon Vitesse', emoji: '⚡', stat: 'vitesse',
+    sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/carbos.png',
+  },
+  iv_defense: {
+    nom: 'Bonbon Défense', emoji: '🛡️', stat: 'defense',
+    sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/iron.png',
+  },
+}
+
+/* ============================================================
    AMÉLIORATIONS ENDGAME
    Mêmes effets que les normales mais bonus/palier renforcé (~×1,33).
    Débloquées individuellement quand la version normale est à 10/10.

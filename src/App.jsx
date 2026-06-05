@@ -3,7 +3,7 @@ import './App.css'
 import { VITESSE_COMBAT, PAUSE_RESPAWN, GAIN_PAR_VICTOIRE, GAIN_BASE_ENNEMI, BONUS_STAT_NIVEAU, XP_BASE_NIVEAU, XP_BASE_ENNEMI, TAUX_CAPTURE_RARETE, BALLS, BALL_AUTO_PAR_RARETE, TAUX_SHINY, PIERRES, BONBONS, prixDynamique, multiplicateurSurclassement } from './config'
 import { ticCombat, appliquerUltime } from './moteurCombat'
 import { ULTIMES, ultimeDuRole, COUT_ULTIME } from './ultimes'
-import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise } from './stats'
+import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise, normaliserIV } from './stats'
 import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole, passifPourMode, champPassifDuMode } from './roles'
 import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
 import CartePokemon from './CartePokemon'
@@ -33,7 +33,8 @@ import PanneauSucces from './PanneauSucces'
 import { SUCCES } from './succes'
 import PanneauAmeliorations from './PanneauAmeliorations'
 import PanneauSauvegarde from './PanneauSauvegarde'
-import { coutAmelioration, multiplicateur, niveauAmelioration, PALIER_MAX, facteurNegociateur, OBJETS_BOSS, coutEndgame, peutPayerEndgame, endgameDebloque } from './ameliorations'
+import PanneauNouveautes from './PanneauNouveautes'
+import { coutAmelioration, multiplicateur, niveauAmelioration, PALIER_MAX, facteurNegociateur, OBJETS_BOSS, BONBONS_IV, coutEndgame, peutPayerEndgame, endgameDebloque } from './ameliorations'
 import { recompensesDisponibles, PALIERS_GLOBAUX, PALIERS_GENERATION, GENERATIONS as GENS_RECOMP } from './recompenses'
 import { medaillesGagnables, multiplicateursPrestige, totalInvesti, BONUS_PRESTIGE } from './prestige'
 import { chargerInfosEspece, corrigerNom } from './evolution'
@@ -46,6 +47,9 @@ import { creerHorloge } from './horlogeWorker'
 
 
 const CLE_SAUVEGARDE = 'pokedex-idle-save-v11'
+
+// Clé qui mémorise que le joueur a vu le pop-up de nouveautés (incrémenter à chaque gros patch).
+const CLE_NOUVEAUTES = 'pokedle-nouveautes-vue-v12'
 // Reset d'histoire forcé (une fois pour tous) : si la save n'a pas ce numéro,
 // on remet la progression d'histoire à zéro au chargement (zones, victoires, boss).
 //
@@ -59,11 +63,20 @@ const RESET_HISTOIRE_ACTIF = false
 
 // --- Drops d'objets de boss (monnaie endgame) ---
 // Probabilités par type de boss. Jamais garanti. Sous les plafonds voulus.
+// Refarm des boss : une fois le boss d'une zone vaincu une 1ère fois, il revient
+// tous les COMBATS_REFARM_BOSS combats gagnés dans cette zone.
+const COMBATS_REFARM_BOSS = 250
+
 const TAUX_OBJET_BOSS = {
   zone:  { rouage: 0.0010, cristal: 0.0007, relique: 0.0005 },
   arene: { rouage: 0.0012, cristal: 0.0008, relique: 0.0005 },
   raid:  { rouage: 0.0015, cristal: 0.0010, relique: 0.0006 },
 }
+
+// Drop des bonbons d'IV (utiles tout de suite → bien plus fréquents que la monnaie endgame).
+// Probabilité qu'un bonbon d'IV tombe, par type de boss. Si ça tombe, la stat est tirée au hasard.
+const TAUX_BONBON_IV = { zone: 0.06, arene: 0.08, raid: 0.10 }
+const CLES_BONBON_IV = ['iv_pv', 'iv_attaque', 'iv_vitesse', 'iv_defense']
 
 // Correspondance type de ball -> icône image (sans toucher à config.js)
 // Icônes = sprites officiels PokeAPI (dérivés de config.js). Look authentique Pokémon.
@@ -396,7 +409,7 @@ function App() {
   const [pierres, setPierres] = useState({})
   const [bonbons, setBonbons] = useState({})
   const [objets, setObjets] = useState({})
-  const [objetsBoss, setObjetsBoss] = useState({ rouage: 0, cristal: 0, relique: 0 })
+  const [objetsBoss, setObjetsBoss] = useState({ rouage: 0, cristal: 0, relique: 0, iv_pv: 0, iv_attaque: 0, iv_vitesse: 0, iv_defense: 0 })
   const [parchemins, setParchemins] = useState({})
   const [achatsItems, setAchatsItems] = useState({})
   const [recompensesReclamees, setRecompensesReclamees] = useState([])
@@ -406,6 +419,14 @@ function App() {
   const [vueOuverte, setVueOuverte] = useState(null)
   const [identiteJoueur, setIdentiteJoueur] = useState(() => chargerIdentite())
   const [changerPseudoOuvert, setChangerPseudoOuvert] = useState(false)
+  // Pop-up de nouveautés : ouvert automatiquement si le joueur ne l'a pas encore vu.
+  const [nouveautesOuvert, setNouveautesOuvert] = useState(() => {
+    try { return localStorage.getItem(CLE_NOUVEAUTES) !== '1' } catch { return false }
+  })
+  function fermerNouveautes() {
+    try { localStorage.setItem(CLE_NOUVEAUTES, '1') } catch {}
+    setNouveautesOuvert(false)
+  }
   const [modeJeu, setModeJeu] = useState('principal')
   const [tutoVu, setTutoVu] = useState(false)
   const [tutoMode, setTutoMode] = useState(null)
@@ -711,6 +732,12 @@ function App() {
     for (const cle of ['rouage', 'cristal', 'relique']) {
       if (Math.random() < taux[cle]) gagnes[cle] = (gagnes[cle] || 0) + 1
     }
+    // Bonbon d'IV : une chance qu'un bonbon tombe, stat tirée au hasard.
+    const tauxIV = TAUX_BONBON_IV[typeBoss] ?? TAUX_BONBON_IV.zone
+    if (Math.random() < tauxIV) {
+      const cleIV = CLES_BONBON_IV[Math.floor(Math.random() * CLES_BONBON_IV.length)]
+      gagnes[cleIV] = (gagnes[cleIV] || 0) + 1
+    }
     const cles = Object.keys(gagnes)
     if (cles.length === 0) return
     setObjetsBoss((stock) => {
@@ -719,7 +746,8 @@ function App() {
       return maj
     })
     for (const cle of cles) {
-      const info = OBJETS_BOSS[cle]
+      const info = OBJETS_BOSS[cle] || BONBONS_IV[cle]
+      if (!info) continue
       ajouterAuJournal(`${info.emoji} Butin de boss : ${info.nom} !`, 'capture')
       if (cle === 'cristal' || cle === 'relique') montrerDrop(cle)
     }
@@ -1128,8 +1156,12 @@ function App() {
       const route = routeParId(routeActiveRef.current)
       const victoiresZone = (victoiresParRouteRef.current[route.id] || 0)
       const reduc = niveauAmelioration(ameliorationsRef.current, 'strategie')
-      const combatsAvantBoss = Math.max(10, COMBATS_AVANT_BOSS - reduc)
-      const cestLeBoss = victoiresZone >= combatsAvantBoss && !bossVaincusRef.current[route.id]
+      const dejaVaincu = !!bossVaincusRef.current[route.id]
+      // 1er boss à 25 victoires (moins réduction stratégie). Ensuite, refarm tous les 250.
+      const seuil = dejaVaincu
+        ? COMBATS_REFARM_BOSS
+        : Math.max(10, COMBATS_AVANT_BOSS - reduc)
+      const cestLeBoss = victoiresZone >= seuil
 
       let nouveaux
       if (cestLeBoss) {
@@ -1195,8 +1227,13 @@ function App() {
         if (sauvegarde) {
           const data = JSON.parse(sauvegarde)
           const capturesRecalc = (data.captures || []).map((p) =>
-            p ? { ...p, role: determinerRole(p), passif: determinerPassif(p) } : p
+            p ? { ...p, iv: normaliserIV(p.iv), role: determinerRole(p), passif: determinerPassif(p) } : p
           )
+          // Recalcule les stats finales après normalisation des IV (la défense a maintenant un IV).
+          for (let i = 0; i < capturesRecalc.length; i++) {
+            const p = capturesRecalc[i]
+            if (p) capturesRecalc[i] = { ...p, ...statsFinales(p, BONUS_STAT_NIVEAU) }
+          }
           // Limite 2 exemplaires/objet : déséquipe les excédentaires et rend les objets au stock.
           const stockObjets = { ...(data.objets || {}) }
           const compteObjet = {}
@@ -1266,7 +1303,7 @@ function App() {
           if (nbDesequipes > 0) {
             setTimeout(() => ajouterAuJournal(`${nbDesequipes} objet(s) en double déséquipé(s) (limite : 2 par objet). Rendus au sac.`, 'info'), 1500)
           }
-          if (data.objetsBoss) setObjetsBoss({ rouage: 0, cristal: 0, relique: 0, ...data.objetsBoss })
+          if (data.objetsBoss) setObjetsBoss({ rouage: 0, cristal: 0, relique: 0, iv_pv: 0, iv_attaque: 0, iv_vitesse: 0, iv_defense: 0, ...data.objetsBoss })
           if (data.parchemins) setParchemins(data.parchemins)
           setAchatsItems(data.achatsItems || {})
           setRecompensesReclamees(data.recompensesReclamees || [])
@@ -1329,11 +1366,58 @@ function App() {
     init()
   }, [])
 
+  const donneesSauvegardeRef = useRef(null)
   useEffect(() => {
     if (!partieChargee || captures.length === 0) return
     const data = { resetHistoire: VERSION_RESET_HISTOIRE, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
+    donneesSauvegardeRef.current = data
     localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify(data))
   }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds])
+
+  // Détection de nouvelle version déployée : recharge automatiquement la page.
+  // Lit public/version.json toutes les 5 min ; si le numéro a changé, sauvegarde puis reload.
+  // Évite de recharger en plein combat de boss ou en mode arène (frustrant).
+  useEffect(() => {
+    let versionInitiale = null
+    let arrete = false
+
+    async function lireVersion() {
+      try {
+        const rep = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' })
+        if (!rep.ok) return null
+        const j = await rep.json()
+        return j && j.version != null ? String(j.version) : null
+      } catch {
+        return null
+      }
+    }
+
+    async function verifier() {
+      if (arrete) return
+      const v = await lireVersion()
+      if (!v) return
+      if (versionInitiale === null) {
+        versionInitiale = v
+        return
+      }
+      if (v !== versionInitiale) {
+        // Ne pas couper un combat de boss ou une session d'arène.
+        if (combatBossRef.current || modeJeuRef.current === 'arene') return
+        // Sauvegarde de sécurité avant le reload.
+        try {
+          if (donneesSauvegardeRef.current) {
+            localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify(donneesSauvegardeRef.current))
+          }
+        } catch {}
+        arrete = true
+        window.location.reload()
+      }
+    }
+
+    verifier() // lecture initiale (mémorise la version courante)
+    const id = setInterval(verifier, 5 * 60 * 1000)
+    return () => { arrete = true; clearInterval(id) }
+  }, [])
 
   function statsClassement() {
     const nbShiny = captures.filter((p) => p.shiny).length
@@ -1512,6 +1596,12 @@ function App() {
             const gainBoss = Math.round((boss?.niveau || 1) * 30 * multiplicateur(ameliorationsRef.current, 'fortune') * bonusCompletionArgent * bonusPrestigeArgent * bonusArgentObjets * bonusSuccesArgent)
             setPokeDollars((a) => a + gainBoss)
             setBossVaincus((b) => ({ ...b, [routeGagnee]: true }))
+            // Reset du compteur de la zone : le prochain boss (refarm) revient après 250 combats.
+            setVictoiresParRoute((v) => {
+              const maj = { ...v, [routeGagnee]: 0 }
+              victoiresParRouteRef.current = maj
+              return maj
+            })
             setAchatsItems((a) => {
               const reduit = {}
               for (const k in a) reduit[k] = Math.max(0, a[k] - 1)
@@ -1713,6 +1803,34 @@ function App() {
       })
     )
     ajouterAuJournal(`${info.emoji} ${info.nom} utilisé !`, 'victoire')
+  }
+
+  // Utilise un bonbon d'IV (+1 sur l'IV d'une stat, plafond 31) sur un Pokémon.
+  function utiliserBonbonIV(uidPokemon, cleBonbon) {
+    const info = BONBONS_IV[cleBonbon]
+    if (!info) return
+    if ((objetsBoss[cleBonbon] || 0) <= 0) {
+      ajouterAuJournal(`Tu n'as pas de ${info.nom} en stock.`, 'info')
+      return
+    }
+    const poke = capturesRef.current.find((p) => p.uid === uidPokemon)
+    if (!poke) return
+    const stat = info.stat
+    const ivActuel = (poke.iv && Number.isFinite(poke.iv[stat])) ? poke.iv[stat] : 0
+    if (ivActuel >= 31) {
+      ajouterAuJournal(`${poke.nom} : IV ${info.nom.replace('Bonbon ', '')} déjà au max (31).`, 'info')
+      return
+    }
+    setObjetsBoss((stock) => ({ ...stock, [cleBonbon]: (stock[cleBonbon] || 0) - 1 }))
+    const nouvelleCollection = capturesRef.current.map((p) => {
+      if (p.uid !== uidPokemon) return p
+      const ivMaj = { ...(p.iv || {}), [stat]: Math.min(31, ivActuel + 1) }
+      const maj = { ...p, iv: ivMaj }
+      return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
+    })
+    capturesRef.current = nouvelleCollection
+    setCaptures(nouvelleCollection)
+    ajouterAuJournal(`${info.emoji} ${poke.nom} : IV ${stat} → ${Math.min(31, ivActuel + 1)}/31 !`, 'victoire')
   }
 
   function acheterAmelioration(cle) {
@@ -2019,7 +2137,10 @@ function App() {
   const numZone = ROUTES.findIndex((r) => r.id === routeActive) + 1
   const victoiresZone = victoiresParRoute[routeActive] || 0
   const bossOk = bossVaincus[routeActive] === true
-  const seuilBoss = Math.max(10, COMBATS_AVANT_BOSS - niveauAmelioration(ameliorations, 'strategie'))
+  // Seuil dynamique : 1er boss à 25 (moins stratégie), puis refarm tous les 250.
+  const seuilBoss = bossOk
+    ? COMBATS_REFARM_BOSS
+    : Math.max(10, COMBATS_AVANT_BOSS - niveauAmelioration(ameliorations, 'strategie'))
   const combatActuel = Math.min(victoiresZone + 1, seuilBoss)
   const progression = Math.min(100, (victoiresZone / seuilBoss) * 100)
   const pctPokedex = Math.round((pokedexVus.length / 1025) * 100)
@@ -2676,8 +2797,18 @@ function App() {
             <span className="bandeau-zone-nom">{routeParId(routeActive).nom}</span>
             <span className="bandeau-zone-num">
               <span className="bandeau-zone-numtxt">Zone {numZone}-{combatActuel}</span>
-              {bossOk && <span className="bandeau-badge bandeau-badge-ok">Zone complétée</span>}
-              {!bossOk && combatBoss && <span className="bandeau-badge bandeau-badge-boss">BOSS</span>}
+              {combatBoss ? (
+                <span className="bandeau-badge bandeau-badge-boss">BOSS</span>
+              ) : (
+                <span className="boss-jauge" title={bossOk ? `Le boss revient tous les ${seuilBoss} combats` : `Victoires avant le boss : ${Math.min(victoiresZone, seuilBoss)}/${seuilBoss}`}>
+                  <span className="boss-jauge-piste">
+                    <span className="boss-jauge-fill" style={{ width: `${progression}%` }}>
+                      <span className="boss-jauge-brillance"></span>
+                    </span>
+                  </span>
+                  <span className="boss-jauge-txt">{Math.min(victoiresZone, seuilBoss)}/{seuilBoss} <span className="boss-jauge-couronne">👑</span></span>
+                </span>
+              )}
             </span>
           </div>
 
@@ -2858,18 +2989,6 @@ function App() {
             </p>
           </div>
 
-          {!bossOk && (
-            <div className="panneau">
-              <div className="panneau-titre">
-                <img src="/icons/progression.png" alt="" className="panneau-icone" /> Progression
-              </div>
-              <div className="zone-progression-barre">
-                <div className="zone-progression-fill" style={{ width: `${progression}%` }}></div>
-                <span className="zone-progression-texte">{Math.min(victoiresZone, seuilBoss)}/{seuilBoss} → 👑</span>
-              </div>
-            </div>
-          )}
-
           <div className="panneau">
             <div className="panneau-titre">
               <img src="/icons/objets.png" alt="" className="panneau-icone" /> Ressources
@@ -2977,6 +3096,9 @@ function App() {
 
       {!identiteJoueur && (
         <ChoixPseudo onValide={(identite) => setIdentiteJoueur(identite)} />
+      )}
+      {nouveautesOuvert && (
+        <PanneauNouveautes onFermer={fermerNouveautes} />
       )}
       {identiteJoueur && changerPseudoOuvert && (
         <ChoixPseudo
@@ -3120,9 +3242,11 @@ function App() {
           balls={balls}
           pierres={pierres}
           bonbons={bonbons}
+          objetsBoss={objetsBoss}
           collection={captures}
           onEvoluerPierre={evoluerParPierre}
           onUtiliserBonbon={utiliserBonbon}
+          onUtiliserBonbonIV={utiliserBonbonIV}
           onFermer={() => setVueOuverte(null)}
         />
       )}
