@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { xpRequise } from './stats'
 import { XP_BASE_NIVEAU, PIERRES } from './config'
-import { ROLES, determinerRole, passifDe, passifEffectif, passifsDuRole, compterRoles, compositionValide, COMPOSITION_REQUISE, estJoker, roleEffectif, CASES_JOKER } from './roles'
+import { ROLES, determinerRole, passifDe, passifEffectif, passifsDuRole, passifPourMode, compterRoles, compositionValide, COMPOSITION_REQUISE, estJoker, roleEffectif, CASES_JOKER } from './roles'
 import { OBJETS } from './objets'
 import { PARCHEMINS } from './parchemins'
 
@@ -105,9 +105,14 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet,
   const joker = estJoker(pokemon)
   const caseActuelle = roleEffectif(pokemon) // la case occupée (tank/eclaireur/soutien/dps)
 
-  // Choix de passif : les 3 passifs du rôle + celui actuellement effectif.
+  // Choix de passif : les passifs proposés (3 du rôle, ou les 9 pour un Joker).
   const passifsChoix = passifsDuRole(role)
-  const passifActif = passifEffectif(pokemon)
+  // Passif effectif PAR MODE (Principal / Arène / PvP). On lit le champ dédié de chaque mode.
+  const passifParModeActuel = {
+    principal: passifPourMode(pokemon, 'principal'),
+    arene: passifPourMode(pokemon, 'arene'),
+    pvp: passifPourMode(pokemon, 'pvp'),
+  }
 
   const pvMax = pokemon.pvMax ?? 0
   const attaque = pokemon.attaque ?? 0
@@ -208,27 +213,51 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet,
         </div>
       )}
 
-      {/* Choix du passif : 3 cartes cliquables (celui actif est mis en avant) */}
+      {/* Choix du passif PAR MODE : 3 colonnes (Principal / Arène / PvP).
+          Chaque mode garde son propre passif → on peut optimiser différemment selon le contexte. */}
       {passifsChoix.length > 0 && (
-        <div className="fiche-passif-choix">
-          <div className="fiche-objet-titre-v2">✨ Passif {infoRole ? `— ${infoRole.nom}` : ''}</div>
-          <div className="passif-choix-grille">
-            {passifsChoix.map((p) => {
-              const actif = p.cle === passifActif
-              return (
-                <button
-                  key={p.cle}
-                  className={`passif-choix-carte ${actif ? 'actif' : ''}`}
-                  onClick={() => { if (!actif && onChoisirPassif) onChoisirPassif(pokemon.uid, p.cle) }}
-                  title={p.description}
-                  style={infoRole ? { borderColor: actif ? infoRole.couleur : 'transparent' } : undefined}
-                >
-                  <span className="passif-choix-nom">{p.emoji} {p.nom}</span>
-                  <span className="passif-choix-desc">{p.description}</span>
-                  {actif && <span className="passif-choix-actif">✓ Actif</span>}
-                </button>
-              )
-            })}
+        <div className="fiche-passif-choix fiche-passif-modes">
+          <div className="fiche-objet-titre-v2">
+            ✨ Passifs {infoRole ? `— ${infoRole.nom}` : ''}
+            {joker && <span className="passif-joker-note"> (Joker : tous les passifs disponibles)</span>}
+          </div>
+          <p className="passif-modes-aide">Choisis un passif par mode de jeu :</p>
+          <div className="passif-modes-grille">
+            {[
+              { mode: 'principal', label: '🗺️ Principal' },
+              { mode: 'arene', label: '⚔️ Arène' },
+              { mode: 'pvp', label: '🥊 PvP' },
+            ].map(({ mode, label }) => (
+              <div key={mode} className="passif-mode-colonne">
+                <div className="passif-mode-titre">{label}</div>
+                <div className="passif-mode-liste">
+                  {passifsChoix.map((p) => {
+                    const actif = p.cle === passifParModeActuel[mode]
+                    return (
+                      <button
+                        key={p.cle}
+                        className={`passif-mode-carte ${actif ? 'actif' : ''}`}
+                        onClick={() => { if (!actif && onChoisirPassif) onChoisirPassif(pokemon.uid, p.cle, mode) }}
+                        title={p.description}
+                        style={infoRole ? { borderColor: actif ? infoRole.couleur : 'transparent' } : undefined}
+                      >
+                        <span className="passif-mode-nom">{p.emoji} {p.nom}</span>
+                        {actif && <span className="passif-mode-check">✓</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Légende : descriptions des passifs proposés (une fois, sous les colonnes). */}
+          <div className="passif-modes-legende">
+            {passifsChoix.map((p) => (
+              <div key={p.cle} className="passif-legende-ligne">
+                <span className="passif-legende-nom">{p.emoji} {p.nom}</span>
+                <span className="passif-legende-desc">{p.description}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

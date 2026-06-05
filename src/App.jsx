@@ -4,8 +4,8 @@ import { VITESSE_COMBAT, PAUSE_RESPAWN, GAIN_PAR_VICTOIRE, GAIN_BASE_ENNEMI, BON
 import { ticCombat, appliquerUltime } from './moteurCombat'
 import { ULTIMES, ultimeDuRole, COUT_ULTIME } from './ultimes'
 import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise } from './stats'
+import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole, passifPourMode, champPassifDuMode } from './roles'
 import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
-import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole } from './roles'
 import CartePokemon from './CartePokemon'
 import TimerAnneau from './TimerAnneau'
 import Pokedex from './Pokedex'
@@ -198,6 +198,20 @@ function appliquerBonusEquipe(equipe) {
   return equipe.map((p) => {
     if (!p) return p
     return { ...p, pvMax: Math.max(1, Math.round(p.pvMax * facteur)) }
+  })
+}
+
+// ---------- PASSIFS PAR MODE (Option 2 : préparer l'équipe) ----------
+// Avant chaque combat, recopie le passif du MODE choisi (principal/arène/pvp)
+// dans le champ `passifChoisi` que le moteur lit, et recalcule les stats.
+function preparerEquipe(equipe, mode = 'principal') {
+  if (!equipe || equipe.length === 0) return equipe
+  return equipe.map((p) => {
+    if (!p) return p
+    const passifMode = passifPourMode(p, mode)
+    if (p.passifChoisi === passifMode) return p
+    const maj = { ...p, passifChoisi: passifMode }
+    return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
   })
 }
 
@@ -1398,6 +1412,8 @@ function App() {
           pvMax: Math.round(p.pvMax * bonusPuissance),
           attaque: Math.round(p.attaque * bonusPuissance),
         })
+      // Passifs PAR MODE : applique le passif 'principal' avant le combat.
+      equipeJoueur = preparerEquipe(equipeJoueur, 'principal')
       // Bonus d'équipe (Gardien = +PV équipe) appliqué à l'équipe joueur en combat.
       equipeJoueur = appliquerBonusEquipe(equipeJoueur)
       const equipeEnnemie = equipeEnnemieRef.current
@@ -1742,12 +1758,15 @@ function App() {
   // Enregistre le passif choisi par le joueur pour un Pokémon (champ passifChoisi).
   // Le passif effectif est recalculé à la lecture (passifEffectif dans roles.js),
   // donc il suffit de stocker le choix ; statsFinales recalcule l'effet au combat.
-  function choisirPassif(uidPokemon, clePassif) {
+  function choisirPassif(uidPokemon, clePassif, mode = 'principal') {
+    const champ = champPassifDuMode(mode) // 'passifChoisi' | 'passifArene' | 'passifPvp'
     setCaptures((liste) => liste.map((p) => {
       if (p.uid !== uidPokemon) return p
-      const maj = { ...p, passifChoisi: clePassif }
-      // Recalcul des stats : certains passifs modifient les PV max (Colosse, etc.).
-      return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
+      const maj = { ...p, [champ]: clePassif }
+      if (champ === 'passifChoisi') {
+        return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
+      }
+      return maj
     }))
   }
 
@@ -2074,7 +2093,7 @@ function App() {
     async function publierMaDefense() {
       if (!defenseValide) return
       setPvpPublicationEnCours(true)
-      const r = await publierDefense(equipeDefense)
+      const r = await publierDefense(preparerEquipe(equipeDefense, 'pvp'))
       setPvpPublicationEnCours(false)
       if (r.ok) {
         setPvpDefensePubliee(true)
@@ -2094,7 +2113,8 @@ function App() {
         return
       }
       // Cap PvP : mon équipe d'attaque est ramenée à niveau 50 max (la défense l'est déjà).
-      const equipeJoueurCapee = capperEquipePvp(equipeAttaque)
+      const equipeAttaquePreparee = preparerEquipe(equipeAttaque, 'pvp')
+      const equipeJoueurCapee = capperEquipePvp(equipeAttaquePreparee)
       setPvpCombat({ adversaire, equipeJoueur: equipeJoueurCapee, equipeAdverse })
     }
 
@@ -2390,7 +2410,7 @@ function App() {
         <>
           <CombatArene
             dresseur={dresseurActif}
-            equipeJoueur={equipeArene}
+            equipeJoueur={preparerEquipe(equipeArene, 'arene')}
             equipeDresseur={equipeDresseur}
             vitesse={vitesse}
             onTermine={terminerCombatArene}
