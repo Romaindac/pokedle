@@ -11625,3 +11625,103 @@ img[src*="PokeAPI/sprites"] {
   color: #4a3410;
 }
 .arene-v2, .arene-v2 * { text-shadow: none !important; }
+/* ============================================================
+   POP-UP RÈGLES DE CAPTURE v2 — DA du menu Routes
+   À COLLER À LA FIN de src/App.css.
+   ============================================================ */
+
+/* ---------- CONTENEUR ---------- */
+.panneau-pokedex.regles-v2 {
+  background: linear-gradient(180deg, #fff7e0, #f0ddae) !important;
+  border: 4px solid #c8a23a !important;
+  border-radius: 16px;
+  color: #4a3410;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+.regles-v2 .pokedex-entete { border-bottom: 2px dashed #c8a23a; }
+.regles-v2 .pokedex-entete h2 { color: #5a4520 !important; }
+
+/* ---------- AIDE ---------- */
+.regles-v2 .regles-aide {
+  background: rgba(255, 250, 235, 0.7);
+  border: 1px dashed #c8a23a; border-radius: 9px;
+  color: #6b5526 !important; font-size: 0.78rem; line-height: 1.4;
+  padding: 9px 12px; margin-bottom: 12px;
+}
+.regles-v2 .regles-aide strong { color: #7a5a1e !important; }
+.regles-v2 .regles-aide-note { color: #8a7038 !important; font-size: 0.72rem; }
+
+/* ---------- BLOCS DE CATÉGORIE ---------- */
+.regles-v2 .regles-liste { display: flex; flex-direction: column; gap: 10px; }
+.regles-v2 .regle-bloc {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348; border-radius: 12px; padding: 10px 12px;
+}
+.regles-v2 .regle-entete { display: flex; align-items: baseline; gap: 9px; margin-bottom: 8px; }
+.regles-v2 .regle-nom { color: #4a3410 !important; font-weight: bold; font-size: 0.86rem; }
+.regles-v2 .regle-desc { color: #8a7038 !important; font-size: 0.72rem; }
+
+/* ---------- BOUTONS DE CHOIX ---------- */
+.regles-v2 .regle-choix { display: flex; gap: 6px; flex-wrap: wrap; }
+.regles-v2 .regle-btn {
+  position: relative; min-width: 50px;
+  background: linear-gradient(180deg, #fffaee, #f3e3b8);
+  border: 2px solid #b89348; border-radius: 9px;
+  color: #4a3410 !important; font-family: inherit; font-size: 0.74rem;
+  padding: 7px 10px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  transition: transform 0.08s, border-color 0.12s, box-shadow 0.12s;
+}
+.regles-v2 .regle-btn:hover { border-color: #e0b93d; transform: translateY(-1px); }
+.regles-v2 .regle-btn.actif {
+  background: linear-gradient(180deg, #ffe9a8, #f4d36a);
+  border-color: #e0b93d; box-shadow: 0 0 0 2px #e0b93d inset;
+}
+.regles-v2 .regle-btn-rien.actif {
+  background: linear-gradient(180deg, #f6c0c0, #e88a8a);
+  border-color: #c0392b; box-shadow: 0 0 0 2px #c0392b inset; color: #6a1410 !important;
+}
+.regles-v2 .regle-ball-img { width: 24px; height: 24px; object-fit: contain; image-rendering: pixelated; }
+.regles-v2 .regle-btn-label { font-weight: bold; }
+.regles-v2 .regle-stock {
+  position: absolute; top: -6px; right: -6px;
+  background: #7a5a1e; color: #fff3cf !important; font-size: 0.6rem; font-weight: bold;
+  border-radius: 8px; padding: 1px 5px; border: 1px solid #fff7e0;
+}
+
+/* ---------- TEXTE : foncé + pas d'ombre ---------- */
+.regles-v2,
+.regles-v2 h2, .regles-v2 p, .regles-v2 span, .regles-v2 div, .regles-v2 button {
+  color: #4a3410;
+}
+.regles-v2, .regles-v2 * { text-shadow: none !important; }
+.regles-v2 .bouton-fermer { color: #fff !important; }
+.regles-v2 .regle-btn-rien.actif { color: #6a1410 !important; }
+.regles-v2 .regle-stock { color: #fff3cf !important; }
+/* FIX balls coupées dans les règles de capture */
+.regles-v2 .regle-btn {
+  min-width: 56px !important; height: 56px !important;
+  padding: 6px !important; overflow: visible !important;
+  background: linear-gradient(180deg, #fffaee, #f3e3b8) !important;
+}
+.regles-v2 .regle-btn.actif {
+  background: linear-gradient(180deg, #ffe9a8, #f4d36a) !important;
+}
+.regles-v2 .regle-ball-img {
+  width: 40px !important; height: 40px !important;
+  max-width: 40px !important; max-height: 40px !important;
+  border-radius: 0 !important; overflow: visible !important;
+  clip-path: none !important; object-fit: contain !important;
+  image-rendering: pixelated;
+}
+/* FIX : le compteur de stock cachait le sprite de la ball */
+.regles-v2 .regle-btn { padding-top: 10px !important; }
+.regles-v2 .regle-stock {
+  position: absolute !important;
+  top: -7px !important; right: -7px !important;
+  min-width: 14px; height: 14px; line-height: 14px;
+  padding: 0 3px !important; font-size: 0.58rem !important;
+  background: #c0392b !important; color: #fff !important;
+  border-radius: 8px !important; border: 1px solid #fff7e0 !important;
+  z-index: 2; pointer-events: none;
+}

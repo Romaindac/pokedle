@@ -24,7 +24,7 @@ const CHOIX = [
 function ReglesCapture({ regles, balls = {}, icones = {}, onChanger, onFermer }) {
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="panneau-pokedex panneau-regles" onClick={(e) => e.stopPropagation()}>
+      <div className="panneau-pokedex panneau-regles regles-v2" onClick={(e) => e.stopPropagation()}>
         <div className="pokedex-entete">
           <h2>⚙️ Règles de capture</h2>
           <button className="bouton-fermer" onClick={onFermer}>✕</button>
