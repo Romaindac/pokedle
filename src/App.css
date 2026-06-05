@@ -12040,3 +12040,5 @@ img[src*="PokeAPI/sprites"] {
 .arene-auto-equipe {
   margin: 0 0 10px;
 }
+/* ===== Bouton équipe auto dans l'Arène ===== */
+.arene-auto-equipe { margin: 0 0 10px; }

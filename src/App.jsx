@@ -4,8 +4,8 @@ import { VITESSE_COMBAT, PAUSE_RESPAWN, GAIN_PAR_VICTOIRE, GAIN_BASE_ENNEMI, BON
 import { ticCombat, appliquerUltime } from './moteurCombat'
 import { ULTIMES, ultimeDuRole, COUT_ULTIME } from './ultimes'
 import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise } from './stats'
-import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
 import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole, passifPourMode, champPassifDuMode } from './roles'
+import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
 import CartePokemon from './CartePokemon'
 import TimerAnneau from './TimerAnneau'
 import Pokedex from './Pokedex'
@@ -22,7 +22,7 @@ import PanneauPvp from './PanneauPvp'
 import CombatPvp from './CombatPvp'
 import Tutoriel from './Tutoriel'
 import { publierDefense, chargerMaDefense, listerDefenses, appliquerResultatPvp, reconstruireEquipeSnapshot, capperEquipePvp, equipeComplete, NIVEAU_MAX_PVP, rangDepuisPoints, POINTS_DEPART } from './apiPvp'
-import { dresseursDebloques, etatsDresseurs, decrireRecompenseDresseur, DRESSEURS } from './arene'
+import { dresseursDebloques, etatsDresseurs, etatsDresseursAvecReset, creneauActuel, decrireRecompenseDresseur, DRESSEURS } from './arene'
 import { OBJETS, bonusStatsObjet, objetsAchetables, effetsSpeciauxEquipe, bonusXpObjet, tirerObjetDrop } from './objets'
 import MenuRoutes from './MenuRoutes'
 import ChoixStarter from './ChoixStarter'
@@ -42,7 +42,12 @@ import ChoixPseudo from './ChoixPseudo'
 import { chargerIdentite, envoyerScore } from './apiClassement'
 import { chargerTableNoms } from './pokedexNoms'
 
+
 const CLE_SAUVEGARDE = 'pokedex-idle-save-v11'
+// Reset d'histoire forcé (une fois pour tous) : si la save n'a pas ce numéro,
+// on remet la progression d'histoire à zéro au chargement (zones, victoires, boss).
+// Pour reforcer un reset plus tard, incrémenter ce numéro (2, 3, ...).
+const VERSION_RESET_HISTOIRE = 2
 
 // Correspondance type de ball -> icône image (sans toucher à config.js)
 // Icônes = sprites officiels PokeAPI (dérivés de config.js). Look authentique Pokémon.
@@ -87,9 +92,6 @@ function formaterNombre(n) {
 }
 
 // --- Limite « 1 Pokémon spécial par équipe » ---
-// Un Pokémon est "spécial" s'il a été marqué comme tel à la capture (estSpecial)
-// OU si son id PokeAPI est un id de spécial connu (arène/raid) — double sécurité,
-// robuste sur les vieilles saves où estSpecial pourrait manquer.
 function estSpecial(poke) {
   if (!poke) return false
   if (poke.estSpecial === true) return true
@@ -104,18 +106,12 @@ function compterSpeciaux(ids, collection) {
 }
 
 // --- Lecture sûre des stats PokeAPI ---
-// PokeAPI renvoie un tableau data.stats où chaque entrée a { base_stat, stat: { name } }.
-// L'ordre est NORMALEMENT hp/attack/defense/special-attack/special-defense/speed,
-// mais on lit par NOM (pas par index) pour être robuste sur les formes spéciales.
-// Repli à 50 si une stat manque, pour ne jamais produire undefined → NaN plus loin.
 function statBase(data, nom, repli = 50) {
   const stats = (data && data.stats) || []
   const trouve = stats.find((s) => s && s.stat && s.stat.name === nom)
   const val = trouve ? trouve.base_stat : undefined
   return Number.isFinite(val) ? val : repli
 }
-// Construit les 4 stats de base d'un Pokémon depuis une réponse PokeAPI (data),
-// en lisant par nom et en prenant max(def, def-spé) pour la défense (comme avant).
 function statsBaseDepuis(data) {
   return {
     pvBase: statBase(data, 'hp'),
@@ -174,19 +170,14 @@ async function chargerPokemon(nom, avecPrechargement = true) {
     estEvolution: infos.estEvolution,
     familleId: infos.familleId,
   }
-  // Rôle + passif FIXES, déterminés par le type/style du Pokémon (pas ses stats).
   base.role = determinerRole(base)
   base.passif = determinerPassif(base)
   const finales = statsFinales(base, BONUS_STAT_NIVEAU)
   return { ...base, ...finales }
 }
 
-// Applique les bonus de passif qui dépendent de TOUTE l'équipe (ex: Gardien = +20% PV
-// max de l'équipe). Appelé après la construction d'une équipe (joueur ou ennemie).
-// Renvoie une nouvelle équipe avec pvMax ajusté. Robuste : ne touche pas aux PV courants.
 function appliquerBonusEquipe(equipe) {
   if (!equipe || equipe.length === 0) return equipe
-  // Cumul des bonus PV d'équipe (gardien) parmi les membres présents.
   let boostPv = 0
   for (const p of equipe) {
     if (!p) continue
@@ -201,17 +192,11 @@ function appliquerBonusEquipe(equipe) {
   })
 }
 
-// ---------- PASSIFS PAR MODE (Option 2 : préparer l'équipe) ----------
-// Avant chaque combat, on recopie le passif du MODE choisi (principal/arène/pvp)
-// dans le champ `passifChoisi` que le moteur de combat lit. On recalcule aussi les
-// stats (certains passifs changent les PV/défense). Renvoie une NOUVELLE équipe
-// (ne modifie pas la collection). À appeler juste avant de lancer un combat.
 function preparerEquipe(equipe, mode = 'principal') {
   if (!equipe || equipe.length === 0) return equipe
   return equipe.map((p) => {
     if (!p) return p
     const passifMode = passifPourMode(p, mode)
-    // Si le passif du mode est déjà celui en place, on évite un recalcul inutile.
     if (p.passifChoisi === passifMode) return p
     const maj = { ...p, passifChoisi: passifMode }
     return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
@@ -219,9 +204,6 @@ function preparerEquipe(equipe, mode = 'principal') {
 }
 
 async function chargerEquipeEnnemie(route) {
-  // On veut une équipe ennemie qui respecte la compo 1 Tank / 1 Éclaireur / 2 Soutien / 2 DPS.
-  // Le rôle dépend du type (connu après chargement), donc on tire un LARGE vivier de
-  // candidats, on les charge, puis on sélectionne selon les rôles voulus.
   const NB_CANDIDATS = 18
   const tirage = Array.from({ length: NB_CANDIDATS }, () => tirerPokemon(route.pool))
   const candidats = await Promise.all(
@@ -237,19 +219,17 @@ async function chargerEquipeEnnemie(route) {
     })
   )
 
-  // Range les candidats par rôle.
   const parRole = { tank: [], eclaireur: [], soutien: [], dps: [] }
   for (const c of candidats) {
     const role = c.role || determinerRole(c)
     if (parRole[role]) parRole[role].push(c)
   }
-  // Sélectionne selon la compo requise ; si un rôle manque, pioche dans le reste.
   const reste = [...candidats]
   function prendre(role, n) {
     const choisis = []
     for (let k = 0; k < n; k++) {
       let p = parRole[role] && parRole[role].length ? parRole[role].shift() : null
-      if (!p) p = reste.find(Boolean) // fallback : n'importe quel candidat restant
+      if (!p) p = reste.find(Boolean)
       if (p) {
         choisis.push(p)
         const idx = reste.indexOf(p)
@@ -290,7 +270,6 @@ async function chargerEquipeEnnemie(route) {
 }
 
 async function chargerEquipeDresseur(dresseur) {
-  // Liste des Pokémon : l'équipe normale + le spécial en dernier (boss emblématiques).
   const noms = [...dresseur.equipe]
   if (dresseur.special) noms.push(dresseur.special)
   const equipe = await Promise.all(
@@ -304,7 +283,6 @@ async function chargerEquipeDresseur(dresseur) {
     })
   )
   return equipe.map((p, index) => {
-    // Le dernier Pokémon d'un boss avec special = sa "star" : plus haut niveau (+15).
     const estSpecial = dresseur.special && index === equipe.length - 1
     const niveauBase = estSpecial ? dresseur.niveau + 15 : dresseur.niveau
     const niveau = Math.max(1, niveauBase + Math.floor(Math.random() * 5) - 2)
@@ -314,8 +292,6 @@ async function chargerEquipeDresseur(dresseur) {
   })
 }
 
-// Charge les 3 vagues d'un raid. Renvoie un tableau de 3 tableaux de Pokémon prêts au combat.
-// Vague 1 = 6 petits, vague 2 = 2 mini-boss, vague 3 = [gros boss renforcé].
 async function chargerEquipeRaid(raid) {
   const vagues = await Promise.all(
     raid.vagues.map(async (noms, indexVague) => {
@@ -331,7 +307,6 @@ async function chargerEquipeRaid(raid) {
         })
       )
       return equipe.map((p, i) => {
-        // Mini-boss (vague 2) : +8 niveaux. Gros boss (vague 3) : +20 niveaux + renforcé.
         let niveau = raid.niveau
         if (indexVague === 1) niveau = raid.niveau + 8
         if (estVagueBoss) niveau = raid.niveau + 20
@@ -344,7 +319,6 @@ async function chargerEquipeRaid(raid) {
         }
         const finales = statsFinales(avecNiveau, BONUS_STAT_NIVEAU)
         if (estVagueBoss) {
-          // Le gros boss : très tanky (PV ×5) mais attaque modérée (×3) → pas de one-shot.
           return {
             ...avecNiveau, ...finales,
             pvMax: Math.max(1, Math.round(finales.pvMax * FORCE_BOSS_RAID_PV)),
@@ -391,7 +365,7 @@ function App() {
   const [equipeIds, setEquipeIds] = useState([])
   const [pokedexVus, setPokedexVus] = useState([])
   const [pokedexShiny, setPokedexShiny] = useState([])
-  const [pokedexSpeciaux, setPokedexSpeciaux] = useState([]) // ids des spéciaux débloqués (via boss d'arène)
+  const [pokedexSpeciaux, setPokedexSpeciaux] = useState([])
   const [tableNoms, setTableNoms] = useState({})
 
   const [pvJoueur, setPvJoueur] = useState([])
@@ -405,58 +379,39 @@ function App() {
   const [balls, setBalls] = useState({ poke: 0, super: 0, hyper: 0, master: 0 })
   const [pierres, setPierres] = useState({})
   const [bonbons, setBonbons] = useState({})
-  // Inventaire d'objets équipables (stock par id, comme les pierres).
   const [objets, setObjets] = useState({})
-  // Stock de parchemins de rôle (endgame) : { [cleParchemin]: quantité }.
   const [parchemins, setParchemins] = useState({})
-  // Compteur d'achats par item (pour le prix dynamique des pierres/objets).
   const [achatsItems, setAchatsItems] = useState({})
   const [recompensesReclamees, setRecompensesReclamees] = useState([])
-  // Prestige : médailles disponibles + points investis par catégorie de bonus.
   const [medailles, setMedailles] = useState(0)
   const [investisPrestige, setInvestisPrestige] = useState({ xp: 0, argent: 0, shiny: 0 })
   const [journal, setJournal] = useState([])
   const [vueOuverte, setVueOuverte] = useState(null)
-  // Classement en ligne : identité du joueur (pseudo). null si pas encore choisi.
   const [identiteJoueur, setIdentiteJoueur] = useState(() => chargerIdentite())
-  // Mode de jeu : 'principal' (exploration/captures) ou 'arene' (combats de dresseurs).
   const [modeJeu, setModeJeu] = useState('principal')
-  // --- Tutoriel ---
-  const [tutoVu, setTutoVu] = useState(false)          // true une fois la bienvenue passée (sauvegardé)
-  const [tutoMode, setTutoMode] = useState(null)       // null | 'bienvenue' | 'visite' | 'guide'
-  // --- PvP ---
-  const [equipeDefenseIds, setEquipeDefenseIds] = useState([])   // équipe de défense (uid)
-  const [equipeAttaqueIds, setEquipeAttaqueIds] = useState([])   // équipe d'attaque (uid)
-  const [pvpPoints, setPvpPoints] = useState(POINTS_DEPART)       // mes points PvP
-  const [pvpRang, setPvpRang] = useState('Bronze')               // mon rang PvP
+  const [tutoVu, setTutoVu] = useState(false)
+  const [tutoMode, setTutoMode] = useState(null)
+  const [equipeDefenseIds, setEquipeDefenseIds] = useState([])
+  const [equipeAttaqueIds, setEquipeAttaqueIds] = useState([])
+  const [pvpPoints, setPvpPoints] = useState(POINTS_DEPART)
+  const [pvpRang, setPvpRang] = useState('Bronze')
   const [pvpDefensePubliee, setPvpDefensePubliee] = useState(false)
-  const [pvpAdversaires, setPvpAdversaires] = useState([])       // défenses des autres
+  const [pvpAdversaires, setPvpAdversaires] = useState([])
   const [pvpChargementListe, setPvpChargementListe] = useState(false)
   const [pvpPublicationEnCours, setPvpPublicationEnCours] = useState(false)
-  const [pvpMessage, setPvpMessage] = useState('')               // message d'info (ELO gagné/perdu…)
-  const [pvpCombat, setPvpCombat] = useState(null)               // { adversaire, equipeJoueur, equipeAdverse } pendant un combat
-  // Équipe dédiée à l'arène (uid des Pokémon), séparée de l'équipe principale.
+  const [pvpMessage, setPvpMessage] = useState('')
+  const [pvpCombat, setPvpCombat] = useState(null)
   const [equipeAreneIds, setEquipeAreneIds] = useState([])
-  // Dresseurs déjà vaincus en arène (ids) — une seule victoire par dresseur, pas de farm.
-  const [dresseursVaincus, setDresseursVaincus] = useState([])
-  // Dresseur actuellement sélectionné / affronté en arène.
+  const [dresseursVaincus, setDresseursVaincus] = useState({})
   const [dresseurActif, setDresseurActif] = useState(null)
-  // Équipe du dresseur chargée (Pokémon prêts au combat) + état de chargement.
   const [equipeDresseur, setEquipeDresseur] = useState(null)
   const [chargementArene, setChargementArene] = useState(false)
-  // ===== RAIDS (endgame) =====
-  // Équipe dédiée aux raids (uid), séparée des autres modes.
   const [equipeRaidIds, setEquipeRaidIds] = useState([])
-  // Cooldowns par raid : { [raidId]: timestamp de prochaine dispo }.
   const [raidsCooldowns, setRaidsCooldowns] = useState({})
-  // Raid actuellement sélectionné / en cours + ses 3 vagues chargées.
   const [raidActif, setRaidActif] = useState(null)
-  const [vaguesRaid, setVaguesRaid] = useState(null)  // [[pkm...], [pkm...], [pkm boss]]
+  const [vaguesRaid, setVaguesRaid] = useState(null)
   const [chargementRaid, setChargementRaid] = useState(false)
   const [partieChargee, setPartieChargee] = useState(false)
-  // Règles de capture : pour chaque catégorie, quelle ball utiliser.
-  // Valeurs possibles : 'auto' | 'poke' | 'super' | 'hyper' | 'master' | 'rien'
-  // Priorité d'application : shiny > legendaire > nouveau > doublon.
   const [reglesCapture, setReglesCapture] = useState({
     shiny: 'auto',
     legendaire: 'auto',
@@ -469,32 +424,21 @@ function App() {
   const [succesDebloques, setSuccesDebloques] = useState([])
   const [ameliorations, setAmeliorations] = useState({})
   const [combatBoss, setCombatBoss] = useState(false)
-  const [tempsBossZone, setTempsBossZone] = useState(45) // timer du boss de zone (sec)
+  const [tempsBossZone, setTempsBossZone] = useState(45)
   const [vitesse, setVitesse] = useState(1)
   const [choixStarterRequis, setChoixStarterRequis] = useState(false)
   const [captureRecente, setCaptureRecente] = useState(null)
-  // Chiffres flottants de combat (dégâts/crit) : { id, montant, type, camp, index }.
-  // camp = 'joueur' ou 'ennemi' (le camp de la cible touchée), index = position dans l'équipe.
   const [chiffresFlottants, setChiffresFlottants] = useState([])
-  // --- ULTIMES (système temporel) ---
-  // Chaque Pokémon lance son ultime UNE FOIS par combat, ~7 secondes réelles après
-  // le début du combat. Plus de jauge ni de clic : c'est automatique et minuté.
   const DELAI_ULTIME_MS = 7000
-  // Timestamp (Date.now) du début du combat courant. Réinitialisé à chaque combat.
   const debutCombatRef = useRef(0)
-  // Drapeaux "ultime déjà lancé ce combat" par index, pour chaque camp.
   const ultimeLanceRef = useRef([false, false, false, false, false, false])
   const ultimeLanceEnnemiRef = useRef([false, false, false, false, false, false, false])
-  // États d'affichage : true quand l'ultime du Pokémon a été lancé (pour un visuel sur la carte).
   const [ultimeLanceJoueur, setUltimeLanceJoueur] = useState([false, false, false, false, false, false])
   const [ultimeLanceEnnemiAff, setUltimeLanceEnnemiAff] = useState([false, false, false, false, false, false, false])
-  // Tics de bouclier (Rempart) encore actifs. Lu par la boucle, décrémenté à chaque tic.
   const bouclierTicsRef = useRef(0)
-  // Côté ENNEMI : tics de bouclier ennemi.
   const bouclierTicsEnnemiRef = useRef(0)
 
   const equipeJoueur = equipeIds.map((uid) => captures.find((p) => p.uid === uid)).filter(Boolean)
-  // Validité de la composition d'équipe (1 Tank / 1 Éclaireur / 2 Soutien / 2 DPS).
   const compoValide = compositionValide(equipeJoueur)
   const compoDiagnostic = diagnostiqueComposition(equipeJoueur)
   const compositionValideRef = useRef(true)
@@ -521,9 +465,6 @@ function App() {
   useEffect(() => { capturesRef.current = captures }, [captures])
   useEffect(() => { equipeIdsRef.current = equipeIds }, [equipeIds])
 
-  // Quand l'équipe change (ajout/retrait de Pokémon), on resynchronise l'état de
-  // combat du joueur : PV au max de la nouvelle équipe, jauges à zéro.
-  // Évite les décalages "HP 500/100" et les plantages quand on change d'équipe en plein combat.
   useEffect(() => {
     if (!partieChargee) return
     const eq = equipeIds
@@ -540,7 +481,6 @@ function App() {
   useEffect(() => { routeActiveRef.current = routeActive }, [routeActive])
   useEffect(() => { combatBossRef.current = combatBoss }, [combatBoss])
 
-  // Timer du boss de zone : 45s pour le vaincre, sinon il s'enfuit (refarm des 25 victoires).
   useEffect(() => {
     if (!combatBoss) { setTempsBossZone(45); return }
     const TEMPS = 45
@@ -550,12 +490,9 @@ function App() {
       const reste = Math.max(0, TEMPS - (Date.now() - debut) / 1000)
       setTempsBossZone(reste)
       if (reste <= 0) {
-        // Temps écoulé : le boss s'enfuit, on remet le compteur de victoires à zéro
-        // ET on relance un combat normal (sinon le boss reste affiché à l'écran).
         clearInterval(tic)
         const routePerdue = routeActiveRef.current
         ajouterAuJournal(`⏱️ Trop lent ! Le boss s'est enfui. Il faut refaire les ${COMBATS_AVANT_BOSS} victoires.`, 'echec')
-        // Mise à jour state + ref immédiate (lancerCombatSuivant lit la ref).
         setVictoiresParRoute((v) => {
           const maj = { ...v, [routePerdue]: 0 }
           victoiresParRouteRef.current = maj
@@ -563,7 +500,6 @@ function App() {
         })
         setCombatBoss(false)
         combatBossRef.current = false
-        // Relance un combat normal : fait disparaître le boss et charge des ennemis.
         transitionEnCours.current = true
         if (lancerCombatSuivantRef.current) {
           lancerCombatSuivantRef.current()
@@ -573,13 +509,11 @@ function App() {
     return () => clearInterval(tic)
   }, [combatBoss])
   useEffect(() => { modeJeuRef.current = modeJeu }, [modeJeu])
-  // Affiche la bienvenue une seule fois, quand la partie est chargée et le tuto jamais vu.
   useEffect(() => {
     if (partieChargee && !tutoVu && tutoMode === null) {
       setTutoMode('bienvenue')
     }
   }, [partieChargee, tutoVu])
-  // Quand on entre dans le PvP : charger mes infos + la liste des adversaires.
   useEffect(() => {
     if (modeJeu !== 'pvp') return
     let annule = false
@@ -602,7 +536,6 @@ function App() {
     return () => { annule = true }
   }, [modeJeu])
 
-  // Recalcule les effets spéciaux des objets équipés sur l'équipe active (shiny, argent).
   useEffect(() => {
     const equipe = equipeIds.map((uid) => captures.find((p) => p.uid === uid)).filter(Boolean)
     const eff = effetsSpeciauxEquipe(equipe)
@@ -616,7 +549,6 @@ function App() {
     bonusShinyGlobal = multiplicateur(ameliorations, 'chroma')
   }, [ameliorations])
 
-  // Recalcule les bonus permanents de complétion à partir des récompenses réclamées.
   useEffect(() => {
     let bonusXP = 0
     let bonusArgent = 0
@@ -633,7 +565,6 @@ function App() {
     bonusCompletionArgent = 1 + bonusArgent
   }, [recompensesReclamees])
 
-  // Recalcule les bonus permanents gagnés via les succès débloqués (type 'bonus').
   useEffect(() => {
     let bxp = 0
     let barg = 0
@@ -650,13 +581,11 @@ function App() {
     bonusSuccesArgent = 1 + barg
   }, [succesDebloques])
 
-  // Recalcule les multiplicateurs permanents du prestige quand les points investis changent.
   useEffect(() => {
     const m = multiplicateursPrestige(investisPrestige)
     bonusPrestigeXP = m.xp
     bonusPrestigeArgent = m.argent
     bonusPrestigeShiny = m.shiny
-    // Le bonus shiny du prestige se combine avec celui des améliorations (chroma).
     bonusShinyGlobal = multiplicateur(ameliorationsRef.current, 'chroma') * m.shiny
   }, [investisPrestige])
 
@@ -673,7 +602,7 @@ function App() {
       totalDex: 1025,
       nbVaincus: vaincus,
       nbBoss: Object.values(bossVaincus).filter(Boolean).length,
-      nbDresseurs: dresseursVaincus.length,
+      nbDresseurs: Object.keys(dresseursVaincus).length,
       nbZones: ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length,
       nbSpeciaux: pokedexSpeciaux.length,
     }
@@ -693,7 +622,6 @@ function App() {
           setPierres((p) => ({ ...p, [r.pierre]: (p[r.pierre] || 0) + r.quantite }))
           ajouterAuJournal(`🏆 ${s.nom} ! (+${r.quantite} ${PIERRES[r.pierre].emoji})`, 'victoire')
         } else if (r.type === 'bonus') {
-          // Bonus permanent (XP ou argent) : appliqué via le useEffect dédié ci-dessous.
           const nom = r.stat === 'xp' ? 'XP' : 'argent'
           ajouterAuJournal(`🏆 ${s.nom} ! (+${Math.round(r.valeur * 100)}% ${nom} permanent !)`, 'victoire')
         }
@@ -710,50 +638,41 @@ function App() {
     })
   }
 
-  // Journal anti-spam pour les fuites : regroupe les "X s'enfuit faute de Ball"
-  // en une seule ligne avec compteur, tant qu'elles s'enchaînent.
   function journalFuite() {
     setJournal((lignes) => {
       const derniere = lignes[lignes.length - 1]
       if (derniere && derniere.type === 'fuite') {
-        // On incrémente le compteur de la dernière ligne de fuite.
         const compte = (derniere.compte || 1) + 1
         const maj = { ...derniere, compte, texte: `💨 ${compte} Pokémon enfuis faute de Ball` }
         return [...lignes.slice(0, -1), maj]
       }
-      // Première fuite d'une série : nouvelle ligne.
       compteurJournal += 1
       const nouvelle = { texte: `💨 1 Pokémon enfui faute de Ball`, type: 'fuite', compte: 1, id: `j-${compteurJournal}` }
       return [...lignes, nouvelle].slice(-6)
     })
   }
 
-  // Affiche l'encart de capture (sprite qui pop) puis le retire tout seul.
   const captureTimer = useRef(null)
   function montrerCapture(ennemi) {
     setCaptureRecente({
       nom: ennemi.nom,
       sprite: ennemi.sprite,
       shiny: ennemi.shiny ?? false,
-      cle: Date.now(), // force le redéclenchement de l'animation
+      cle: Date.now(),
     })
     if (captureTimer.current) clearTimeout(captureTimer.current)
     captureTimer.current = setTimeout(() => setCaptureRecente(null), 2200)
   }
 
-  // Ajoute des chiffres flottants depuis les coups d'un tic de combat.
-  // Chaque chiffre s'auto-supprime après 0.9s (durée de l'animation CSS).
   const compteurChiffre = useRef(0)
   function ajouterChiffres(coups) {
     if (!coups || coups.length === 0) return
     const nouveaux = coups.map((c) => {
       compteurChiffre.current += 1
-      // petit décalage horizontal aléatoire pour que les chiffres ne se superposent pas
       const dx = Math.round((Math.random() - 0.5) * 30)
       return { id: `c-${compteurChiffre.current}`, montant: c.montant, type: c.type, camp: c.camp, index: c.cible, dx }
     })
     setChiffresFlottants((liste) => [...liste, ...nouveaux])
-    // Nettoyage : on retire ces chiffres après l'animation.
     const ids = new Set(nouveaux.map((n) => n.id))
     setTimeout(() => {
       setChiffresFlottants((liste) => liste.filter((c) => !ids.has(c.id)))
@@ -768,21 +687,13 @@ function App() {
     setPokedexShiny((vus) => (vus.includes(id) ? vus : [...vus, id]))
   }
 
-  // Répare en ARRIÈRE-PLAN les évolutions des Pokémon déjà présents dans la save :
-  // - recharge la formeEvoluee manquante (Pokémon qui ont evolueEn mais formeEvoluee null
-  //   → réparait Reptincel bloqué qui ne pouvait pas devenir Dracaufeu) ;
-  // - recharge evolutionsPierre avec la nouvelle logique (évolutions exotiques type Noctali/
-  //   Mentali désormais possibles par pierre).
-  // Marqueur evoV2 : on ne répare chaque Pokémon qu'UNE seule fois (jamais en boucle).
   async function reparerEvolutionsSave() {
     const liste = capturesRef.current || []
-    // Cibles : ceux pas encore migrés en V2.
     const aReparer = liste.filter((p) => !p.evoV2)
     if (aReparer.length === 0) return
     for (const pkm of aReparer) {
       try {
         const infos = await chargerInfosEspece(pkm.id)
-        // Recharger la formeEvoluee si une évolution par niveau existe et qu'elle manque.
         let formeEvoluee = pkm.formeEvoluee
         if (infos.evolueEn && infos.evolueNiveau && !formeEvoluee) {
           const repEvo = await fetch(`https://pokeapi.co/api/v2/pokemon/${corrigerNom(infos.evolueEn)}`)
@@ -800,8 +711,6 @@ function App() {
             evolueNiveau: infosEvo.evolueNiveau,
           }
         }
-        // Mise à jour du Pokémon : evolueEn/Niveau, evolutionsPierre (nouvelle logique),
-        // formeEvoluee rechargée, et marqueur evoV2.
         const maj = {
           evolueEn: infos.evolueEn ?? pkm.evolueEn ?? null,
           evolueNiveau: infos.evolueNiveau ?? pkm.evolueNiveau ?? null,
@@ -812,10 +721,8 @@ function App() {
         capturesRef.current = capturesRef.current.map((p) => (p.uid === pkm.uid ? { ...p, ...maj } : p))
         setCaptures(capturesRef.current)
       } catch (err) {
-        // On marque quand même pour ne pas réessayer en boucle sur une espèce qui échoue.
         capturesRef.current = capturesRef.current.map((p) => (p.uid === pkm.uid ? { ...p, evoV2: true } : p))
       }
-      // Petite pause pour ne pas marteler l'API (réparation douce en fond).
       await new Promise((r) => setTimeout(r, 120))
     }
   }
@@ -846,8 +753,6 @@ function App() {
       estEvolution: true,
       familleId: poke.familleId ?? null,
     }
-    // Rôle + passif recalculés/conservés sur la forme évoluée (évite un rôle "undefined"
-    // après évolution, qui pourrait fausser la composition d'équipe).
     base.role = poke.roleForce || poke.role || determinerRole(base)
     base.roleForce = poke.roleForce
     base.passifChoisi = poke.passifChoisi
@@ -875,7 +780,6 @@ function App() {
       }
       setCaptures((liste) => liste.map((p) => (p.uid === uid ? { ...p, formeEvoluee } : p)))
     } catch (err) {
-      // tant pis
     }
   }
 
@@ -885,8 +789,6 @@ function App() {
       const repEvo = await fetch(`https://pokeapi.co/api/v2/pokemon/${corrigerNom(evolueEn)}`)
       const dataEvo = await repEvo.json()
 
-      // Anti-doublon : on refuse si l'espèce cible existe déjà avec le même statut shiny.
-      // (un shiny et un normal de la même espèce restent autorisés séparément)
       const pokeAvant = capturesRef.current.find((p) => p.uid === uid)
       const shinyVise = pokeAvant?.shiny ?? false
       const dejaPossede = capturesRef.current.some(
@@ -924,7 +826,6 @@ function App() {
             estEvolution: true,
             familleId: poke.familleId ?? infosEvo.familleId ?? null,
           }
-          // Conserve rôle/passif/objet du Pokémon d'origine (évite rôle undefined).
           base.role = poke.roleForce || poke.role || determinerRole(base)
           base.roleForce = poke.roleForce
           base.passifChoisi = poke.passifChoisi
@@ -944,13 +845,9 @@ function App() {
 
   function distribuerXP(xpTotale) {
     const messages = []
-    // On utilise la ref (toujours à jour) et pas equipeIds figé dans la closure de la boucle.
     const idsEquipe = equipeIdsRef.current
     const collectionActuelle = capturesRef.current
 
-    // --- XP de rattrapage (option A, plafond ×2, XP redistribuée) ---
-    // Les Pokémon sous-levelés (en retard vs la moyenne de l'équipe) reçoivent
-    // une part plus grosse, plafonnée à ×2. L'XP totale reste la même (redistribuée).
     const membres = idsEquipe
       .map((uid) => collectionActuelle.find((p) => p.uid === uid))
       .filter(Boolean)
@@ -961,11 +858,10 @@ function App() {
     function poidsRattrapage(niv) {
       if (niv >= niveauMoyen) return 1
       const ratio = niveauMoyen / Math.max(1, niv)
-      return Math.min(2, ratio) // plafond ×2
+      return Math.min(2, ratio)
     }
 
     const totalPoids = membres.reduce((s, p) => s + poidsRattrapage(p.niveau || 1), 0) || 1
-    // Part d'XP par uid (pondérée)
     const partParUid = {}
     membres.forEach((p) => {
       partParUid[p.uid] = Math.round(xpTotale * poidsRattrapage(p.niveau || 1) / totalPoids)
@@ -975,7 +871,6 @@ function App() {
       collection.map((poke) => {
         if (!idsEquipe.includes(poke.uid)) return poke
         const partBase = partParUid[poke.uid] ?? Math.round(xpTotale / 6)
-        // Bonus d'XP individuel de l'objet équipé (ex: Loupe Savante +25%).
         const part = Math.round(partBase * bonusXpObjet(poke))
         const { pokemon, niveauxGagnes } = ajouterXP(poke, part, XP_BASE_NIVEAU, BONUS_STAT_NIVEAU)
         let pkm = {
@@ -1000,9 +895,6 @@ function App() {
             const nouvelId = pkm.id
             const estShiny = pkm.shiny
             setTimeout(() => { marquerVu(nouvelId); if (estShiny) marquerShiny(nouvelId) }, 0)
-            // La nouvelle forme (ex: Reptincel) connaît son evolueEn (Dracaufeu) mais
-            // pas encore sa formeEvoluee (mise à null après évolution). On la recharge
-            // pour permettre la 2e évolution (sinon elle s'arrête au 2e palier).
             if (pkm.evolueEn) {
               const uidEvo = pkm.uid
               const prochaineEvo = pkm.evolueEn
@@ -1016,7 +908,6 @@ function App() {
     messages.forEach((m) => ajouterAuJournal(m, 'victoire'))
   }
 
-  // Choisit la meilleure ball dispo en mode "auto" selon la rareté (de l'idéale vers la plus basse).
   function ballAuto(rarete) {
     const stocks = ballsRef.current
     const ideale = BALL_AUTO_PAR_RARETE[rarete] || 'poke'
@@ -1028,7 +919,6 @@ function App() {
     return null
   }
 
-  // Détermine la catégorie du Pokémon selon la priorité shiny > legendaire > nouveau > doublon.
   function categorieEnnemi(ennemi) {
     if (ennemi.shiny === true) return 'shiny'
     if ((ennemi.rarete || 'commun') === 'legendaire') return 'legendaire'
@@ -1036,20 +926,16 @@ function App() {
     return aDejaEspece ? 'doublon' : 'nouveau'
   }
 
-  // Choisit la ball à utiliser selon la règle de la catégorie (avec fallback auto si épuisée).
   function choisirBall(ennemi) {
     const regles = reglesCaptureRef.current
     const categorie = categorieEnnemi(ennemi)
     const regle = regles[categorie] || 'auto'
     if (regle === 'rien') return 'rien'
-
     const rarete = ennemi.rarete || 'commun'
     if (regle === 'auto') return ballAuto(rarete)
-
-    // Une ball précise est demandée : on l'utilise si dispo, sinon fallback auto.
     const stocks = ballsRef.current
     if (stocks[regle] > 0) return regle
-    return ballAuto(rarete) // fallback : prend ce qu'il y a (ne jamais rater un shiny)
+    return ballAuto(rarete)
   }
 
   function tenterCapture(indexEnnemi) {
@@ -1060,12 +946,10 @@ function App() {
 
     const estShiny = ennemi.shiny === true
     const aDejaShiny = pokedexShinyRef.current.includes(ennemi.id)
-
-    // Un shiny déjà possédé en shiny : inutile de le recapturer.
     if (estShiny && aDejaShiny) return
 
     const ball = choisirBall(ennemi)
-    if (ball === 'rien') return // règle de la catégorie = ne pas capturer
+    if (ball === 'rien') return
     if (!ball) {
       journalFuite()
       return
@@ -1077,7 +961,7 @@ function App() {
 
     const tauxBase = TAUX_CAPTURE_RARETE[rarete] ?? 0.5
     const multi = BALLS[ball].multi
-    const bonusCapture = multiplicateur(ameliorationsRef.current, 'dressage') // +3%/niveau
+    const bonusCapture = multiplicateur(ameliorationsRef.current, 'dressage')
     const reussite = estShiny ? true : (multi === Infinity ? true : Math.random() < tauxBase * multi * bonusCapture)
 
     if (!reussite) {
@@ -1085,12 +969,9 @@ function App() {
       return
     }
 
-    // On détermine le cas AVANT de modifier l'état (effets de bord hors du setState,
-    // sinon React peut les exécuter 2 fois → message en double).
     const existantActuel = capturesRef.current.find((p) => p.id === ennemi.id)
 
     if (!existantActuel) {
-      // --- Nouvelle espèce capturée ---
       const messageShiny = ennemi.shiny ? ' ✨ SHINY !' : ''
       ajouterAuJournal(`${ennemi.nom} capturé ! 🎉${messageShiny} ${BALLS[ball].emoji} (IV: ${ennemi.iv.pv}/${ennemi.iv.attaque}/${ennemi.iv.vitesse})`, 'capture')
       marquerVu(ennemi.id)
@@ -1122,7 +1003,6 @@ function App() {
         setTimeout(() => completerEvolution(nouvelUidCapture, ennemi.evolueEn), 0)
       }
     } else if (ennemi.shiny && !existantActuel.shiny) {
-      // --- On possède déjà l'espèce, mais on capture sa version shiny ---
       ajouterAuJournal(`${ennemi.nom} ✨ SHINY capturé ! Skin doré débloqué ! 🎉`, 'capture')
       marquerVu(ennemi.id)
       marquerShiny(ennemi.id)
@@ -1141,11 +1021,6 @@ function App() {
       capturesRef.current = majListe
       setCaptures(majListe)
     } else {
-      // --- Doublon : on améliore les IV de TOUTE LA FAMILLE si meilleurs ---
-      // On ne capture que des Pokémon de base, mais leurs évolutions (Reptincel, Dracaufeu…)
-      // appartiennent à la même famille (familleId). Un doublon de Salamèche doit donc
-      // aussi améliorer les IV de Reptincel/Dracaufeu. On cible par familleId (fallback id),
-      // et seulement les exemplaires du même statut shiny (normal/shiny restent séparés).
       const familleCible = ennemi.familleId ?? null
       const memeFamille = (p) =>
         (familleCible != null ? p.familleId === familleCible : p.id === ennemi.id) &&
@@ -1169,26 +1044,15 @@ function App() {
   }
 
   async function lancerCombatSuivant() {
-    // ============================================================================
-    // FIX BUG « combat figé sur boss » : cette fonction est désormais INCREVABLE.
-    // Le drapeau transitionEnCours.current est rebaissé dans le finally QUOI QU'IL
-    // ARRIVE. Avant, si un chargement (boss/ennemis via PokeAPI) échouait, le drapeau
-    // restait coincé à true → la boucle de combat faisait toujours demi-tour sur
-    // `if (transitionEnCours.current) return` → aucune jauge ne bougeait (combat gelé),
-    // et ça persistait après actualisation. Le try/catch/finally règle ça pour de bon.
-    // ============================================================================
     try {
       const route = routeParId(routeActiveRef.current)
       const victoiresZone = (victoiresParRouteRef.current[route.id] || 0)
-      // Stratégie : -1 victoire requise par niveau, jamais sous 10.
       const reduc = niveauAmelioration(ameliorationsRef.current, 'strategie')
       const combatsAvantBoss = Math.max(10, COMBATS_AVANT_BOSS - reduc)
       const cestLeBoss = victoiresZone >= combatsAvantBoss && !bossVaincusRef.current[route.id]
 
       let nouveaux
       if (cestLeBoss) {
-        // Le chargement du boss peut échouer (API PokeAPI). Si ça arrive, on NE reste
-        // PAS bloqué : on retombe proprement sur un combat normal.
         let boss = null
         try {
           boss = await chargerBoss(route)
@@ -1212,9 +1076,6 @@ function App() {
         combatBossRef.current = false
       }
 
-      // Sécurité : si pour une raison quelconque l'équipe ennemie est vide, on évite
-      // de figer le combat (sinon la boucle return sur length === 0). On retente un
-      // combat normal une fois.
       if (!nouveaux || nouveaux.length === 0) {
         console.warn('Équipe ennemie vide, nouvelle tentative de combat normal.')
         nouveaux = await chargerEquipeEnnemie(route)
@@ -1224,7 +1085,6 @@ function App() {
 
       setEquipeEnnemie(nouveaux)
       equipeEnnemieRef.current = nouveaux
-      // Reset des ultimes pour le nouveau combat : timer relancé, drapeaux remis à zéro.
       debutCombatRef.current = Date.now()
       ultimeLanceRef.current = [false, false, false, false, false, false]
       ultimeLanceEnnemiRef.current = [false, false, false, false, false, false, false]
@@ -1241,15 +1101,11 @@ function App() {
       etat.current = { pvJ, jJ, pvE, jE }
       setPvEnnemis(pvE); setJaugeEnnemis(jE)
     } catch (err) {
-      // Filet de sécurité ultime : on log, mais on ne laisse JAMAIS le combat figé.
       console.error('Erreur dans lancerCombatSuivant :', err)
     } finally {
-      // CLÉ DU FIX : le drapeau de transition redescend TOUJOURS, même en cas d'erreur.
       transitionEnCours.current = false
     }
   }
-  // On garde une référence vers la fonction pour pouvoir l'appeler depuis
-  // d'autres effets (ex: expiration du timer de boss) sans souci d'ordre de définition.
   lancerCombatSuivantRef.current = lancerCombatSuivant
 
   useEffect(() => {
@@ -1258,14 +1114,11 @@ function App() {
         const sauvegarde = localStorage.getItem(CLE_SAUVEGARDE)
         if (sauvegarde) {
           const data = JSON.parse(sauvegarde)
-          // ÉTAPE 1 : on recalcule le rôle + passif de chaque Pokémon de la save,
-          // pour appliquer la nouvelle logique de rôles (par numéro de Pokédex).
           const capturesRecalc = (data.captures || []).map((p) =>
             p ? { ...p, role: determinerRole(p), passif: determinerPassif(p) } : p
           )
           data.captures = capturesRecalc
           setCaptures(capturesRecalc)
-          // ÉTAPE 2 : on trie l'équipe chargée dans l'ordre Tank→Éclaireur→DPS→Soutien.
           setEquipeIds(trierIdsParRole(data.equipeIds || [], capturesRecalc))
           setPokedexVus(data.pokedexVus || [])
           if (data.pokedexSpeciaux) setPokedexSpeciaux(data.pokedexSpeciaux)
@@ -1287,19 +1140,26 @@ function App() {
           if (data.equipeDefenseIds) setEquipeDefenseIds(data.equipeDefenseIds)
           if (data.equipeAttaqueIds) setEquipeAttaqueIds(data.equipeAttaqueIds)
           if (data.tutoVu) setTutoVu(true)
-          if (data.dresseursVaincus) setDresseursVaincus(data.dresseursVaincus)
-          setVictoiresParRoute(data.victoiresParRoute || {})
-          setBossVaincus(data.bossVaincus || {})
+          if (data.dresseursVaincus && !Array.isArray(data.dresseursVaincus)) {
+            setDresseursVaincus(data.dresseursVaincus)
+          }
+          const histoireDejaReset = data.resetHistoire === VERSION_RESET_HISTOIRE
+          setVictoiresParRoute(histoireDejaReset ? (data.victoiresParRoute || {}) : {})
+          setBossVaincus(histoireDejaReset ? (data.bossVaincus || {}) : {})
           setSuccesDebloques(data.succesDebloques || [])
           setAmeliorations(data.ameliorations || {})
           ameliorationsRef.current = data.ameliorations || {}
           bonusShinyGlobal = multiplicateur(data.ameliorations || {}, 'chroma')
           if (data.vitesse) setVitesse(data.vitesse)
           if (data.reglesCapture) { setReglesCapture(data.reglesCapture); reglesCaptureRef.current = data.reglesCapture }
-          if (data.routeActive) { setRouteActive(data.routeActive); routeActiveRef.current = data.routeActive }
+          if (histoireDejaReset && data.routeActive) {
+            setRouteActive(data.routeActive); routeActiveRef.current = data.routeActive
+          } else {
+            setRouteActive('tutoriel'); routeActiveRef.current = 'tutoriel'
+          }
           capturesRef.current = data.captures || []
-          victoiresParRouteRef.current = data.victoiresParRoute || {}
-          bossVaincusRef.current = data.bossVaincus || {}
+          victoiresParRouteRef.current = histoireDejaReset ? (data.victoiresParRoute || {}) : {}
+          bossVaincusRef.current = histoireDejaReset ? (data.bossVaincus || {}) : {}
           ajouterAuJournal('Partie chargée. 💾', 'info')
 
           const eq = (data.equipeIds || []).map((uid) => (data.captures || []).find((p) => p.uid === uid)).filter(Boolean)
@@ -1317,8 +1177,6 @@ function App() {
           etat.current = { pvJ, jJ, pvE, jE }
           setChargement(false)
           setPartieChargee(true)
-          // Réparation des évolutions en arrière-plan (formeEvoluee manquante + evolutionsPierre
-          // exotiques). Lancée après un court délai pour ne pas ralentir le démarrage.
           setTimeout(() => { reparerEvolutionsSave() }, 2500)
         } else {
           setChoixStarterRequis(true)
@@ -1334,12 +1192,10 @@ function App() {
 
   useEffect(() => {
     if (!partieChargee || captures.length === 0) return
-    const data = { captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
+    const data = { resetHistoire: VERSION_RESET_HISTOIRE, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
     localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify(data))
   }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds])
 
-  // --- Envoi du score au classement en ligne ---
-  // Calcule les stats du joueur pour le classement.
   function statsClassement() {
     const nbShiny = captures.filter((p) => p.shiny).length
     const nbZones = ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length
@@ -1347,21 +1203,17 @@ function App() {
       pokemonCaptures: pokedexVus.length,
       nbShiny,
       zones: nbZones,
-      scorePvp: 0,            // PvP pas encore implémenté
+      scorePvp: 0,
       rangPvp: 'Non classé',
     }
   }
 
-  // Ref toujours à jour des stats du classement. C'est ELLE que lit l'intervalle,
-  // pas la closure figée — sinon on renvoyait en boucle les vieilles stats du début.
   const statsClassementRef = useRef(statsClassement())
   useEffect(() => {
     statsClassementRef.current = statsClassement()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [captures, pokedexVus, bossVaincus])
 
-  // Envoi throttlé : au plus un envoi toutes les 15 s (évite de spammer Supabase
-  // à chaque victoire tout en gardant le score réactif).
   const dernierEnvoiScore = useRef(0)
   function envoyerScoreThrottle(forcer = false) {
     if (!identiteJoueur) return
@@ -1370,17 +1222,13 @@ function App() {
     dernierEnvoiScore.current = maintenant
     envoyerScore(statsClassementRef.current)
   }
-  // Ref vers le helper pour l'appeler depuis la boucle de combat (closure stable).
   const envoyerScoreThrottleRef = useRef(envoyerScoreThrottle)
   useEffect(() => { envoyerScoreThrottleRef.current = envoyerScoreThrottle })
 
-  // Envoie le score quand le joueur a un pseudo : périodiquement + à l'ouverture du classement.
   useEffect(() => {
     if (!partieChargee || !identiteJoueur) return
-    // Envoi immédiat (léger) au montage / quand l'identité est définie.
     envoyerScore(statsClassementRef.current)
     dernierEnvoiScore.current = Date.now()
-    // Puis toutes les 2 minutes tant que la partie tourne (lit la ref à jour).
     const horloge = setInterval(() => {
       envoyerScore(statsClassementRef.current)
       dernierEnvoiScore.current = Date.now()
@@ -1389,7 +1237,6 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partieChargee, identiteJoueur])
 
-  // Envoi ponctuel quand on ouvre le classement (pour voir son score à jour).
   useEffect(() => {
     if (vueOuverte === 'classement' && identiteJoueur) {
       envoyerScore(statsClassementRef.current)
@@ -1403,10 +1250,9 @@ function App() {
 
     const horloge = setInterval(() => {
       if (transitionEnCours.current) return
-      if (modeJeuRef.current === 'arene') return // combat principal en pause pendant l'arène
-      if (modeJeuRef.current === 'raid') return // combat principal en pause pendant un raid
-      // On reconstruit les équipes depuis les refs (stables) à chaque tic.
-      const bonusPuissance = multiplicateur(ameliorationsRef.current, 'puissance') // +2%/niveau PV & ATT
+      if (modeJeuRef.current === 'arene') return
+      if (modeJeuRef.current === 'raid') return
+      const bonusPuissance = multiplicateur(ameliorationsRef.current, 'puissance')
       let equipeJoueur = equipeIdsRef.current
         .map((uid) => capturesRef.current.find((p) => p.uid === uid))
         .filter(Boolean)
@@ -1415,20 +1261,13 @@ function App() {
           pvMax: Math.round(p.pvMax * bonusPuissance),
           attaque: Math.round(p.attaque * bonusPuissance),
         })
-      // Passifs PAR MODE : on applique le passif du mode 'principal' avant le combat.
       equipeJoueur = preparerEquipe(equipeJoueur, 'principal')
-      // Bonus d'équipe (Gardien = +PV équipe) appliqué à l'équipe joueur en combat.
       equipeJoueur = appliquerBonusEquipe(equipeJoueur)
       const equipeEnnemie = equipeEnnemieRef.current
       if (equipeJoueur.length === 0 || equipeEnnemie.length === 0) return
-      // BLOCAGE DE COMPO : le combat principal ne tourne que si l'équipe respecte
-      // 1 Tank / 1 Éclaireur / 2 Soutien / 2 DPS. Sinon on met le combat en pause.
       if (!compositionValideRef.current) return
-      // Initialise le chrono d'ultime au tout premier combat (si pas déjà fait).
       if (debutCombatRef.current === 0) debutCombatRef.current = Date.now()
       let e = etat.current
-      // Sécurité : si les tableaux de PV/jauge ne correspondent plus aux équipes
-      // (ex: changement d'équipe en cours), on resynchronise avant de combattre.
       if (e.pvJ.length !== equipeJoueur.length) {
         const pvJ = equipeJoueur.map((p) => p.pvMax)
         const jJ = equipeJoueur.map(() => 0)
@@ -1441,11 +1280,8 @@ function App() {
         e = { ...e, pvE, jE }
         etat.current = e
       }
-      // --- ULTIMES (système temporel) : à 7s réelles, chaque Pokémon lance son ultime UNE fois ---
-      // On compte le temps réel écoulé depuis le début du combat (indépendant de la vitesse).
       const tempsEcoule = debutCombatRef.current > 0 ? (Date.now() - debutCombatRef.current) : 0
       if (tempsEcoule >= DELAI_ULTIME_MS) {
-        // --- Côté JOUEUR ---
         const lances = ultimeLanceRef.current
         let majJoueur = false
         for (let k = 0; k < equipeJoueur.length; k++) {
@@ -1461,13 +1297,11 @@ function App() {
         }
         if (majJoueur) setUltimeLanceJoueur([...lances])
 
-        // --- Côté ENNEMI (même règle) ---
         const lancesE = ultimeLanceEnnemiRef.current
         let majEnnemi = false
         for (let k = 0; k < equipeEnnemie.length; k++) {
           if (!lancesE[k] && equipeEnnemie[k] && e.pvE[k] > 0) {
             const ultE = ultimeDuRole(equipeEnnemie[k].role || 'dps')
-            // Équipes inversées : l'ennemi déclenche → tape le joueur / soigne les ennemis.
             const resE = appliquerUltime(k, ultE, equipeEnnemie, e.pvE, e.jE, equipeJoueur, e.pvJ, 'ennemi')
             if (resE.bouclierTics > 0) bouclierTicsEnnemiRef.current = resE.bouclierTics
             if (resE.coups && resE.coups.length) ajouterChiffres(resE.coups)
@@ -1479,7 +1313,6 @@ function App() {
         if (majEnnemi) setUltimeLanceEnnemiAff([...lancesE])
       }
 
-      // Bouclier actif (Rempart) : joueur ET ennemi. Passés au tic puis décrémentés.
       const bouclierActif = bouclierTicsRef.current > 0
       const bouclierActifE = bouclierTicsEnnemiRef.current > 0
       const optionsTic = {
@@ -1494,17 +1327,12 @@ function App() {
       etat.current = { pvJ: r.pvJoueur, jJ: r.jaugeJoueur, pvE: r.pvEnnemis, jE: r.jaugeEnnemis }
       setPvJoueur(r.pvJoueur); setJaugeJoueur(r.jaugeJoueur)
       setPvEnnemis(r.pvEnnemis); setJaugeEnnemis(r.jaugeEnnemis)
-      // Chiffres flottants de dégâts/crit (feedback visuel).
       if (r.coups && r.coups.length) ajouterChiffres(r.coups)
 
       r.ennemisTombes.forEach((index) => {
         const ennemi = equipeEnnemieRef.current[index]
         if (ennemi) {
           const multi = MULTI_XP_RARETE[ennemi.rarete] || 1
-          // Malus de surclassement (même logique que l'or) : si l'équipe surclasse
-          // largement la zone, l'XP gagnée baisse → farmer du trop faible ne fait
-          // plus monter, on est incité à avancer. (N'affecte pas l'XP de rattrapage
-          // interne, qui se base sur l'écart entre membres de l'équipe.)
           const eqJ = equipeIdsRef.current.map((id) => capturesRef.current[id]).filter(Boolean)
           const nivMoyEq = eqJ.length ? eqJ.reduce((s, p) => s + (p.niveau || 1), 0) / eqJ.length : 1
           const nivMoyEnn = equipeEnnemieRef.current.length
@@ -1526,14 +1354,11 @@ function App() {
             const gainBoss = Math.round((boss?.niveau || 1) * 30 * multiplicateur(ameliorationsRef.current, 'fortune') * bonusCompletionArgent * bonusPrestigeArgent * bonusArgentObjets * bonusSuccesArgent)
             setPokeDollars((a) => a + gainBoss)
             setBossVaincus((b) => ({ ...b, [routeGagnee]: true }))
-            // Battre un boss fait rebaisser tous les prix dynamiques d'un cran.
             setAchatsItems((a) => {
               const reduit = {}
               for (const k in a) reduit[k] = Math.max(0, a[k] - 1)
               return reduit
             })
-            // Récompense de boss : 1 super-bonbon garanti (loot rare).
-            // Gourmandise : chance d'un 2e super-bonbon bonus.
             const bonbonsBoss = 1 + (Math.random() < (multiplicateur(ameliorationsRef.current, 'gourmandise') - 1) ? 1 : 0)
             setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + bonbonsBoss }))
             if (boss) {
@@ -1543,16 +1368,13 @@ function App() {
             ajouterAuJournal(`🔓 Zone suivante débloquée !`, 'victoire')
             setCombatBoss(false)
             combatBossRef.current = false
-            // Le nombre de zones a changé : on pousse le score au classement tout de suite.
             setTimeout(() => envoyerScoreThrottleRef.current(true), 0)
           } else {
             setVaincus((n) => n + 1)
-            // Gain dynamique : somme sur l'équipe ennemie de (base × niveau × multi_rareté).
             const gainBrut = equipeEnnemieRef.current.reduce((total, e) => {
               const m = MULTI_XP_RARETE[e.rarete] || 1
               return total + GAIN_BASE_ENNEMI * (e.niveau || 1) * m
             }, 0)
-            // Levier B : malus si l'équipe surclasse la zone (farmer du trop faible paie moins).
             const eqJoueur = equipeIdsRef.current.map((id) => capturesRef.current[id]).filter(Boolean)
             const nivMoyenJoueur = eqJoueur.length
               ? eqJoueur.reduce((s, p) => s + (p.niveau || 1), 0) / eqJoueur.length
@@ -1563,7 +1385,6 @@ function App() {
             const multiSurclassement = multiplicateurSurclassement(nivMoyenJoueur, nivMoyenEnnemis)
             const gainArgent = Math.max(1, Math.round(gainBrut * multiSurclassement * multiplicateur(ameliorationsRef.current, 'fortune') * bonusCompletionArgent * bonusPrestigeArgent * bonusArgentObjets * bonusSuccesArgent))
             setPokeDollars((a) => a + gainArgent)
-            // Drop d'objet rare (base 0.3%, augmenté par le Chineur).
             const chanceObjet = 0.003 * multiplicateur(ameliorationsRef.current, 'chineur')
             if (Math.random() < chanceObjet) {
               const objetDrop = tirerObjetDrop()
@@ -1572,7 +1393,6 @@ function App() {
             }
             setVictoiresParRoute((v) => ({ ...v, [routeGagnee]: (v[routeGagnee] || 0) + 1 }))
             ajouterAuJournal(`Équipe ennemie vaincue ! (+${gainArgent} 💰)`, 'victoire')
-            // Pousse le score au classement (throttlé à 15s : pas de spam Supabase).
             setTimeout(() => envoyerScoreThrottleRef.current(false), 0)
           }
         } else {
@@ -1596,7 +1416,6 @@ function App() {
   async function choisirStarters(noms) {
     setChargement(true)
     setChoixStarterRequis(false)
-    // Charge les 3 starters choisis.
     const starters = await Promise.all(noms.map((nom) => chargerPokemon(nom)))
     setCaptures(starters)
     capturesRef.current = starters
@@ -1631,8 +1450,6 @@ function App() {
     }
   }
 
-  // Prix dynamique réduit par le Négociateur : la majoration (part au-dessus du
-  // prix de base) est atténuée selon le niveau de l'amélioration.
   function prixAvecNegociateur(prixBase, nbAchats) {
     const plein = prixDynamique(prixBase, nbAchats)
     const majoration = plein - prixBase
@@ -1671,7 +1488,6 @@ function App() {
     }
   }
 
-  // Achat d'un parchemin de rôle (endgame, prix fixe en millions, pas de prix dynamique).
   function acheterParchemin(cle, quantite = 1) {
     const info = PARCHEMINS[cle]
     if (!info) return
@@ -1694,8 +1510,6 @@ function App() {
           const { pokemon } = ajouterXP(pkm, info.valeur, XP_BASE_NIVEAU, BONUS_STAT_NIVEAU)
           pkm = { ...pokemon, uid: poke.uid }
         } else if (info.effet === 'niveau') {
-          // +1 niveau direct : on ajoute exactement l'XP qui manque pour le niveau suivant,
-          // calculée avec la VRAIE courbe (xpRequise), sinon le niveau ne monte pas.
           const manque = Math.max(1, xpRequise(pkm.niveau, XP_BASE_NIVEAU) - (pkm.xp || 0))
           const { pokemon } = ajouterXP(pkm, manque, XP_BASE_NIVEAU, BONUS_STAT_NIVEAU)
           pkm = { ...pokemon, uid: poke.uid }
@@ -1758,16 +1572,11 @@ function App() {
     ajouterAuJournal(`🎁 Récompense réclamée : ${palier.nom} (${resume.join(', ')})`, 'victoire')
   }
 
-  // Enregistre le passif choisi par le joueur pour un Pokémon (champ passifChoisi).
-  // Le passif effectif est recalculé à la lecture (passifEffectif dans roles.js),
-  // donc il suffit de stocker le choix ; statsFinales recalcule l'effet au combat.
   function choisirPassif(uidPokemon, clePassif, mode = 'principal') {
-    const champ = champPassifDuMode(mode) // 'passifChoisi' | 'passifArene' | 'passifPvp'
+    const champ = champPassifDuMode(mode)
     setCaptures((liste) => liste.map((p) => {
       if (p.uid !== uidPokemon) return p
       const maj = { ...p, [champ]: clePassif }
-      // Recalcul des stats du mode principal seulement (le moteur lit passifChoisi en combat,
-      // mais preparerEquipe recopie le bon passif + recalcule avant chaque combat).
       if (champ === 'passifChoisi') {
         return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
       }
@@ -1775,17 +1584,12 @@ function App() {
     }))
   }
 
-  // Enregistre la CASE choisie pour un Joker (champ jokerCase = tank/eclaireur/soutien/dps).
-  // Comme la case change le rôle EFFECTIF du Joker, on re-trie l'équipe active ensuite
-  // (l'ordre Tank→Éclaireur→DPS→Soutien doit refléter la nouvelle case).
   function choisirCaseJoker(uidPokemon, caseRole) {
-    // 1) On met à jour le Pokémon dans la collection.
     const nouvelleCollection = capturesRef.current.map((p) =>
       p.uid === uidPokemon ? { ...p, jokerCase: caseRole } : p
     )
     capturesRef.current = nouvelleCollection
     setCaptures(nouvelleCollection)
-    // 2) Si ce Joker est dans l'équipe active, on re-trie selon les rôles effectifs.
     if (equipeIdsRef.current.includes(uidPokemon)) {
       const triee = trierIdsParRole(equipeIdsRef.current, nouvelleCollection)
       equipeIdsRef.current = triee
@@ -1793,27 +1597,20 @@ function App() {
     }
   }
 
-  // Applique un PARCHEMIN DE RÔLE (objet endgame) sur un Pokémon : force son rôle.
-  // - Pose roleForce + écrase role (pour que tout le code, qui lit pokemon.role, suive).
-  // - Reset le passif choisi au défaut du nouveau rôle (un Tank→DPS ne garde pas Colosse).
-  // - Pour le Sceau du Joker : met une case par défaut (DPS) que le joueur pourra changer.
-  // - Recalcule les stats, re-trie l'équipe active, et consomme le parchemin.
   function appliquerParchemin(uidPokemon, cleParchemin) {
     if (!parchemins[cleParchemin] || parchemins[cleParchemin] <= 0) return
     const info = PARCHEMINS[cleParchemin]
     if (!info) return
-    const nouveauRole = info.role // 'tank' | 'dps' | 'eclaireur' | 'soutien' | 'joker'
+    const nouveauRole = info.role
 
     const poke = capturesRef.current.find((p) => p.uid === uidPokemon)
     if (!poke) return
 
-    // Sécurité : si le Pokémon a déjà ce rôle forcé, on ne gaspille pas le parchemin.
     if (poke.roleForce === nouveauRole) {
       ajouterAuJournal(`${poke.nom} a déjà le rôle ${ROLES[nouveauRole]?.nom || nouveauRole}.`, 'info')
       return
     }
 
-    // Consomme le parchemin.
     setParchemins((pp) => ({ ...pp, [cleParchemin]: (pp[cleParchemin] || 0) - 1 }))
 
     const nouvelleCollection = capturesRef.current.map((p) => {
@@ -1821,17 +1618,15 @@ function App() {
       const maj = {
         ...p,
         roleForce: nouveauRole,
-        role: nouveauRole, // écrase le rôle stocké pour que tout le code suive
-        passifChoisi: passifParDefautDuRole(nouveauRole), // reset passif au défaut du rôle
+        role: nouveauRole,
+        passifChoisi: passifParDefautDuRole(nouveauRole),
       }
-      // Pour un Joker, on initialise une case par défaut (modifiable ensuite dans la fiche).
       if (nouveauRole === 'joker' && !maj.jokerCase) maj.jokerCase = 'dps'
       return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
     })
     capturesRef.current = nouvelleCollection
     setCaptures(nouvelleCollection)
 
-    // Re-trie l'équipe active si le Pokémon en fait partie (son rôle a changé).
     if (equipeIdsRef.current.includes(uidPokemon)) {
       const triee = trierIdsParRole(equipeIdsRef.current, nouvelleCollection)
       equipeIdsRef.current = triee
@@ -1841,21 +1636,17 @@ function App() {
     ajouterAuJournal(`${info.emoji} ${poke.nom} devient ${ROLES[nouveauRole]?.nom || nouveauRole} !`, 'victoire')
   }
 
-  // Équipe (ou déséquipe si idObjet=null) un objet sur un Pokémon.
-  // Gère le stock : l'objet équipé sort du stock, l'ancien y retourne.
   function equiperObjet(uidPokemon, idObjet) {
     const poke = captures.find((p) => p.uid === uidPokemon)
     if (!poke) return
     const ancienObjet = poke.objetEquipe || null
-    if (idObjet === ancienObjet) return // rien à changer
+    if (idObjet === ancienObjet) return
 
-    // Vérifier le stock si on équipe un nouvel objet.
     if (idObjet && (objets[idObjet] || 0) <= 0) {
       ajouterAuJournal(`Tu n'as pas de ${OBJETS[idObjet]?.nom || 'cet objet'} en stock.`, 'info')
       return
     }
 
-    // Mise à jour du stock : -1 pour le nouvel objet, +1 pour l'ancien rendu.
     setObjets((stock) => {
       const nouveau = { ...stock }
       if (idObjet) nouveau[idObjet] = (nouveau[idObjet] || 0) - 1
@@ -1863,7 +1654,6 @@ function App() {
       return nouveau
     })
 
-    // Mise à jour du Pokémon + recalcul de ses stats.
     setCaptures((liste) => liste.map((p) => {
       if (p.uid !== uidPokemon) return p
       const maj = { ...p, objetEquipe: idObjet }
@@ -1879,7 +1669,6 @@ function App() {
 
   // Calcule une équipe valide (1 à 2 par rôle, 4 rôles présents, 1 spécial max)
   // à partir de la collection, en prenant les meilleurs (rareté puis niveau).
-  // Renvoie { choisis: [uid...], complet: bool, manquants: [role...] }.
   function composerAutoEquipe() {
     const ordreRarete = { legendaire: 4, tresRare: 3, rare: 2, commun: 1 }
     const ROLES4 = ['tank', 'eclaireur', 'soutien', 'dps']
@@ -1911,14 +1700,12 @@ function App() {
       choisis.push(poke.uid)
     }
 
-    // Phase 1 : garantir 1 de chaque rôle (le meilleur dispo).
     for (const role of ROLES4) {
       const best = tries.find(
         (p) => (p.role || determinerRole(p)) === role && !choisis.includes(p.uid) && peutPrendre(p, role)
       )
       if (best) prendre(best, role)
     }
-    // Phase 2 : remplir les slots restants avec les meilleurs (max 2/rôle).
     for (const poke of tries) {
       if (choisis.length >= TAILLE) break
       if (choisis.includes(poke.uid)) continue
@@ -1963,12 +1750,10 @@ function App() {
       `Tu PERDS : niveaux de tes Pokémon (→ niv 1), zones débloquées, argent.\n\nContinuer ?`
     )) return
 
-    // Reset des niveaux : tous les Pokémon repassent niveau 1, stats recalculées.
     setCaptures((liste) => liste.map((p) => {
       const remis = { ...p, niveau: 1, xp: 0 }
       return { ...remis, ...statsFinales(remis, BONUS_STAT_NIVEAU) }
     }))
-    // Reset de la progression de zones, argent, victoires.
     setRouteActive('tutoriel')
     routeActiveRef.current = 'tutoriel'
     setVictoiresParRoute({})
@@ -1976,13 +1761,11 @@ function App() {
     setBossVaincus({})
     bossVaincusRef.current = {}
     setPokeDollars(0)
-    // Gain de médailles (cumulées).
     setMedailles((m) => m + gain)
     ajouterAuJournal(`🏅 PRESTIGE ! +${gain} médailles. Bonne chance pour la remontée !`, 'victoire')
     setVueOuverte(null)
   }
 
-  // Investit 1 médaille dans un bonus permanent (xp / argent / shiny).
   function investirMedaille(categorie) {
     if (medailles <= 0) return
     setMedailles((m) => m - 1)
@@ -2003,7 +1786,6 @@ function App() {
     return (
       <div className="ecran-chargement">
         <div className="chargement-contenu">
-          {/* Logo Midjourney s'il existe, sinon titre texte doré (fallback) */}
           <img
             src="/logo-titre.png"
             alt="Pokédle"
@@ -2011,14 +1793,11 @@ function App() {
             onError={(e) => { e.currentTarget.style.display = 'none'; const t = e.currentTarget.nextElementSibling; if (t) t.style.display = 'block' }}
           />
           <h1 className="chargement-titre" style={{ display: 'none' }}>Pokédle</h1>
-
-          {/* Pokéball CSS qui tourne (spinner) */}
           <div className="pokeball-spinner" aria-label="Chargement">
             <div className="pokeball-spinner-haut"></div>
             <div className="pokeball-spinner-bas"></div>
             <div className="pokeball-spinner-centre"></div>
           </div>
-
           <p className="chargement-texte">Chargement…</p>
         </div>
       </div>
@@ -2029,20 +1808,14 @@ function App() {
     return <ChoixStarter onChoisir={choisirStarters} />
   }
 
-  // Si la partie est prête mais que le joueur n'a pas encore de pseudo (classement en ligne),
-  // on lui demande une fois. Il peut être affiché par-dessus le jeu (overlay).
-  // (On ne bloque pas le jeu : c'est un overlay, mais on le montre en priorité au 1er lancement.)
-
   const numZone = ROUTES.findIndex((r) => r.id === routeActive) + 1
   const victoiresZone = victoiresParRoute[routeActive] || 0
   const bossOk = bossVaincus[routeActive] === true
-  // Seuil de victoires avant boss, réduit par l'amélioration Stratégie (plancher 10).
   const seuilBoss = Math.max(10, COMBATS_AVANT_BOSS - niveauAmelioration(ameliorations, 'strategie'))
   const combatActuel = Math.min(victoiresZone + 1, seuilBoss)
   const progression = Math.min(100, (victoiresZone / seuilBoss) * 100)
   const pctPokedex = Math.round((pokedexVus.length / 1025) * 100)
 
-  // --- Zones débloquées + navigation rapide ---
   const zonesDebloquees = ROUTES.filter((r) => routeDebloquee(r, bossVaincus))
   const indexZoneActive = zonesDebloquees.findIndex((r) => r.id === routeActive)
 
@@ -2055,15 +1828,12 @@ function App() {
     ajouterAuJournal(`Direction ${nouvelleZone.nom} ! 🗺️`, 'info')
   }
 
-  // Nombre de récompenses de complétion disponibles (pour la pastille du HUD).
   const nbRecompensesDispo = recompensesDisponibles(new Set(pokedexVus), recompensesReclamees).length
 
-  // Données prestige pour le panneau.
   const nbZonesPrestige = ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length
   const gainPrestige = medaillesGagnables(pokedexVus.length, nbZonesPrestige)
   const multisPrestige = multiplicateursPrestige(investisPrestige)
 
-  // Le tuto (rendu commun, par-dessus tout écran principal) — défini une fois, réutilisé.
   const renduTutoriel = tutoMode ? (
     <Tutoriel
       mode={tutoMode}
@@ -2085,7 +1855,6 @@ function App() {
       setEquipeDefenseIds((ids) => {
         if (ids.includes(uid)) return ids.filter((x) => x !== uid)
         if (ids.length >= 6) return ids
-        // Limite : 1 seul Pokémon spécial par équipe.
         const poke = captures.find((p) => p.uid === uid)
         if (estSpecial(poke) && compterSpeciaux(ids, captures) >= 1) {
           alert('Un seul Pokémon spécial autorisé par équipe.')
@@ -2098,7 +1867,6 @@ function App() {
       setEquipeAttaqueIds((ids) => {
         if (ids.includes(uid)) return ids.filter((x) => x !== uid)
         if (ids.length >= 6) return ids
-        // Limite : 1 seul Pokémon spécial par équipe.
         const poke = captures.find((p) => p.uid === uid)
         if (estSpecial(poke) && compterSpeciaux(ids, captures) >= 1) {
           alert('Un seul Pokémon spécial autorisé par équipe.')
@@ -2108,7 +1876,6 @@ function App() {
       })
     }
 
-    // Charger mes infos PvP + la liste des adversaires.
     async function rafraichirPvp() {
       setPvpChargementListe(true)
       try {
@@ -2126,7 +1893,6 @@ function App() {
       setPvpChargementListe(false)
     }
 
-    // Publier (ou mettre à jour) ma défense.
     async function publierMaDefense() {
       if (!defenseValide) return
       setPvpPublicationEnCours(true)
@@ -2141,7 +1907,6 @@ function App() {
       }
     }
 
-    // Lancer un combat contre un adversaire.
     function attaquerAdversaire(adversaire) {
       if (!attaqueValide) return
       const equipeAdverse = reconstruireEquipeSnapshot(adversaire.equipe)
@@ -2149,14 +1914,11 @@ function App() {
         setPvpMessage('Cet adversaire n\'a pas de défense valide.')
         return
       }
-      // Passifs PAR MODE : applique le passif 'pvp' avant le cap de niveau.
       const equipeAttaquePreparee = preparerEquipe(equipeAttaque, 'pvp')
-      // Cap PvP : mon équipe d'attaque est ramenée à niveau 50 max (la défense l'est déjà).
       const equipeJoueurCapee = capperEquipePvp(equipeAttaquePreparee)
       setPvpCombat({ adversaire, equipeJoueur: equipeJoueurCapee, equipeAdverse })
     }
 
-    // Fin du combat PvP : applique l'ELO et met à jour l'affichage.
     async function terminerCombatPvp(resultat) {
       const combat = pvpCombat
       setPvpCombat(null)
@@ -2171,7 +1933,6 @@ function App() {
           (gagne ? '🏆 Victoire ! ' : '💀 Défaite. ') +
           `${signe}${r.deltaMoi} pts (tu es à ${r.mesNouveauxPoints}, ${r.monRang}).`
         )
-        // Recharger la liste pour refléter les nouveaux points.
         const { lignes } = await listerDefenses(50)
         setPvpAdversaires(lignes)
       } else {
@@ -2179,7 +1940,6 @@ function App() {
       }
     }
 
-    // Combat en cours : on affiche l'écran de combat.
     if (pvpCombat) {
       return (
         <>
@@ -2225,7 +1985,7 @@ function App() {
     )
   }
 
-  // ===== ÉCRAN MODE RAID (endgame, remplace l'écran principal) =====
+  // ===== ÉCRAN MODE RAID =====
   if (modeJeu === 'raid') {
     const nbZonesRaid = ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length
     const equipeRaid = equipeRaidIds.map((uid) => captures.find((p) => p.uid === uid)).filter(Boolean)
@@ -2236,7 +1996,6 @@ function App() {
       setEquipeRaidIds((ids) => {
         if (ids.includes(uid)) return ids.filter((x) => x !== uid)
         if (ids.length >= 6) return ids
-        // Limite : 1 seul Pokémon spécial par équipe.
         const poke = captures.find((p) => p.uid === uid)
         if (estSpecial(poke) && compterSpeciaux(ids, captures) >= 1) {
           alert('Un seul Pokémon spécial autorisé par équipe.')
@@ -2246,10 +2005,9 @@ function App() {
       })
     }
 
-    // Lance un raid : vérifie compo + cooldown, charge les 3 vagues, bascule en combat.
     async function lancerRaid(raid) {
       if (!compositionValide(equipeRaid)) {
-        alert('Ton équipe de raid doit être composée de 1 Tank, 1 Éclaireur, 2 Soutien et 2 DPS.')
+        alert('Ton équipe de raid doit respecter la compo : 1 à 2 par rôle, les 4 rôles présents, 1 spécial max.')
         return
       }
       if (tempsRestantRaid(raid, raidsCooldowns) > 0) {
@@ -2268,7 +2026,6 @@ function App() {
       setChargementRaid(false)
     }
 
-    // Fin du raid : victoire → tente la capture du boss + récompenses + lance le cooldown.
     async function terminerRaid(resultat) {
       if (resultat === 'victoire' && raidActif) {
         const r = raidActif.recompense || {}
@@ -2276,18 +2033,14 @@ function App() {
         if (r.bonbons) setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + r.bonbons }))
         ajouterAuJournal(`🏆 Raid « ${raidActif.nom} » réussi ! +${r.argent || 0} 💰`, 'victoire')
 
-        // Tentative de capture du gros boss (au taux du raid, faut une ball).
         const boss = raidActif.boss
         const dejaPossede = pokedexSpeciaux.includes(boss.id)
-        // Choisit la meilleure ball dispo (master > hyper > super > poke).
         const ordreBall = ['master', 'hyper', 'super', 'poke']
         const ballDispo = ordreBall.find((b) => (balls[b] || 0) > 0)
         if (!ballDispo) {
           ajouterAuJournal(`💥 ${boss.nomFr} s'est enfui : aucune Ball pour le capturer !`, 'echec')
         } else {
-          // Consomme la ball.
           setBalls((bb) => ({ ...bb, [ballDispo]: (bb[ballDispo] || 0) - 1 }))
-          // Taux de capture FIXE selon la ball (Poké 2% / Super 3% / Hyper 5% / Master 100%).
           const taux = TAUX_CAPTURE_BOSS_RAID[ballDispo] ?? 0.02
           if (Math.random() < taux) {
             try {
@@ -2306,7 +2059,6 @@ function App() {
           }
         }
 
-        // Lance le cooldown de CE raid (1h).
         setRaidsCooldowns((cd) => ({ ...cd, [raidActif.id]: Date.now() + raidActif.cooldownMs }))
       } else if (resultat === 'defaite' && raidActif) {
         ajouterAuJournal(`💀 Raid « ${raidActif.nom} » échoué. Pas de cooldown, réessaie !`, 'echec')
@@ -2315,13 +2067,12 @@ function App() {
       setVaguesRaid(null)
     }
 
-    // Combat en cours.
     if (raidActif && vaguesRaid && equipeRaid.length > 0) {
       return (
         <>
           <CombatRaid
             raid={raidActif}
-            equipeJoueur={preparerEquipe(equipeRaid, 'principal')}
+            equipeJoueur={equipeRaid}
             vagues={vaguesRaid}
             vitesse={vitesse}
             onTermine={terminerRaid}
@@ -2365,20 +2116,18 @@ function App() {
     )
   }
 
-  // ===== ÉCRAN MODE ARÈNE (remplace l'écran principal) =====
+  // ===== ÉCRAN MODE ARÈNE =====
   if (modeJeu === 'arene') {
     const nbZonesArene = ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length
-    const listeDresseurs = etatsDresseurs(nbZonesArene, dresseursVaincus)
+    const listeDresseurs = etatsDresseursAvecReset(nbZonesArene, dresseursVaincus)
     const equipeArene = equipeAreneIds.map((uid) => captures.find((p) => p.uid === uid)).filter(Boolean)
-    // L'équipe d'arène doit aussi respecter la compo 1T/1E/2S/2D pour combattre.
     const equipeAreneValide = compositionValide(equipeArene)
     const equipeAreneDiagnostic = diagnostiqueComposition(equipeArene)
 
     function basculerMembreArene(uid) {
       setEquipeAreneIds((ids) => {
         if (ids.includes(uid)) return ids.filter((x) => x !== uid)
-        if (ids.length >= 6) return ids // max 6
-        // Limite : 1 seul Pokémon spécial par équipe.
+        if (ids.length >= 6) return ids
         const poke = captures.find((p) => p.uid === uid)
         if (estSpecial(poke) && compterSpeciaux(ids, captures) >= 1) {
           alert('Un seul Pokémon spécial autorisé par équipe.')
@@ -2405,11 +2154,9 @@ function App() {
       setEquipeAreneIds(triee)
     }
 
-    // Lance un combat : charge l'équipe du dresseur puis bascule en combat.
     async function lancerCombatArene(dresseur) {
-      // Sécurité : refuse si la compo d'arène n'est pas valide.
       if (!compositionValide(equipeArene)) {
-        alert('Ton équipe d\'arène doit être composée de 1 Tank, 1 Éclaireur, 2 Soutien et 2 DPS pour combattre.')
+        alert('Ton équipe d\'arène doit respecter la compo : 1 à 2 par rôle, les 4 rôles présents, 1 spécial max.')
         return
       }
       setChargementArene(true)
@@ -2424,24 +2171,20 @@ function App() {
       setChargementArene(false)
     }
 
-    // Fin du combat : applique les récompenses si victoire, puis retour à la liste.
     async function terminerCombatArene(resultat) {
       if (resultat === 'victoire' && dresseurActif) {
         const r = dresseurActif.recompense
-        // Champion : bonus de PokéDollars gagnés en Arène.
         if (r.argent) setPokeDollars((a) => a + Math.round(r.argent * multiplicateur(ameliorationsRef.current, 'champion')))
         if (r.bonbon) setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + r.bonbon }))
         if (r.objet) setObjets((o) => ({ ...o, [r.objet]: (o[r.objet] || 0) + 1 }))
-        // Marquer le dresseur comme vaincu (une seule fois, débloque le suivant).
-        const dejaVaincu = dresseursVaincus.includes(dresseurActif.id)
-        setDresseursVaincus((v) => v.includes(dresseurActif.id) ? v : [...v, dresseurActif.id])
+        const creneau = creneauActuel()
+        const dejaVaincu = dresseursVaincus[dresseurActif.id] === creneau
+        setDresseursVaincus((v) => ({ ...v, [dresseurActif.id]: creneau }))
         ajouterAuJournal(`🏆 Arène : ${dresseurActif.nom} vaincu ! Récompense : ${decrireRecompenseDresseur(r)}`, 'victoire')
-        // Pokémon spécial (boss) : débloqué la 1re fois qu'on bat ce boss.
         const special = specialDuBoss(dresseurActif.id)
         if (special && !dejaVaincu && !pokedexSpeciaux.includes(special.id)) {
           try {
             const pkmn = await chargerPokemon(special.nom, false)
-            // Le spécial arrive NIVEAU 1 (à monter soi-même), comme une capture normale.
             const avecNiv = { ...pkmn, niveau: 1, xp: 0, rarete: 'special', estSpecial: true }
             const finales = statsFinales(avecNiv, BONUS_STAT_NIVEAU)
             const nouveau = { ...avecNiv, ...finales, uid: `special-${special.id}-${Date.now()}` }
@@ -2459,7 +2202,6 @@ function App() {
       setEquipeDresseur(null)
     }
 
-    // Combat en cours : on affiche l'arène de combat.
     if (dresseurActif && equipeDresseur && equipeArene.length > 0) {
       return (
         <>
@@ -2476,7 +2218,6 @@ function App() {
       )
     }
 
-    // Chargement de l'équipe du dresseur.
     if (chargementArene) {
       return (
         <div className="app app-layout">
@@ -2513,7 +2254,6 @@ function App() {
   return (
     <div className="app app-layout">
 
-      {/* ===== TOPBAR (pleine largeur) ===== */}
       <header className="topbar">
         <div className="topbar-titre">
           <img
@@ -2575,7 +2315,7 @@ function App() {
             <span className="hud-emoji-icone">🏆</span>
             <span className="hud-label">Classement</span>
           </button>
-          {/* PRESTIGE MASQUÉ — pour le réactiver, décommente ce bloc (retire cette ligne et la ligne de fermeture du commentaire plus bas).
+          {/* PRESTIGE MASQUÉ
           <button className="hud-icone hud-icone-relative" onClick={() => setVueOuverte('prestige')} title="Rang de Dresseur (Prestige)">
             {medailles > 0 && <span className="hud-pastille">{medailles}</span>}
             <span className="hud-emoji-icone">🏅</span>
@@ -2598,10 +2338,8 @@ function App() {
         </div>
       </header>
 
-      {/* ===== GRILLE 3 COLONNES ===== */}
       <div className="grille-jeu">
 
-        {/* --- COLONNE GAUCHE : aperçu équipe --- */}
         <aside className="colonne colonne-gauche">
           <div className="panneau">
             <div className="panneau-titre">
@@ -2629,7 +2367,6 @@ function App() {
             <button className="bouton-gerer" onClick={() => setVueOuverte('equipe')}>Gérer l'équipe</button>
           </div>
 
-          {/* --- QOL : Zones rapides --- */}
           <div className="panneau">
             <div className="panneau-titre">
               <img src="/icons/routes.png" alt="" className="panneau-icone" /> Zone rapide
@@ -2650,7 +2387,6 @@ function App() {
             </div>
           </div>
 
-          {/* --- QOL : Achat rapide de balls --- */}
           <div className="panneau" data-tuto="achat">
             <div className="panneau-titre">
               <img src="/icons/boutique.png" alt="" className="panneau-icone" /> Achat rapide
@@ -2675,7 +2411,6 @@ function App() {
             ))}
           </div>
 
-          {/* --- Bloc pokédex --- */}
           <div className="panneau">
             <div className="panneau-titre">
               <img src="/icons/pokedex.png" alt="" className="panneau-icone" /> Pokédex
@@ -2688,7 +2423,6 @@ function App() {
           </div>
         </aside>
 
-        {/* --- COLONNE CENTRE : zone + arène + journal --- */}
         <main className="colonne colonne-centre" data-tuto="arene">
           <div className="bandeau-zone">
             <span className="bandeau-zone-nom">{routeParId(routeActive).nom}</span>
@@ -2709,7 +2443,7 @@ function App() {
           {!compoValide && (
             <div className="alerte-compo">
               <p className="alerte-compo-titre">⚠️ Composition d'équipe invalide</p>
-              <p className="alerte-compo-sous">Le combat est en pause. Il faut exactement 1 Tank, 1 Éclaireur, 2 Soutien et 2 DPS.</p>
+              <p className="alerte-compo-sous">Le combat est en pause. Compo : 1 à 2 Pokémon par rôle, les 4 rôles présents, 1 spécial max.</p>
               <ul className="alerte-compo-liste">
                 {compoDiagnostic.map((m, i) => <li key={i}>{m}</li>)}
               </ul>
@@ -2780,7 +2514,6 @@ function App() {
           </div>
         </main>
 
-        {/* --- COLONNE DROITE : contrôles + ressources --- */}
         <aside className="colonne colonne-droite" data-tuto="capture">
           <div className="panneau">
             <div className="panneau-titre">
@@ -2790,12 +2523,10 @@ function App() {
               ⚙️ Règles de capture
             </button>
             {(() => {
-              // Libellé court de chaque réglage de ball.
               const labelBall = {
                 auto: 'Auto', poke: 'Poké', super: 'Super',
                 hyper: 'Hyper', master: 'Master', rien: '✕ Aucune',
               }
-              // Sprites officiels PokeAPI pour illustrer chaque catégorie.
               const SPR = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/'
               const categories = [
                 { cle: 'shiny', nom: 'Shiny', sprite: SPR + 'shiny-charm.png', emoji: '✨' },
@@ -2925,7 +2656,6 @@ function App() {
 
       </div>
 
-      {/* ===== ENCART DE CAPTURE (animation) ===== */}
       {captureRecente && (
         <div className="encart-capture" key={captureRecente.cle}>
           <div className={`encart-capture-boite ${captureRecente.shiny ? 'shiny' : ''}`}>
@@ -2938,7 +2668,6 @@ function App() {
         </div>
       )}
 
-      {/* ===== POP-UPS (inchangés) ===== */}
       {!identiteJoueur && (
         <ChoixPseudo onValide={(identite) => setIdentiteJoueur(identite)} />
       )}
@@ -2970,7 +2699,6 @@ function App() {
           onAjouterMembre={(poke) => {
             if (equipeIds.length >= 6) return
             if (equipeIds.includes(poke.uid)) return
-            // Limite : 1 seul Pokémon spécial par équipe.
             if (estSpecial(poke) && compterSpeciaux(equipeIds, captures) >= 1) {
               alert('Un seul Pokémon spécial autorisé par équipe. Retire d\'abord celui qui est déjà dans l\'équipe.')
               return
@@ -3040,7 +2768,7 @@ function App() {
           pokedexShiny={pokedexShiny}
           pokeDollars={pokeDollars}
           nbBoss={Object.values(bossVaincus).filter(Boolean).length}
-          nbDresseurs={dresseursVaincus.length}
+          nbDresseurs={Object.keys(dresseursVaincus).length}
           nbSpeciaux={pokedexSpeciaux.length}
           nbZones={ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length}
           totalZones={ROUTES.length}
@@ -3087,7 +2815,7 @@ function App() {
             totalDex: 1025,
             nbVaincus: vaincus,
             nbBoss: Object.values(bossVaincus).filter(Boolean).length,
-            nbDresseurs: dresseursVaincus.length,
+            nbDresseurs: Object.keys(dresseursVaincus).length,
             nbZones: ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length,
             nbSpeciaux: pokedexSpeciaux.length,
           }}
@@ -3103,7 +2831,6 @@ function App() {
         />
       )}
 
-      {/* ===== TUTORIEL (par-dessus tout) ===== */}
       {renduTutoriel}
     </div>
   )
