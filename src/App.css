@@ -11376,3 +11376,82 @@ img[src*="PokeAPI/sprites"] {
   min-height: 0;
   height: auto;
 }
+/* ============================================================
+   POP-UP BOOST (Améliorations) v2 — DA du menu Routes
+   À COLLER À LA FIN de src/App.css.
+   Réutilise la recette boutique (cases uniformes) + pips de progression.
+   ============================================================ */
+
+/* ---------- CONTENEUR ---------- */
+.panneau-banc.boost-v2 {
+  background: linear-gradient(180deg, #fff7e0, #f0ddae) !important;
+  border: 4px solid #c8a23a !important;
+  border-radius: 16px;
+  color: #4a3410;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+.boost-v2 .pokedex-entete { border-bottom: 2px dashed #c8a23a; }
+.boost-v2 .pokedex-entete h2 { color: #5a4520 !important; }
+
+/* ---------- ARGENT ---------- */
+.boost-v2 .boutique-argent {
+  color: #5a4520 !important; font-weight: bold; font-size: 0.9rem; margin-bottom: 12px;
+}
+
+/* ---------- ITEMS (mêmes cases que la boutique) ---------- */
+.boost-v2 .boutique-grille { display: flex; flex-direction: column; gap: 8px; }
+.boost-v2 .boutique-item {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important; border-radius: 12px;
+  padding: 12px 14px; min-height: 96px; box-sizing: border-box;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.boost-v2 .boutique-item-info { display: flex; align-items: center; gap: 12px; }
+.boost-v2 .boutique-item-emoji {
+  width: 48px; height: 48px; min-width: 48px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; border-radius: 8px; overflow: visible; background: transparent;
+}
+.boost-v2 .boutique-item-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.boost-v2 .boutique-item-nom { color: #4a3410 !important; font-weight: bold; font-size: 0.84rem; }
+.boost-v2 .boutique-item-stock {
+  color: #8a7038 !important; font-size: 0.72rem;
+  white-space: normal; overflow-wrap: anywhere;
+}
+
+/* ---------- BARRE DE PALIERS (pips) ---------- */
+.boost-v2 .amelio-barre { display: flex; gap: 4px; margin: 8px 0; flex-wrap: wrap; }
+.boost-v2 .amelio-pip {
+  width: 16px; height: 10px; border-radius: 3px;
+  background: #e3d2a4; border: 1px solid #c8a23a;
+}
+.boost-v2 .amelio-pip.rempli { background: linear-gradient(180deg, #ffd451, #e0a81e); border-color: #b8861a; }
+
+/* ---------- BOUTON AMÉLIORER ---------- */
+.boost-v2 .boutique-item-boutons { display: flex; gap: 6px; margin-top: 4px; }
+.boost-v2 .bouton-achat-lot {
+  background: linear-gradient(180deg, #ffd451, #e0a81e) !important;
+  border: none !important; border-radius: 8px;
+  color: #4a3410 !important; font-family: inherit; font-weight: bold; font-size: 0.78rem;
+  padding: 7px 14px; cursor: pointer; box-shadow: 0 2px 0 #b8861a; transition: transform 0.08s;
+}
+.boost-v2 .bouton-achat-lot:hover:not(:disabled) { transform: translateY(-1px); }
+.boost-v2 .bouton-achat-lot:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #b8861a; }
+.boost-v2 .bouton-achat-lot:disabled {
+  background: #e8dcc0 !important; color: #b09a64 !important;
+  box-shadow: 0 2px 0 #c8b88a; cursor: not-allowed; opacity: 0.8;
+}
+.boost-v2 .amelio-max {
+  color: #2e7d32 !important; font-weight: bold; font-size: 0.84rem;
+  display: inline-flex; align-items: center; padding: 7px 0;
+}
+
+/* ---------- TEXTE : foncé + pas d'ombre ---------- */
+.boost-v2,
+.boost-v2 h2, .boost-v2 p, .boost-v2 span, .boost-v2 div, .boost-v2 button {
+  color: #4a3410;
+}
+.boost-v2, .boost-v2 * { text-shadow: none !important; }
+.boost-v2 .bouton-fermer { color: #fff !important; }
+.boost-v2 .amelio-max { color: #2e7d32 !important; }
+.boost-v2 .bouton-achat-lot:disabled { color: #b09a64 !important; }

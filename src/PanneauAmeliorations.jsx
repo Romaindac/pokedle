@@ -3,7 +3,7 @@ import { AMELIORATIONS, PALIER_MAX, coutAmelioration } from './ameliorations'
 function PanneauAmeliorations({ ameliorations = {}, pokeDollars, onAcheter, onFermer }) {
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="panneau-banc panneau-boost-doree" onClick={(e) => e.stopPropagation()}>
+      <div className="panneau-banc panneau-boost-doree boost-v2" onClick={(e) => e.stopPropagation()}>
         <div className="pokedex-entete">
           <h2>🔧 Améliorations</h2>
           <button className="bouton-fermer" onClick={onFermer}>✕</button>
