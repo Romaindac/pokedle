@@ -193,7 +193,7 @@ function PanneauArene({
 
       <div className="arene-ecran arene-ecran-doree arene-v2">
         <p className="arene-intro">
-          Compose ton <strong>équipe d'arène</strong> (1 Tank, 1 Éclaireur, 2 Soutien, 2 DPS), puis défie les dresseurs.
+          Compose ton <strong>équipe d'arène</strong> (1 à 2 Pokémon par rôle, les 4 rôles présents · 1 spécial max), puis défie les dresseurs.
           Ils deviennent plus coriaces à mesure que tu progresses !
         </p>
 
@@ -334,7 +334,7 @@ function PanneauArene({
                   className="bouton-combattre"
                   onClick={() => onCombattre(d)}
                   disabled={!equipePrete}
-                  title={equipePrete ? 'Lancer le combat' : 'Compose une équipe 1 Tank / 1 Éclaireur / 2 Soutien / 2 DPS'}
+                  title={equipePrete ? 'Lancer le combat' : 'Compose une équipe : 1 à 2 par rôle, les 4 rôles présents · 1 spécial max'}
                 >
                   Combattre
                 </button>

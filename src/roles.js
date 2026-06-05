@@ -266,7 +266,7 @@ export function bonusDuPassif(pokemon) {
 // ---------- HELPERS DE COMPOSITION ----------
 export function compterRoles(equipe) {
   const compte = { tank: 0, dps: 0, eclaireur: 0, soutien: 0 }
-  for (const p of equipe) {
+  for (const p of (Array.isArray(equipe) ? equipe : [])) {
     if (!p) continue
     const role = roleEffectif(p)
     if (compte[role] !== undefined) compte[role] += 1
@@ -277,7 +277,7 @@ export function compterRoles(equipe) {
 // Compte les Pokémon spéciaux (méga / formes — rareté max) dans une équipe.
 export function compterSpeciaux(equipe) {
   let n = 0
-  for (const p of (equipe || [])) {
+  for (const p of (Array.isArray(equipe) ? equipe : [])) {
     if (!p) continue
     if (p.estSpecial === true || p.rarete === 'special') n += 1
   }
@@ -288,7 +288,7 @@ export function compterSpeciaux(equipe) {
 // Valide si : au moins 1 de chaque rôle, au plus 2 de chaque rôle, et 1 spécial max.
 // (Tant que l'équipe a moins de 6 Pokémon, la compo n'est pas bloquante — early game.)
 export function compositionValide(equipe) {
-  const membres = (equipe || []).filter(Boolean)
+  const membres = (Array.isArray(equipe) ? equipe : []).filter(Boolean)
   if (membres.length < TAILLE_EQUIPE) return true
   const compte = compterRoles(membres)
   for (const role of ['tank', 'eclaireur', 'soutien', 'dps']) {
@@ -300,7 +300,7 @@ export function compositionValide(equipe) {
 }
 
 export function diagnostiqueComposition(equipe) {
-  const membres = (equipe || []).filter(Boolean)
+  const membres = (Array.isArray(equipe) ? equipe : []).filter(Boolean)
   if (membres.length < TAILLE_EQUIPE) {
     return [`Équipe libre (${membres.length}/${TAILLE_EQUIPE}). À 6 Pokémon : 1 de chaque rôle minimum, 2 maximum par rôle, 1 spécial max.`]
   }
