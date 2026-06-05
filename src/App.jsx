@@ -4,8 +4,8 @@ import { VITESSE_COMBAT, PAUSE_RESPAWN, GAIN_PAR_VICTOIRE, GAIN_BASE_ENNEMI, BON
 import { ticCombat, appliquerUltime } from './moteurCombat'
 import { ULTIMES, ultimeDuRole, COUT_ULTIME } from './ultimes'
 import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise } from './stats'
-import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole, passifPourMode, champPassifDuMode } from './roles'
 import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
+import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole, passifPourMode, champPassifDuMode } from './roles'
 import CartePokemon from './CartePokemon'
 import TimerAnneau from './TimerAnneau'
 import Pokedex from './Pokedex'
@@ -22,7 +22,7 @@ import PanneauPvp from './PanneauPvp'
 import CombatPvp from './CombatPvp'
 import Tutoriel from './Tutoriel'
 import { publierDefense, chargerMaDefense, listerDefenses, appliquerResultatPvp, reconstruireEquipeSnapshot, capperEquipePvp, equipeComplete, NIVEAU_MAX_PVP, rangDepuisPoints, POINTS_DEPART } from './apiPvp'
-import { dresseursDebloques, etatsDresseurs, etatsDresseursAvecReset, creneauActuel, decrireRecompenseDresseur, DRESSEURS } from './arene'
+import { dresseursDebloques, etatsDresseurs, decrireRecompenseDresseur, DRESSEURS } from './arene'
 import { OBJETS, bonusStatsObjet, objetsAchetables, effetsSpeciauxEquipe, bonusXpObjet, tirerObjetDrop } from './objets'
 import MenuRoutes from './MenuRoutes'
 import ChoixStarter from './ChoixStarter'
@@ -42,12 +42,7 @@ import ChoixPseudo from './ChoixPseudo'
 import { chargerIdentite, envoyerScore } from './apiClassement'
 import { chargerTableNoms } from './pokedexNoms'
 
-
 const CLE_SAUVEGARDE = 'pokedex-idle-save-v11'
-// Reset d'histoire forcé (une fois pour tous) : si la save n'a pas ce numéro,
-// on remet la progression d'histoire à zéro au chargement (zones, victoires, boss).
-// Pour reforcer un reset plus tard, incrémenter ce numéro (2, 3, ...).
-const VERSION_RESET_HISTOIRE = 2
 
 // Correspondance type de ball -> icône image (sans toucher à config.js)
 // Icônes = sprites officiels PokeAPI (dérivés de config.js). Look authentique Pokémon.
@@ -207,13 +202,16 @@ function appliquerBonusEquipe(equipe) {
 }
 
 // ---------- PASSIFS PAR MODE (Option 2 : préparer l'équipe) ----------
-// Avant chaque combat, recopie le passif du MODE choisi (principal/arène/pvp)
-// dans le champ `passifChoisi` que le moteur lit, et recalcule les stats.
+// Avant chaque combat, on recopie le passif du MODE choisi (principal/arène/pvp)
+// dans le champ `passifChoisi` que le moteur de combat lit. On recalcule aussi les
+// stats (certains passifs changent les PV/défense). Renvoie une NOUVELLE équipe
+// (ne modifie pas la collection). À appeler juste avant de lancer un combat.
 function preparerEquipe(equipe, mode = 'principal') {
   if (!equipe || equipe.length === 0) return equipe
   return equipe.map((p) => {
     if (!p) return p
     const passifMode = passifPourMode(p, mode)
+    // Si le passif du mode est déjà celui en place, on évite un recalcul inutile.
     if (p.passifChoisi === passifMode) return p
     const maj = { ...p, passifChoisi: passifMode }
     return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
@@ -440,7 +438,7 @@ function App() {
   // Équipe dédiée à l'arène (uid des Pokémon), séparée de l'équipe principale.
   const [equipeAreneIds, setEquipeAreneIds] = useState([])
   // Dresseurs déjà vaincus en arène (ids) — une seule victoire par dresseur, pas de farm.
-  const [dresseursVaincus, setDresseursVaincus] = useState({})
+  const [dresseursVaincus, setDresseursVaincus] = useState([])
   // Dresseur actuellement sélectionné / affronté en arène.
   const [dresseurActif, setDresseurActif] = useState(null)
   // Équipe du dresseur chargée (Pokémon prêts au combat) + état de chargement.
@@ -1289,27 +1287,16 @@ function App() {
           if (data.equipeDefenseIds) setEquipeDefenseIds(data.equipeDefenseIds)
           if (data.equipeAttaqueIds) setEquipeAttaqueIds(data.equipeAttaqueIds)
           if (data.tutoVu) setTutoVu(true)
-          // Reset 3h : on n'accepte que le nouveau format objet { id: créneau }.
-          // Une ancienne save (tableau d'ids) est ignorée → reset au lancement.
-          if (data.dresseursVaincus && !Array.isArray(data.dresseursVaincus)) {
-            setDresseursVaincus(data.dresseursVaincus)
-          }
-          // Reset d'histoire forcé : si la save est d'une version antérieure, on repart zone 1.
-          const histoireDejaReset = data.resetHistoire === VERSION_RESET_HISTOIRE
-          setVictoiresParRoute(histoireDejaReset ? (data.victoiresParRoute || {}) : {})
-          setBossVaincus(histoireDejaReset ? (data.bossVaincus || {}) : {})
+          if (data.dresseursVaincus) setDresseursVaincus(data.dresseursVaincus)
+          setVictoiresParRoute(data.victoiresParRoute || {})
+          setBossVaincus(data.bossVaincus || {})
           setSuccesDebloques(data.succesDebloques || [])
           setAmeliorations(data.ameliorations || {})
           ameliorationsRef.current = data.ameliorations || {}
           bonusShinyGlobal = multiplicateur(data.ameliorations || {}, 'chroma')
           if (data.vitesse) setVitesse(data.vitesse)
           if (data.reglesCapture) { setReglesCapture(data.reglesCapture); reglesCaptureRef.current = data.reglesCapture }
-          // Si l'histoire n'a pas encore été reset (nouvelle version), on force le retour zone 1.
-          if (histoireDejaReset && data.routeActive) {
-            setRouteActive(data.routeActive); routeActiveRef.current = data.routeActive
-          } else {
-            setRouteActive('tutoriel'); routeActiveRef.current = 'tutoriel'
-          }
+          if (data.routeActive) { setRouteActive(data.routeActive); routeActiveRef.current = data.routeActive }
           capturesRef.current = data.captures || []
           victoiresParRouteRef.current = data.victoiresParRoute || {}
           bossVaincusRef.current = data.bossVaincus || {}
@@ -1347,7 +1334,7 @@ function App() {
 
   useEffect(() => {
     if (!partieChargee || captures.length === 0) return
-    const data = { resetHistoire: VERSION_RESET_HISTOIRE, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
+    const data = { captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
     localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify(data))
   }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds])
 
@@ -1428,7 +1415,7 @@ function App() {
           pvMax: Math.round(p.pvMax * bonusPuissance),
           attaque: Math.round(p.attaque * bonusPuissance),
         })
-      // Passifs PAR MODE : applique le passif 'principal' avant le combat.
+      // Passifs PAR MODE : on applique le passif du mode 'principal' avant le combat.
       equipeJoueur = preparerEquipe(equipeJoueur, 'principal')
       // Bonus d'équipe (Gardien = +PV équipe) appliqué à l'équipe joueur en combat.
       equipeJoueur = appliquerBonusEquipe(equipeJoueur)
@@ -1779,6 +1766,8 @@ function App() {
     setCaptures((liste) => liste.map((p) => {
       if (p.uid !== uidPokemon) return p
       const maj = { ...p, [champ]: clePassif }
+      // Recalcul des stats du mode principal seulement (le moteur lit passifChoisi en combat,
+      // mais preparerEquipe recopie le bon passif + recalcule avant chaque combat).
       if (champ === 'passifChoisi') {
         return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
       }
@@ -1888,44 +1877,76 @@ function App() {
     }
   }
 
-  function autoEquipe() {
+  // Calcule une équipe valide (1 à 2 par rôle, 4 rôles présents, 1 spécial max)
+  // à partir de la collection, en prenant les meilleurs (rareté puis niveau).
+  // Renvoie { choisis: [uid...], complet: bool, manquants: [role...] }.
+  function composerAutoEquipe() {
     const ordreRarete = { legendaire: 4, tresRare: 3, rare: 2, commun: 1 }
-    // Trie les Pokémon par rareté puis niveau (les meilleurs d'abord).
+    const ROLES4 = ['tank', 'eclaireur', 'soutien', 'dps']
+    const MIN = 1, MAX = 2, MAX_SPE = 1, TAILLE = 6
+
     const tries = [...captures].sort((a, b) => {
       const rA = ordreRarete[a.rarete] || 0
       const rB = ordreRarete[b.rarete] || 0
       if (rB !== rA) return rB - rA
       return (b.niveau || 1) - (a.niveau || 1)
     })
-    // On compose la team EN RESPECTANT la compo : 1 Tank, 1 Éclaireur, 2 Soutien, 2 DPS.
-    const besoin = { ...COMPOSITION_REQUISE } // {tank:1, eclaireur:1, soutien:2, dps:2}
+
     const choisis = []
     const famillesPrises = new Set()
-    let nbSpeciauxChoisis = 0
-    for (const poke of tries) {
-      const role = poke.role || determinerRole(poke)
-      if (!besoin[role] || besoin[role] <= 0) continue // ce rôle est déjà complet
+    const compteRole = { tank: 0, eclaireur: 0, soutien: 0, dps: 0 }
+    let nbSpe = 0
+
+    const peutPrendre = (poke, role) => {
       const fam = poke.familleId ?? poke.id
-      if (famillesPrises.has(fam)) continue
-      // Limite : 1 seul Pokémon spécial dans l'équipe auto.
-      if (estSpecial(poke)) {
-        if (nbSpeciauxChoisis >= 1) continue
-        nbSpeciauxChoisis += 1
-      }
-      famillesPrises.add(fam)
-      choisis.push(poke.uid)
-      besoin[role] -= 1
+      if (famillesPrises.has(fam)) return false
+      if (compteRole[role] === undefined || compteRole[role] >= MAX) return false
+      if (estSpecial(poke) && nbSpe >= MAX_SPE) return false
+      return true
     }
-    const manquants = Object.entries(besoin).filter(([, n]) => n > 0)
-    if (manquants.length > 0) {
-      const details = manquants.map(([r, n]) => `${n} ${ROLES[r].nom}`).join(', ')
-      alert(`Impossible de composer une équipe complète : il te manque ${details} dans ta collection.\n\nCapture plus de Pokémon de ces rôles !`)
+    const prendre = (poke, role) => {
+      famillesPrises.add(poke.familleId ?? poke.id)
+      if (estSpecial(poke)) nbSpe += 1
+      compteRole[role] += 1
+      choisis.push(poke.uid)
+    }
+
+    // Phase 1 : garantir 1 de chaque rôle (le meilleur dispo).
+    for (const role of ROLES4) {
+      const best = tries.find(
+        (p) => (p.role || determinerRole(p)) === role && !choisis.includes(p.uid) && peutPrendre(p, role)
+      )
+      if (best) prendre(best, role)
+    }
+    // Phase 2 : remplir les slots restants avec les meilleurs (max 2/rôle).
+    for (const poke of tries) {
+      if (choisis.length >= TAILLE) break
+      if (choisis.includes(poke.uid)) continue
+      const role = poke.role || determinerRole(poke)
+      if (peutPrendre(poke, role)) prendre(poke, role)
+    }
+
+    const manquants = ROLES4.filter((r) => compteRole[r] < MIN)
+    const complet = manquants.length === 0 && choisis.length === TAILLE
+    return { choisis, complet, manquants }
+  }
+
+  function autoEquipe() {
+    const { choisis, complet, manquants } = composerAutoEquipe()
+    if (!complet) {
+      if (manquants.length > 0) {
+        const details = manquants.map((r) => ROLES[r].nom).join(', ')
+        alert(`Impossible de composer une équipe complète : il te manque un Pokémon de rôle ${details} dans ta collection.\n\nCapture plus de Pokémon de ces rôles !`)
+      } else {
+        alert(`Impossible de composer une équipe complète de 6 : avec la règle « 2 maximum par rôle », il te faut plus de variété de rôles dans ta collection.`)
+      }
       return
     }
-    if (!confirm(`Composer automatiquement une équipe équilibrée (1 Tank, 1 Éclaireur, 2 Soutien, 2 DPS) avec tes meilleurs Pokémon ?`)) return
-    setEquipeIds(choisis)
-    equipeIdsRef.current = choisis
-    ajouterAuJournal(`⚡ Équipe équilibrée composée (1T/1E/2S/2D).`, 'info')
+    if (!confirm(`Composer automatiquement une équipe valide avec tes meilleurs Pokémon (1 à 2 par rôle, les 4 rôles présents, 1 spécial max) ?`)) return
+    const triee = trierIdsParRole(choisis, captures)
+    setEquipeIds(triee)
+    equipeIdsRef.current = triee
+    ajouterAuJournal(`⚡ Équipe équilibrée composée automatiquement.`, 'info')
   }
 
   function faireePrestige() {
@@ -2128,8 +2149,9 @@ function App() {
         setPvpMessage('Cet adversaire n\'a pas de défense valide.')
         return
       }
-      // Cap PvP : mon équipe d'attaque est ramenée à niveau 50 max (la défense l'est déjà).
+      // Passifs PAR MODE : applique le passif 'pvp' avant le cap de niveau.
       const equipeAttaquePreparee = preparerEquipe(equipeAttaque, 'pvp')
+      // Cap PvP : mon équipe d'attaque est ramenée à niveau 50 max (la défense l'est déjà).
       const equipeJoueurCapee = capperEquipePvp(equipeAttaquePreparee)
       setPvpCombat({ adversaire, equipeJoueur: equipeJoueurCapee, equipeAdverse })
     }
@@ -2299,7 +2321,7 @@ function App() {
         <>
           <CombatRaid
             raid={raidActif}
-            equipeJoueur={equipeRaid}
+            equipeJoueur={preparerEquipe(equipeRaid, 'principal')}
             vagues={vaguesRaid}
             vitesse={vitesse}
             onTermine={terminerRaid}
@@ -2346,7 +2368,7 @@ function App() {
   // ===== ÉCRAN MODE ARÈNE (remplace l'écran principal) =====
   if (modeJeu === 'arene') {
     const nbZonesArene = ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length
-    const listeDresseurs = etatsDresseursAvecReset(nbZonesArene, dresseursVaincus)
+    const listeDresseurs = etatsDresseurs(nbZonesArene, dresseursVaincus)
     const equipeArene = equipeAreneIds.map((uid) => captures.find((p) => p.uid === uid)).filter(Boolean)
     // L'équipe d'arène doit aussi respecter la compo 1T/1E/2S/2D pour combattre.
     const equipeAreneValide = compositionValide(equipeArene)
@@ -2364,6 +2386,23 @@ function App() {
         }
         return trierIdsParRole([...ids, uid], captures)
       })
+    }
+
+    // Auto-équipe pour l'arène : même règle que l'équipe principale.
+    function autoEquipeArene() {
+      const { choisis, complet, manquants } = composerAutoEquipe()
+      if (!complet) {
+        if (manquants.length > 0) {
+          const details = manquants.map((r) => ROLES[r].nom).join(', ')
+          alert(`Impossible de composer une équipe d'arène complète : il te manque un Pokémon de rôle ${details} dans ta collection.\n\nCapture plus de Pokémon de ces rôles !`)
+        } else {
+          alert(`Impossible de composer une équipe d'arène complète de 6 : avec la règle « 2 maximum par rôle », il te faut plus de variété de rôles.`)
+        }
+        return
+      }
+      if (!confirm(`Composer automatiquement ton équipe d'arène avec tes meilleurs Pokémon (1 à 2 par rôle, les 4 rôles présents, 1 spécial max) ?`)) return
+      const triee = trierIdsParRole(choisis, captures)
+      setEquipeAreneIds(triee)
     }
 
     // Lance un combat : charge l'équipe du dresseur puis bascule en combat.
@@ -2393,10 +2432,9 @@ function App() {
         if (r.argent) setPokeDollars((a) => a + Math.round(r.argent * multiplicateur(ameliorationsRef.current, 'champion')))
         if (r.bonbon) setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + r.bonbon }))
         if (r.objet) setObjets((o) => ({ ...o, [r.objet]: (o[r.objet] || 0) + 1 }))
-        // Marquer le dresseur comme vaincu POUR CE CRÉNEAU de 3h (refarm au reset suivant).
-        const creneau = creneauActuel()
-        const dejaVaincu = dresseursVaincus[dresseurActif.id] === creneau
-        setDresseursVaincus((v) => ({ ...v, [dresseurActif.id]: creneau }))
+        // Marquer le dresseur comme vaincu (une seule fois, débloque le suivant).
+        const dejaVaincu = dresseursVaincus.includes(dresseurActif.id)
+        setDresseursVaincus((v) => v.includes(dresseurActif.id) ? v : [...v, dresseurActif.id])
         ajouterAuJournal(`🏆 Arène : ${dresseurActif.nom} vaincu ! Récompense : ${decrireRecompenseDresseur(r)}`, 'victoire')
         // Pokémon spécial (boss) : débloqué la 1re fois qu'on bat ce boss.
         const special = specialDuBoss(dresseurActif.id)
@@ -2460,6 +2498,7 @@ function App() {
           equipeAreneIds={equipeAreneIds}
           captures={captures}
           onBasculerMembre={basculerMembreArene}
+          onAutoEquipe={autoEquipeArene}
           onCombattre={lancerCombatArene}
           decrireRecompense={decrireRecompenseDresseur}
           compoValide={equipeAreneValide}

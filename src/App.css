@@ -12030,3 +12030,13 @@ img[src*="PokeAPI/sprites"] {
   border-radius: 9px;
   text-shadow: none;
 }
+/* ============================================================
+   BOUTON ÉQUIPE AUTO — version écran Arène
+   À COLLER À LA FIN de src/App.css.
+   (Réutilise le style .bouton-auto-equipe déjà présent ; juste un
+    ajustement d'espacement pour l'écran arène.)
+   ============================================================ */
+
+.arene-auto-equipe {
+  margin: 0 0 10px;
+}

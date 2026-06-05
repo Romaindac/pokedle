@@ -140,6 +140,7 @@ function PanneauArene({
   equipeAreneIds,
   captures,
   onBasculerMembre,
+  onAutoEquipe,
   onCombattre,
   decrireRecompense,
   compoValide = false,
@@ -202,6 +203,12 @@ function PanneauArene({
 
         {/* ===== Équipe d'arène ===== */}
         <h3 className="arene-section-titre">Ton équipe d'arène ({equipeArene.length}/6)</h3>
+
+        {onAutoEquipe && (
+          <button className="bouton-auto-equipe arene-auto-equipe" onClick={onAutoEquipe}>
+            ⚡ Équipe auto
+          </button>
+        )}
 
         <IndicateurCompoArene equipe={equipeArene} valide={compoValide} />
 
