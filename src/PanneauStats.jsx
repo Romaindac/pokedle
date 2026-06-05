@@ -32,6 +32,8 @@ function Stats({
   totalZones = 100,
   totalDresseurs = 75,
   totalSpeciaux = 15,
+  pseudoActuel = '',
+  onChangerPseudo,
   onFermer,
 }) {
   const nbVus = pokedexVus.length
@@ -65,6 +67,18 @@ function Stats({
           <h2>📊 Statistiques</h2>
           <button className="bouton-fermer" onClick={onFermer}>✕</button>
         </div>
+
+        {onChangerPseudo && (
+          <div className="stats-pseudo">
+            <div className="stats-pseudo-info">
+              <span className="stats-pseudo-label">Pseudo du classement</span>
+              <span className="stats-pseudo-valeur">🏆 {pseudoActuel || '—'}</span>
+            </div>
+            <button className="stats-pseudo-bouton" onClick={onChangerPseudo}>
+              ✏️ Changer
+            </button>
+          </div>
+        )}
 
         <div className="stats-categories">
 

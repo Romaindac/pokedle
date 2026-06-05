@@ -42,6 +42,7 @@ import Classement from './Classement'
 import ChoixPseudo from './ChoixPseudo'
 import { chargerIdentite, envoyerScore } from './apiClassement'
 import { chargerTableNoms } from './pokedexNoms'
+import { creerHorloge } from './horlogeWorker'
 
 
 const CLE_SAUVEGARDE = 'pokedex-idle-save-v11'
@@ -404,6 +405,7 @@ function App() {
   const [journal, setJournal] = useState([])
   const [vueOuverte, setVueOuverte] = useState(null)
   const [identiteJoueur, setIdentiteJoueur] = useState(() => chargerIdentite())
+  const [changerPseudoOuvert, setChangerPseudoOuvert] = useState(false)
   const [modeJeu, setModeJeu] = useState('principal')
   const [tutoVu, setTutoVu] = useState(false)
   const [tutoMode, setTutoMode] = useState(null)
@@ -441,6 +443,8 @@ function App() {
   const [ameliorations, setAmeliorations] = useState({})
   const [combatBoss, setCombatBoss] = useState(false)
   const [tempsBossZone, setTempsBossZone] = useState(45)
+  const [autoZone, setAutoZone] = useState(false)
+  const [autoArene, setAutoArene] = useState(false)
   const [vitesse, setVitesse] = useState(1)
   const [choixStarterRequis, setChoixStarterRequis] = useState(false)
   const [captureRecente, setCaptureRecente] = useState(null)
@@ -471,6 +475,7 @@ function App() {
   const reglesCaptureRef = useRef({ shiny: 'auto', legendaire: 'auto', nouveau: 'auto', doublon: 'auto' })
   const routeActiveRef = useRef('tutoriel')
   const combatBossRef = useRef(false)
+  const autoZoneRef = useRef(false)
   const modeJeuRef = useRef('principal')
   const victoiresParRouteRef = useRef({})
   const bossVaincusRef = useRef({})
@@ -497,6 +502,7 @@ function App() {
   useEffect(() => { reglesCaptureRef.current = reglesCapture }, [reglesCapture])
   useEffect(() => { routeActiveRef.current = routeActive }, [routeActive])
   useEffect(() => { combatBossRef.current = combatBoss }, [combatBoss])
+  useEffect(() => { autoZoneRef.current = autoZone }, [autoZone])
 
   useEffect(() => {
     if (!combatBoss) { setTempsBossZone(45); return }
@@ -1172,6 +1178,21 @@ function App() {
           const capturesRecalc = (data.captures || []).map((p) =>
             p ? { ...p, role: determinerRole(p), passif: determinerPassif(p) } : p
           )
+          // Limite 2 exemplaires/objet : déséquipe les excédentaires et rend les objets au stock.
+          const stockObjets = { ...(data.objets || {}) }
+          const compteObjet = {}
+          let nbDesequipes = 0
+          for (let i = 0; i < capturesRecalc.length; i++) {
+            const p = capturesRecalc[i]
+            if (!p || !p.objetEquipe) continue
+            const id = p.objetEquipe
+            compteObjet[id] = (compteObjet[id] || 0) + 1
+            if (compteObjet[id] > 2) {
+              capturesRecalc[i] = { ...p, objetEquipe: null }
+              stockObjets[id] = (stockObjets[id] || 0) + 1
+              nbDesequipes += 1
+            }
+          }
           data.captures = capturesRecalc
           setCaptures(capturesRecalc)
           setEquipeIds(trierIdsParRole(data.equipeIds || [], capturesRecalc))
@@ -1183,7 +1204,10 @@ function App() {
           setBalls(data.balls || { poke: 0, super: 0, hyper: 0, master: 0 })
           setPierres(data.pierres || {})
           setBonbons(data.bonbons || {})
-          setObjets(data.objets || {})
+          setObjets(stockObjets)
+          if (nbDesequipes > 0) {
+            setTimeout(() => ajouterAuJournal(`${nbDesequipes} objet(s) en double déséquipé(s) (limite : 2 par objet). Rendus au sac.`, 'info'), 1500)
+          }
           if (data.objetsBoss) setObjetsBoss({ rouage: 0, cristal: 0, relique: 0, ...data.objetsBoss })
           if (data.parchemins) setParchemins(data.parchemins)
           setAchatsItems(data.achatsItems || {})
@@ -1305,7 +1329,26 @@ function App() {
   useEffect(() => {
     if (chargement) return
 
-    const horloge = setInterval(() => {
+    let dernierTic = Date.now()
+    let respawnA = 0 // timestamp auquel relancer le combat (0 = pas de respawn en attente)
+
+    const horloge = creerHorloge(() => {
+      const maintenant = Date.now()
+
+      // Respawn différé géré par horodatage (pas de setTimeout, non throttlé).
+      if (respawnA > 0 && maintenant >= respawnA) {
+        respawnA = 0
+        lancerCombatSuivant()
+        dernierTic = Date.now()
+        return
+      }
+      if (respawnA > 0) return
+
+      // Cadence d'un tic de combat selon la vitesse et la frénésie.
+      const intervalleCombat = VITESSE_COMBAT / (vitesse * multiplicateur(ameliorationsRef.current, 'frenesie'))
+      if (maintenant - dernierTic < intervalleCombat) return
+      dernierTic = maintenant
+
       if (transitionEnCours.current) return
       if (modeJeuRef.current === 'arene') return
       if (modeJeuRef.current === 'raid') return
@@ -1431,6 +1474,22 @@ function App() {
             ajouterAuJournal(`🔓 Zone suivante débloquée !`, 'victoire')
             setCombatBoss(false)
             combatBossRef.current = false
+            // Mode auto zone : on avance vers la zone suivante débloquée.
+            if (autoZoneRef.current) {
+              const bossVaincusMaj = { ...bossVaincusRef.current, [routeGagnee]: true }
+              const debloquees = ROUTES.filter((rt) => routeDebloquee(rt, bossVaincusMaj))
+              const idxActuel = debloquees.findIndex((rt) => rt.id === routeGagnee)
+              const suivante = idxActuel >= 0 ? debloquees[idxActuel + 1] : null
+              if (suivante) {
+                setRouteActive(suivante.id)
+                routeActiveRef.current = suivante.id
+                ajouterAuJournal(`➡️ Auto : direction ${suivante.nom} !`, 'info')
+              } else {
+                setAutoZone(false)
+                autoZoneRef.current = false
+                ajouterAuJournal(`🏁 Auto zone arrêté : dernière zone disponible atteinte.`, 'info')
+              }
+            }
             setTimeout(() => envoyerScoreThrottleRef.current(true), 0)
           } else {
             setVaincus((n) => n + 1)
@@ -1469,11 +1528,14 @@ function App() {
             ajouterAuJournal('Ton équipe est K.O. ! 💀 On recommence...', 'echec')
           }
         }
-        setTimeout(lancerCombatSuivant, PAUSE_RESPAWN / vitesse)
+        respawnA = Date.now() + (PAUSE_RESPAWN / vitesse)
       }
-    }, VITESSE_COMBAT / (vitesse * multiplicateur(ameliorationsRef.current, 'frenesie')))
+    })
 
-    return () => clearInterval(horloge)
+    // Le worker tique vite (40ms) ; le cadençage réel se fait par horodatage ci-dessus.
+    horloge.start(40)
+
+    return () => horloge.detruire()
   }, [chargement, vitesse])
 
   async function choisirStarters(noms) {
@@ -1724,6 +1786,15 @@ function App() {
     if (idObjet && (objets[idObjet] || 0) <= 0) {
       ajouterAuJournal(`Tu n'as pas de ${OBJETS[idObjet]?.nom || 'cet objet'} en stock.`, 'info')
       return
+    }
+
+    // Limite : 2 exemplaires max du même objet équipés sur toute la collection.
+    if (idObjet) {
+      const dejaEquipes = captures.filter((p) => p.uid !== uidPokemon && p.objetEquipe === idObjet).length
+      if (dejaEquipes >= 2) {
+        ajouterAuJournal(`Limite atteinte : ${OBJETS[idObjet]?.nom || 'cet objet'} ne peut être équipé que sur 2 Pokémon.`, 'info')
+        return
+      }
     }
 
     setObjets((stock) => {
@@ -2278,7 +2349,33 @@ function App() {
         }
       } else if (resultat === 'defaite' && dresseurActif) {
         ajouterAuJournal(`💀 Arène : défaite contre ${dresseurActif.nom}. Réessaie !`, 'echec')
+        if (autoArene) {
+          setAutoArene(false)
+          ajouterAuJournal(`⏸️ Auto dresseur arrêté (défaite).`, 'info')
+        }
+        setDresseurActif(null)
+        setEquipeDresseur(null)
+        return
       }
+
+      // Victoire : si auto dresseur actif, on enchaîne le prochain dresseur disponible.
+      if (resultat === 'victoire' && autoArene && dresseurActif) {
+        const creneau = creneauActuel()
+        const vaincusMaj = { ...dresseursVaincus, [dresseurActif.id]: creneau }
+        const liste = etatsDresseursAvecReset(nbZonesArene, vaincusMaj)
+        const prochainDresseur = liste.find((d) => d.etat === 'disponible') || null
+        setDresseurActif(null)
+        setEquipeDresseur(null)
+        if (prochainDresseur && prochainDresseur.equipe) {
+          ajouterAuJournal(`➡️ Auto : prochain dresseur, ${prochainDresseur.nom} !`, 'info')
+          setTimeout(() => lancerCombatArene(prochainDresseur), 600)
+        } else {
+          setAutoArene(false)
+          ajouterAuJournal(`🏁 Auto dresseur arrêté : plus de dresseur disponible.`, 'info')
+        }
+        return
+      }
+
       setDresseurActif(null)
       setEquipeDresseur(null)
     }
@@ -2325,7 +2422,15 @@ function App() {
           decrireRecompense={decrireRecompenseDresseur}
           compoValide={equipeAreneValide}
           compoDiagnostic={equipeAreneDiagnostic}
-          onRetour={() => setModeJeu('principal')}
+          autoArene={autoArene}
+          onToggleAuto={() => {
+            if (!equipeAreneValide) {
+              alert('Compose d\'abord une équipe d\'arène valide avant d\'activer le mode auto.')
+              return
+            }
+            setAutoArene((v) => !v)
+          }}
+          onRetour={() => { setAutoArene(false); setModeJeu('principal') }}
         />
         {renduTutoriel}
       </>
@@ -2679,6 +2784,22 @@ function App() {
             </p>
           </div>
 
+          <div className="panneau">
+            <div className="panneau-titre">
+              <img src="/icons/routes.png" alt="" className="panneau-icone" /> Mode auto
+            </div>
+            <button
+              className={`bouton-auto ${autoZone ? 'actif' : ''}`}
+              onClick={() => setAutoZone((v) => !v)}
+              title="Passe automatiquement à la zone suivante après chaque boss vaincu"
+            >
+              {autoZone ? '⏸️ Auto zone : ON' : '▶️ Auto zone : OFF'}
+            </button>
+            <p className="bouton-auto-aide">
+              Passe à la zone suivante dès qu'un boss est vaincu. S'arrête à la dernière zone.
+            </p>
+          </div>
+
           {!bossOk && (
             <div className="panneau">
               <div className="panneau-titre">
@@ -2799,6 +2920,18 @@ function App() {
       {!identiteJoueur && (
         <ChoixPseudo onValide={(identite) => setIdentiteJoueur(identite)} />
       )}
+      {identiteJoueur && changerPseudoOuvert && (
+        <ChoixPseudo
+          onValide={(identite) => {
+            setIdentiteJoueur(identite)
+            setChangerPseudoOuvert(false)
+            // Renvoie le score sous le nouveau pseudo (même ligne Supabase, l'id ne change pas).
+            setTimeout(() => envoyerScore(statsClassementRef.current), 0)
+            ajouterAuJournal(`Pseudo changé : ${identite.pseudo} 🏆`, 'info')
+          }}
+          onAnnuler={() => setChangerPseudoOuvert(false)}
+        />
+      )}
       {vueOuverte === 'classement' && (
         <Classement onFermer={() => setVueOuverte(null)} />
       )}
@@ -2902,6 +3035,8 @@ function App() {
           totalZones={ROUTES.length}
           totalDresseurs={DRESSEURS.length}
           totalSpeciaux={SPECIAUX.length}
+          pseudoActuel={identiteJoueur?.pseudo || ''}
+          onChangerPseudo={() => setChangerPseudoOuvert(true)}
           onFermer={() => setVueOuverte(null)}
         />
       )}

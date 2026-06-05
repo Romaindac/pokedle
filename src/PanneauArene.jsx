@@ -145,6 +145,8 @@ function PanneauArene({
   decrireRecompense,
   compoValide = false,
   compoDiagnostic = [],
+  autoArene = false,
+  onToggleAuto,
   onRetour,
 }) {
   const equipePrete = compoValide
@@ -305,6 +307,23 @@ function PanneauArene({
 
         {/* ===== Liste des dresseurs ===== */}
         <h3 className="arene-section-titre">Dresseurs ({listeDresseurs.filter((d) => d.etat === 'vaincu').length}/{listeDresseurs.length} vaincus)</h3>
+
+        {onToggleAuto && (
+          <div className="arene-auto-barre">
+            <button
+              className={`bouton-auto ${autoArene ? 'actif' : ''}`}
+              onClick={onToggleAuto}
+              disabled={!equipePrete}
+              title={equipePrete ? 'Enchaîne automatiquement le dresseur suivant après chaque victoire' : 'Compose d\'abord une équipe valide'}
+            >
+              {autoArene ? '⏸️ Auto dresseur : ON' : '▶️ Auto dresseur : OFF'}
+            </button>
+            <span className="arene-auto-aide">
+              Enchaîne le dresseur suivant après chaque victoire. S'arrête en cas de défaite.
+            </span>
+          </div>
+        )}
+
         <div className="arene-dresseurs">
           {listeDresseurs.map((d) => (
             <div key={d.id} className={`arene-dresseur etat-${d.etat} ${d.estBoss ? 'est-boss' : ''}`}>

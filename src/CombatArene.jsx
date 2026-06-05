@@ -3,14 +3,18 @@ import { ticCombat } from './moteurCombat'
 import CartePokemon from './CartePokemon'
 import TimerAnneau from './TimerAnneau'
 import { VITESSE_COMBAT } from './config'
+import { creerHorloge } from './horlogeWorker'
 
 // ============================================================
 // COMBAT D'ARÈNE — combat 6 contre 6 SIMULTANÉ (refonte : avant c'était du 1v1).
 //
-// Composant ISOLÉ : sa PROPRE boucle setInterval + son propre état (en refs),
+// Composant ISOLÉ : sa PROPRE boucle (horloge worker) + son propre état (en refs),
 // séparé de la boucle principale (mise en pause via modeJeuRef === 'arene' côté App).
 // Réutilise ticCombat (même moteur que le combat principal / PvP) sur les ÉQUIPES
 // COMPLÈTES → tous les passifs d'équipe (soin, buffs, malus) fonctionnent vraiment.
+//
+// La boucle est pilotée par un Web Worker (horlogeWorker) → continue à cadence
+// normale même quand l'onglet est en arrière-plan (pas de throttling navigateur).
 //
 // Spécificités arène conservées :
 //   - Timer de boss (dresseur.estBoss) : 45s pour gagner, sinon défaite.
@@ -90,10 +94,17 @@ function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse = 1, onTe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estBoss])
 
-  // ===== BOUCLE DE COMBAT 6v6 (isolée) =====
+  // ===== BOUCLE DE COMBAT 6v6 (isolée, pilotée par worker) =====
   useEffect(() => {
-    const horloge = setInterval(() => {
+    let dernierTic = Date.now()
+    const intervalleCombat = VITESSE_COMBAT / Math.max(1, vitesse)
+
+    const horloge = creerHorloge(() => {
       if (fini.current) return
+      const maintenant = Date.now()
+      if (maintenant - dernierTic < intervalleCombat) return
+      dernierTic = maintenant
+
       const e = etat.current
       const avantPvE = [...e.pvE]
       const avantPvJ = [...e.pvJ]
@@ -117,9 +128,12 @@ function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse = 1, onTe
       if (r.resultat !== 'en_cours') {
         finir(r.resultat)
       }
-    }, VITESSE_COMBAT / Math.max(1, vitesse))
+    })
 
-    return () => clearInterval(horloge)
+    // Le worker tique vite (40ms) ; le cadençage réel se fait par horodatage ci-dessus.
+    horloge.start(40)
+
+    return () => horloge.detruire()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vitesse])
 
