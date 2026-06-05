@@ -60,7 +60,7 @@ function Stats({
 
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="panneau-banc panneau-stats-doree" onClick={(e) => e.stopPropagation()}>
+      <div className="panneau-banc panneau-stats-doree stats-v2" onClick={(e) => e.stopPropagation()}>
         <div className="pokedex-entete">
           <h2>📊 Statistiques</h2>
           <button className="bouton-fermer" onClick={onFermer}>✕</button>

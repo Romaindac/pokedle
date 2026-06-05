@@ -31,7 +31,7 @@ function Succes({ succesDebloques, etatSucces, onFermer }) {
 
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="panneau-banc" onClick={(e) => e.stopPropagation()}>
+      <div className="panneau-banc succes-v2" onClick={(e) => e.stopPropagation()}>
         <div className="pokedex-entete">
           <h2>🏆 Succès ({debloques.length}/{SUCCES.length})</h2>
           <button className="bouton-fermer" onClick={onFermer}>✕</button>

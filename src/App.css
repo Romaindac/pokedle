@@ -11207,3 +11207,172 @@ img[src*="PokeAPI/sprites"] {
 }
 .sac-v2, .sac-v2 * { text-shadow: none !important; }
 .sac-v2 .bouton-fermer { color: #fff !important; }
+
+/* ============================================================
+   POP-UP STATS v2 — DA du menu Routes (parchemin clair + doré)
+   À COLLER À LA FIN de src/App.css.
+   ============================================================ */
+
+/* ---------- CONTENEUR ---------- */
+.panneau-banc.stats-v2 {
+  background: linear-gradient(180deg, #fff7e0, #f0ddae) !important;
+  border: 4px solid #c8a23a !important;
+  border-radius: 16px;
+  color: #4a3410;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+.stats-v2 .pokedex-entete { border-bottom: 2px dashed #c8a23a; }
+.stats-v2 .pokedex-entete h2 { color: #5a4520 !important; }
+
+/* ---------- CATÉGORIES ---------- */
+.stats-v2 .stats-categories { display: flex; flex-direction: column; gap: 12px; }
+.stats-v2 .stats-categorie {
+  background: rgba(255, 250, 235, 0.7);
+  border: 2px solid #b89348; border-radius: 12px;
+  overflow: hidden;
+}
+.stats-v2 .stats-categorie-titre {
+  background: linear-gradient(180deg, #ffe9a8, #f4d36a);
+  color: #5a4520 !important; font-weight: bold; font-size: 0.9rem;
+  padding: 8px 12px; border-bottom: 2px solid #c8a23a;
+}
+.stats-v2 .stats-categorie-corps { padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; }
+
+/* ---------- LIGNES DE STAT ---------- */
+.stats-v2 .stat-ligne-globale {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 1px solid #d8c08a; border-radius: 8px;
+  padding: 7px 11px;
+}
+.stats-v2 .stat-label-g { color: #6b5526 !important; font-size: 0.82rem; }
+.stats-v2 .stat-valeur-g { color: #4a3410 !important; font-weight: bold; font-size: 0.84rem; }
+
+/* Lignes mises en avant (fort). */
+.stats-v2 .stat-ligne-fort {
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+  border-color: #e0b93d;
+  box-shadow: 0 0 0 1px #e0b93d inset;
+}
+.stats-v2 .stat-ligne-fort .stat-valeur-g { color: #c8901a !important; }
+
+/* ---------- TEXTE : foncé partout + pas d'ombre ---------- */
+.stats-v2,
+.stats-v2 h2, .stats-v2 span, .stats-v2 div, .stats-v2 button {
+  color: #4a3410;
+}
+.stats-v2, .stats-v2 * { text-shadow: none !important; }
+.stats-v2 .bouton-fermer { color: #fff !important; }
+.stats-v2 .stat-ligne-fort .stat-valeur-g { color: #c8901a !important; }
+/* ============================================================
+   POP-UP SUCCÈS v2 — DA du menu Routes (parchemin clair + doré)
+   À COLLER À LA FIN de src/App.css.
+   ============================================================ */
+
+/* ---------- CONTENEUR ---------- */
+.panneau-banc.succes-v2 {
+  background: linear-gradient(180deg, #fff7e0, #f0ddae) !important;
+  border: 4px solid #c8a23a !important;
+  border-radius: 16px;
+  color: #4a3410;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+.succes-v2 .pokedex-entete { border-bottom: 2px dashed #c8a23a; }
+.succes-v2 .pokedex-entete h2 { color: #5a4520 !important; }
+
+/* ---------- LISTE / FAMILLES ---------- */
+.succes-v2 .succes-liste { display: flex; flex-direction: column; gap: 14px; }
+.succes-v2 .succes-famille {
+  background: rgba(255, 250, 235, 0.7);
+  border: 2px solid #b89348; border-radius: 12px; overflow: hidden;
+}
+.succes-v2 .succes-famille-titre {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(180deg, #ffe9a8, #f4d36a);
+  color: #5a4520 !important; font-weight: bold; font-size: 0.88rem;
+  padding: 8px 12px; border-bottom: 2px solid #c8a23a;
+}
+.succes-v2 .succes-famille-compte { color: #7a5a1e !important; font-size: 0.8rem; }
+
+/* ---------- ITEMS ---------- */
+.succes-v2 .succes-item {
+  display: flex; align-items: center; gap: 11px;
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border-top: 1px solid #e3d2a4;
+  padding: 9px 12px;
+}
+.succes-v2 .succes-item.obtenu { background: linear-gradient(180deg, #fffaee, #f7e9c2); }
+.succes-v2 .succes-item:not(.obtenu) { opacity: 0.78; }
+.succes-v2 .succes-emoji { font-size: 1.4rem; flex-shrink: 0; }
+.succes-v2 .succes-infos { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.succes-v2 .succes-nom { color: #4a3410 !important; font-weight: bold; font-size: 0.84rem; }
+.succes-v2 .succes-desc { color: #8a7038 !important; font-size: 0.72rem; }
+
+/* Barre de progression */
+.succes-v2 .succes-barre {
+  position: relative; height: 16px; border-radius: 8px;
+  background: #e3d2a4; border: 1px solid #c8a23a; overflow: hidden; margin-top: 2px;
+}
+.succes-v2 .succes-barre-remplissage {
+  height: 100%; background: linear-gradient(90deg, #ffd451, #e0a81e);
+}
+.succes-v2 .succes-barre-texte {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 0.62rem; color: #4a3410 !important; font-weight: bold;
+}
+
+/* Récompense (colonne droite) */
+.succes-v2 .succes-recompense {
+  flex-shrink: 0; color: #7a5a1e !important; font-size: 0.76rem; font-weight: bold;
+  text-align: right; max-width: 110px;
+}
+.succes-v2 .succes-item.obtenu .succes-recompense { color: #2e7d32 !important; font-size: 1rem; }
+
+/* ---------- TEXTE : foncé + pas d'ombre ---------- */
+.succes-v2,
+.succes-v2 h2, .succes-v2 span, .succes-v2 div, .succes-v2 button {
+  color: #4a3410;
+}
+.succes-v2, .succes-v2 * { text-shadow: none !important; }
+.succes-v2 .bouton-fermer { color: #fff !important; }
+.succes-v2 .succes-item.obtenu .succes-recompense { color: #2e7d32 !important; }
+/* ============================================================
+   SUCCÈS — CORRECTIFS  (à coller À LA FIN de src/App.css,
+   APRÈS le bloc "POP-UP SUCCÈS v2").
+   1) Description en brun foncé lisible.
+   2) Les textes ne débordent plus (retour à la ligne au lieu de dépasser).
+   ============================================================ */
+
+/* 1) Description plus foncée. */
+.succes-v2 .succes-desc { color: #5a4520 !important; }
+.succes-v2 .succes-nom { color: #4a3410 !important; }
+
+/* 2) Anti-débordement : les textes reviennent à la ligne et restent dans la case. */
+.succes-v2 .succes-infos {
+  flex: 1;
+  min-width: 0;          /* indispensable pour que le texte se coupe dans un flex */
+  overflow: hidden;
+}
+.succes-v2 .succes-nom,
+.succes-v2 .succes-desc {
+  white-space: normal !important;   /* autorise le passage à la ligne */
+  overflow-wrap: anywhere;          /* coupe les mots trop longs si besoin */
+  word-break: break-word;
+  line-height: 1.25;
+}
+
+/* La récompense de droite ne mange pas tout l'espace. */
+.succes-v2 .succes-recompense {
+  flex-shrink: 0;
+  max-width: 96px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+/* L'item s'adapte en hauteur au contenu (pas de coupe verticale). */
+.succes-v2 .succes-item {
+  align-items: flex-start;
+  min-height: 0;
+  height: auto;
+}
