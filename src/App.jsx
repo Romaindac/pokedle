@@ -1416,13 +1416,18 @@ function App() {
               for (const k in a) reduit[k] = Math.max(0, a[k] - 1)
               return reduit
             })
-            const bonbonsBoss = 1 + (Math.random() < (multiplicateur(ameliorationsRef.current, 'gourmandise') - 1) ? 1 : 0)
-            setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + bonbonsBoss }))
+            const chanceBonbon = 0.10 * multiplicateur(ameliorationsRef.current, 'gourmandise')
+            const bonbonsBoss = Math.random() < chanceBonbon ? 1 : 0
+            if (bonbonsBoss > 0) {
+              setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + bonbonsBoss }))
+            }
             tirerObjetsBoss('zone')
             if (boss) {
               ajouterAuJournal(`👑 BOSS VAINCU ! ${boss.nom} ✨ terrassé ! (+${gainBoss} 💰)`, 'victoire')
             }
-            ajouterAuJournal(`${BONBONS['super-bonbon'].emoji} Butin de boss : ${bonbonsBoss} ${BONBONS['super-bonbon'].nom}${bonbonsBoss > 1 ? 's' : ''} !`, 'capture')
+            if (bonbonsBoss > 0) {
+              ajouterAuJournal(`${BONBONS['super-bonbon'].emoji} Butin de boss : ${bonbonsBoss} ${BONBONS['super-bonbon'].nom} !`, 'capture')
+            }
             ajouterAuJournal(`🔓 Zone suivante débloquée !`, 'victoire')
             setCombatBoss(false)
             combatBossRef.current = false
@@ -2104,7 +2109,7 @@ function App() {
       if (resultat === 'victoire' && raidActif) {
         const r = raidActif.recompense || {}
         if (r.argent) setPokeDollars((a) => a + r.argent)
-        if (r.bonbons) setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + r.bonbons }))
+        if (r.bonbons && Math.random() < 0.10) setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + r.bonbons }))
         ajouterAuJournal(`🏆 Raid « ${raidActif.nom} » réussi ! +${r.argent || 0} 💰`, 'victoire')
         tirerObjetsBoss('raid')
 
@@ -2250,7 +2255,7 @@ function App() {
       if (resultat === 'victoire' && dresseurActif) {
         const r = dresseurActif.recompense
         if (r.argent) setPokeDollars((a) => a + Math.round(r.argent * multiplicateur(ameliorationsRef.current, 'champion')))
-        if (r.bonbon) setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + r.bonbon }))
+        if (r.bonbon && Math.random() < 0.10) setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + r.bonbon }))
         if (r.objet) setObjets((o) => ({ ...o, [r.objet]: (o[r.objet] || 0) + 1 }))
         tirerObjetsBoss('arene')
         const creneau = creneauActuel()
