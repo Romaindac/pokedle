@@ -36,7 +36,7 @@ function Boutique({ pokeDollars, balls, pierres, bonbons = {}, objets = {}, parc
 
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="panneau-banc theme-boutique panneau-boutique-doree" onClick={(e) => e.stopPropagation()}>
+      <div className="panneau-banc theme-boutique panneau-boutique-doree boutique-v2" onClick={(e) => e.stopPropagation()}>
         <div className="pokedex-entete">
           <h2>🛒 Boutique</h2>
           <button className="bouton-fermer" onClick={onFermer}>✕</button>

@@ -126,7 +126,7 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
 
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="panneau-pokedex panneau-pokedex-doree" onClick={(e) => e.stopPropagation()}>
+      <div className="panneau-pokedex panneau-pokedex-doree pokedex-v2" onClick={(e) => e.stopPropagation()}>
         <div className="pokedex-entete">
           <h2>
             {onglet === 'dex'

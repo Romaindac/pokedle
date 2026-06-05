@@ -10730,3 +10730,367 @@ img[src*="PokeAPI/sprites"] {
 /* Boutons "Retirer" : texte rouge foncé sur fond rose. */
 .equipe-v2 .bouton-retirer,
 .equipe-v2 .bouton-retirer-objet-v2 { color: #6a1410 !important; }
+/* ============================================================
+   POP-UP POKÉDEX v2 — DA du menu Routes (parchemin clair + doré)
+   À COLLER À LA FIN de src/App.css.
+   Préfixé .pokedex-v2 → écrase l'ancien style sombre sans le modifier.
+   ============================================================ */
+
+/* ---------- CONTENEUR ---------- */
+.panneau-pokedex.pokedex-v2 {
+  background: linear-gradient(180deg, #fff7e0, #f0ddae) !important;
+  border: 4px solid #c8a23a !important;
+  border-radius: 16px;
+  color: #4a3410;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* En-tête */
+.pokedex-v2 .pokedex-entete { border-bottom: 2px dashed #c8a23a; }
+.pokedex-v2 .pokedex-entete h2 { color: #5a4520 !important; }
+
+/* ---------- BOUTONS DE MODE / ONGLETS ---------- */
+.pokedex-v2 .pokedex-modes { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; }
+.pokedex-v2 .mode-btn {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important;
+  border-radius: 9px;
+  color: #4a3410 !important;
+  font-family: inherit; font-size: 0.78rem; padding: 7px 11px; cursor: pointer;
+  transition: transform 0.08s, border-color 0.12s, box-shadow 0.12s;
+}
+.pokedex-v2 .mode-btn:hover { border-color: #e0b93d !important; transform: translateY(-1px); }
+.pokedex-v2 .mode-btn.actif {
+  background: linear-gradient(180deg, #ffe9a8, #f4d36a) !important;
+  border-color: #e0b93d !important;
+  box-shadow: 0 0 0 1px #e0b93d inset;
+}
+
+/* ---------- COMPTEUR PAR GÉNÉRATION ---------- */
+.pokedex-v2 .dex-completion {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 7px; margin-bottom: 12px;
+}
+.pokedex-v2 .dex-gen {
+  background: rgba(255, 250, 235, 0.7);
+  border: 1px solid #d8c08a; border-radius: 9px;
+  padding: 6px 9px; display: flex; flex-direction: column; gap: 3px;
+}
+.pokedex-v2 .dex-gen-nom { color: #5a4520 !important; font-weight: bold; font-size: 0.72rem; }
+.pokedex-v2 .dex-gen-compte { color: #8a7038 !important; font-size: 0.68rem; }
+.pokedex-v2 .dex-gen-barre {
+  height: 8px; border-radius: 5px; background: #e3d2a4; overflow: hidden;
+  border: 1px solid #c8a23a;
+}
+.pokedex-v2 .dex-gen-fill { display: block; height: 100%; background: linear-gradient(90deg, #ffd451, #e0a81e); }
+
+/* ---------- GRILLE DE CASES ---------- */
+.pokedex-v2 .pokedex-grille {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 7px;
+}
+.pokedex-v2 .case-pokedex {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important;
+  border-radius: 10px;
+  padding: 4px 2px;
+  display: flex; flex-direction: column; align-items: center;
+  position: relative;
+}
+.pokedex-v2 .case-pokedex.capturee { border-color: #e0b93d !important; background: linear-gradient(180deg, #fffaee, #f7e9c2) !important; }
+.pokedex-v2 .case-pokedex.case-shiny { border-color: #ffcd75 !important; box-shadow: 0 0 8px rgba(255, 205, 117, 0.6); }
+.pokedex-v2 .sprite-pokedex { width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated; }
+.pokedex-v2 .sprite-pokedex.non-capture { filter: brightness(0) opacity(0.4); }
+.pokedex-v2 .numero { color: #8a7038 !important; font-size: 0.6rem; }
+.pokedex-v2 .dex-shiny-mark { position: absolute; top: 2px; right: 3px; font-size: 0.65rem; }
+
+/* ---------- SPÉCIAUX ---------- */
+.pokedex-v2 .speciaux-section-titre { color: #7a5a1e !important; font-size: 0.85rem; margin: 12px 0 8px; }
+.pokedex-v2 .case-speciale-nom { color: #5a4520 !important; font-size: 0.6rem; text-align: center; }
+.pokedex-v2 .case-speciale-boss { color: #8a7038 !important; font-size: 0.56rem; text-align: center; }
+
+/* ---------- RÉCOMPENSES ---------- */
+.pokedex-v2 .recomp-intro { color: #5a4520 !important; font-size: 0.82rem; margin-bottom: 10px; }
+.pokedex-v2 .recomp-titre { color: #7a5a1e !important; font-size: 0.88rem; margin: 12px 0 7px; border-bottom: 2px dashed #c8a23a; padding-bottom: 5px; }
+.pokedex-v2 .recomp-ligne {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348; border-radius: 10px;
+  padding: 8px 11px; margin-bottom: 7px;
+}
+.pokedex-v2 .recomp-reclame { opacity: 0.75; }
+.pokedex-v2 .recomp-verrouille { opacity: 0.6; filter: grayscale(0.3); }
+.pokedex-v2 .recomp-dispo { border-color: #e0b93d; box-shadow: 0 0 0 1px #e0b93d inset; }
+.pokedex-v2 .recomp-nom { color: #5a4520 !important; font-weight: bold; font-size: 0.82rem; display: block; }
+.pokedex-v2 .recomp-sous { color: #8a7038 !important; font-size: 0.7rem; display: block; }
+.pokedex-v2 .recomp-gains { color: #4a3410 !important; font-size: 0.74rem; display: block; }
+.pokedex-v2 .recomp-badge-ok { color: #2e7d32 !important; font-size: 0.74rem; font-weight: bold; }
+.pokedex-v2 .recomp-badge-lock { font-size: 0.9rem; }
+.pokedex-v2 .bouton-reclamer {
+  background: linear-gradient(180deg, #ffd451, #e0a81e);
+  border: none; border-radius: 9px; color: #4a3410; font-family: inherit;
+  font-weight: bold; font-size: 0.76rem; padding: 7px 12px; cursor: pointer;
+  box-shadow: 0 2px 0 #b8861a;
+}
+.pokedex-v2 .bouton-reclamer:hover { transform: translateY(-1px); }
+
+.pokedex-v2 .banc-vide { color: #7a6334 !important; }
+
+/* ---------- TEXTE : foncé partout + pas d'ombre ---------- */
+.pokedex-v2,
+.pokedex-v2 h2, .pokedex-v2 h3, .pokedex-v2 p, .pokedex-v2 span,
+.pokedex-v2 button, .pokedex-v2 strong {
+  color: #4a3410;
+}
+.pokedex-v2, .pokedex-v2 * { text-shadow: none !important; }
+
+/* Exceptions de couleur à remettre après la règle large. */
+.pokedex-v2 .recomp-badge-ok { color: #2e7d32 !important; }
+.pokedex-v2 .bouton-fermer { color: #fff !important; }
+.pokedex-v2 .mode-btn.actif { color: #4a3410 !important; }
+/* ============================================================
+   POP-UP BOUTIQUE v2 — DA du menu Routes (parchemin clair + doré)
+   À COLLER À LA FIN de src/App.css.
+   Préfixé .boutique-v2 → écrase l'ancien style sans le modifier.
+   ============================================================ */
+
+/* ---------- CONTENEUR ---------- */
+.panneau-banc.boutique-v2 {
+  background: linear-gradient(180deg, #fff7e0, #f0ddae) !important;
+  border: 4px solid #c8a23a !important;
+  border-radius: 16px;
+  color: #4a3410;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+.boutique-v2 .pokedex-entete { border-bottom: 2px dashed #c8a23a; }
+.boutique-v2 .pokedex-entete h2 { color: #5a4520 !important; }
+
+/* ---------- BANNIÈRE + ARGENT ---------- */
+.boutique-v2 .banniere-mode {
+  background: linear-gradient(180deg, #fffaee, #f7e9c2) !important;
+  border: 2px solid #b89348; border-radius: 10px;
+  color: #5a4520 !important; padding: 8px 12px; font-size: 0.82rem;
+  margin-bottom: 10px;
+}
+.boutique-v2 .boutique-argent {
+  color: #5a4520 !important; font-weight: bold; font-size: 0.9rem;
+  display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+}
+
+/* ---------- ONGLETS ---------- */
+.boutique-v2 .boutique-onglets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.boutique-v2 .mode-btn {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important; border-radius: 9px;
+  color: #4a3410 !important; font-family: inherit; font-size: 0.76rem;
+  padding: 7px 10px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: transform 0.08s, border-color 0.12s;
+}
+.boutique-v2 .mode-btn:hover { border-color: #e0b93d !important; transform: translateY(-1px); }
+.boutique-v2 .mode-btn.actif {
+  background: linear-gradient(180deg, #ffe9a8, #f4d36a) !important;
+  border-color: #e0b93d !important; box-shadow: 0 0 0 1px #e0b93d inset;
+}
+
+/* ---------- INFOS (indispo / aide) ---------- */
+.boutique-v2 .boutique-indispo-info,
+.boutique-v2 .boutique-bonbons-aide {
+  background: rgba(255, 250, 235, 0.7);
+  border: 1px dashed #c8a23a; border-radius: 9px;
+  color: #7a5a1e !important; font-size: 0.76rem; padding: 8px 11px; margin-bottom: 10px;
+}
+
+/* ---------- ITEMS ---------- */
+.boutique-v2 .boutique-grille { display: flex; flex-direction: column; gap: 8px; }
+.boutique-v2 .boutique-item {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4) !important;
+  border: 2px solid #b89348 !important; border-radius: 12px;
+  padding: 9px 11px;
+}
+.boutique-v2 .boutique-item-info { display: flex; align-items: center; gap: 10px; }
+.boutique-v2 .boutique-item-emoji { font-size: 1.4rem; display: flex; align-items: center; }
+.boutique-v2 .item-ball-img { width: 34px; height: 34px; object-fit: contain; image-rendering: pixelated; }
+.boutique-v2 .boutique-item-texte { flex: 1; display: flex; flex-direction: column; }
+.boutique-v2 .boutique-item-nom { color: #4a3410 !important; font-weight: bold; font-size: 0.84rem; }
+.boutique-v2 .boutique-item-stock { color: #8a7038 !important; font-size: 0.7rem; }
+.boutique-v2 .boutique-item-prix {
+  color: #5a4520 !important; font-weight: bold; font-size: 0.84rem;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.boutique-v2 .boutique-item-prix.prix-majore { color: #c0392b !important; }
+
+/* Boutons d'achat en lot */
+.boutique-v2 .boutique-item-boutons { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.boutique-v2 .bouton-achat-lot {
+  background: linear-gradient(180deg, #ffd451, #e0a81e) !important;
+  border: none !important; border-radius: 8px;
+  color: #4a3410 !important; font-family: inherit; font-weight: bold; font-size: 0.76rem;
+  padding: 6px 12px; cursor: pointer; box-shadow: 0 2px 0 #b8861a;
+  transition: transform 0.08s;
+}
+.boutique-v2 .bouton-achat-lot:hover:not(:disabled) { transform: translateY(-1px); }
+.boutique-v2 .bouton-achat-lot:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #b8861a; }
+.boutique-v2 .bouton-achat-lot:disabled {
+  background: #e8dcc0 !important; color: #b09a64 !important;
+  box-shadow: 0 2px 0 #c8b88a; cursor: not-allowed; opacity: 0.8;
+}
+
+/* ---------- STOCK BONBONS ---------- */
+.boutique-v2 .boutique-bonbons-stock { display: flex; flex-direction: column; gap: 6px; }
+.boutique-v2 .bonbon-stock-ligne {
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348; border-radius: 10px; padding: 7px 11px;
+}
+.boutique-v2 .bonbon-stock-compte { color: #5a4520 !important; font-weight: bold; }
+
+/* ---------- TEXTE : foncé partout + pas d'ombre ---------- */
+.boutique-v2,
+.boutique-v2 h2, .boutique-v2 h3, .boutique-v2 p, .boutique-v2 span, .boutique-v2 button {
+  color: #4a3410;
+}
+.boutique-v2, .boutique-v2 * { text-shadow: none !important; }
+
+/* Exceptions à remettre après la règle large. */
+.boutique-v2 .boutique-item-prix.prix-majore { color: #c0392b !important; }
+.boutique-v2 .bouton-fermer { color: #fff !important; }
+.boutique-v2 .bouton-achat-lot:disabled { color: #b09a64 !important; }
+/* FIX sprites coupés dans la Boutique (objets/pierres rognés par le cercle) */
+.boutique-v2 .boutique-item-emoji {
+  width: 44px; height: 44px; min-width: 44px;
+  border-radius: 10px !important;
+  overflow: visible !important;
+  background: transparent !important;
+  display: flex; align-items: center; justify-content: center;
+}
+.boutique-v2 .item-ball-img {
+  width: 40px !important; height: 40px !important;
+  max-width: 40px; max-height: 40px;
+  object-fit: contain !important;
+  image-rendering: pixelated;
+}
+/* ============================================================
+   FIX FORT — SPRITES COUPÉS BOUTIQUE  (à coller À LA FIN de src/App.css,
+   APRÈS le bloc boutique v2).
+   Un cercle (border-radius:50% + overflow/clip) rognait les sprites.
+   On neutralise le rognage à TOUS les niveaux avec forte spécificité.
+   ============================================================ */
+
+/* Conteneur de l'icône : plus de cercle, plus de rognage. */
+.boutique-v2 .boutique-item .boutique-item-emoji,
+.boutique-v2 .bonbon-stock-ligne .boutique-item-emoji {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  border-radius: 8px !important;
+  overflow: visible !important;
+  clip-path: none !important;
+  background: transparent !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+/* L'image elle-même : carré, proportions gardées, pas de rognage. */
+.boutique-v2 .boutique-item .item-ball-img,
+.boutique-v2 .bonbon-stock-ligne .item-ball-img,
+.boutique-v2 .boutique-item-emoji img,
+.boutique-v2 .boutique-item-emoji .item-ball-img {
+  width: 42px !important;
+  height: 42px !important;
+  max-width: 42px !important;
+  max-height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  clip-path: none !important;
+  object-fit: contain !important;
+  image-rendering: pixelated;
+}
+/* Agrandir les cases de la boutique (le sprite entier rentre) */
+.boutique-v2 .boutique-item { padding: 14px 14px !important; }
+.boutique-v2 .boutique-item .boutique-item-emoji,
+.boutique-v2 .bonbon-stock-ligne .boutique-item-emoji {
+  width: 60px !important; height: 60px !important; min-width: 60px !important;
+}
+.boutique-v2 .boutique-item .item-ball-img,
+.boutique-v2 .bonbon-stock-ligne .item-ball-img,
+.boutique-v2 .boutique-item-emoji img,
+.boutique-v2 .boutique-item-emoji .item-ball-img {
+  width: 56px !important; height: 56px !important;
+  max-width: 56px !important; max-height: 56px !important;
+  min-width: 56px !important; min-height: 56px !important;
+}
+/* ============================================================
+   BOUTIQUE — UNIFORMISER LA TAILLE DES CASES
+   À COLLER À LA FIN de src/App.css (APRÈS les blocs boutique précédents).
+   Toutes les cases d'items ont la même taille que celles des Poké Balls.
+   ⚠️ Ce bloc REMPLACE les réglages de taille précédents (agrandir/rapetisser) :
+   il vient après donc il gagne.
+   ============================================================ */
+
+/* Toutes les cases d'items : même hauteur mini + mise en page identique. */
+.boutique-v2 .boutique-item {
+  min-height: 104px !important;          /* hauteur des cases de balls (4 boutons) */
+  padding: 12px 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;  /* infos en haut, boutons en bas */
+  box-sizing: border-box !important;
+}
+
+/* La ligne d'infos garde sa place en haut. */
+.boutique-v2 .boutique-item-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+/* Zone d'icône : taille confortable, sprite entier. */
+.boutique-v2 .boutique-item .boutique-item-emoji {
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  border-radius: 8px !important;
+  overflow: visible !important;
+  clip-path: none !important;
+  background: transparent !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.boutique-v2 .boutique-item .item-ball-img,
+.boutique-v2 .boutique-item-emoji img {
+  width: 48px !important;
+  height: 48px !important;
+  max-width: 48px !important;
+  max-height: 48px !important;
+  border-radius: 0 !important;
+  object-fit: contain !important;
+  image-rendering: pixelated;
+}
+
+/* Rangée de boutons : toujours en bas, alignée. */
+.boutique-v2 .boutique-item-boutons {
+  display: flex !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  margin-top: 10px !important;
+}
+
+/* Lignes de stock bonbons : même hauteur de cadre pour rester cohérent. */
+.boutique-v2 .bonbon-stock-ligne {
+  min-height: 64px !important;
+  align-items: center !important;
+}
+.boutique-v2 .bonbon-stock-ligne .boutique-item-emoji {
+  width: 52px !important; height: 52px !important; min-width: 52px !important;
+}
+.boutique-v2 .bonbon-stock-ligne .item-ball-img {
+  width: 48px !important; height: 48px !important; object-fit: contain !important;
+}
