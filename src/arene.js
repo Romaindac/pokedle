@@ -31,7 +31,6 @@ export const DRESSEURS = [
     equipe: ['onix', 'shellder', 'oddish'],
     recompense: { argent: 1600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss5', nom: 'Giovanni', titre: 'Chef de la Team Rocket',
     emoji: '🚀', theme: 'Sol', debloqueA: 6, sprite: SPRITE_DRESSEUR + 'giovanni.png', niveau: 19,
@@ -64,7 +63,6 @@ export const DRESSEURS = [
     equipe: ['rhyhorn', 'hoothoot', 'totodile'],
     recompense: { argent: 3600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss10', nom: 'Archie', titre: 'Maître de la Team Aqua',
     emoji: '🌊', theme: 'Eau', debloqueA: 13, sprite: SPRITE_DRESSEUR + 'archie.png', niveau: 35,
@@ -97,7 +95,6 @@ export const DRESSEURS = [
     equipe: ['flaaffy', 'sunkern', 'hoppip'],
     recompense: { argent: 5600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss15', nom: 'Maxie', titre: 'Chef de la Team Magma',
     emoji: '🌋', theme: 'Feu', debloqueA: 20, sprite: SPRITE_DRESSEUR + 'maxie.png', niveau: 50,
@@ -130,7 +127,6 @@ export const DRESSEURS = [
     equipe: ['pupitar', 'wingull', 'nincada', 'smoochum'],
     recompense: { argent: 7600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss20', nom: 'Cyrus', titre: 'Leader de la Team Galaxie',
     emoji: '🌌', theme: 'Ténèbres', debloqueA: 26, sprite: SPRITE_DRESSEUR + 'cyrus.png', niveau: 66,
@@ -163,7 +159,6 @@ export const DRESSEURS = [
     equipe: ['lairon', 'corphish', 'wailmer', 'meditite'],
     recompense: { argent: 9600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss25', nom: 'Ghetsis', titre: 'Team Plasma',
     emoji: '👁️', theme: 'Poison', debloqueA: 32, sprite: SPRITE_DRESSEUR + 'ghetsis.png', niveau: 82,
@@ -196,7 +191,6 @@ export const DRESSEURS = [
     equipe: ['walrein', 'shieldon', 'clamperl', 'starly'],
     recompense: { argent: 11600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss30', nom: 'Lysandre', titre: 'Team Flare',
     emoji: '🔥', theme: 'Feu', debloqueA: 39, sprite: SPRITE_DRESSEUR + 'lysandre.png', niveau: 97,
@@ -229,7 +223,6 @@ export const DRESSEURS = [
     equipe: ['cherrim', 'bronzong', 'pansage', 'bronzor'],
     recompense: { argent: 13600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss35', nom: 'Brock', titre: 'Champion de Roche',
     emoji: '🪨', theme: 'Roche', debloqueA: 46, sprite: SPRITE_DRESSEUR + 'brock.png', niveau: 113,
@@ -262,7 +255,6 @@ export const DRESSEURS = [
     equipe: ['porygon-z', 'pignite', 'woobat', 'tirtouga'],
     recompense: { argent: 15600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss40', nom: 'Erika', titre: 'Reine des Plantes',
     emoji: '🌸', theme: 'Plante', debloqueA: 52, sprite: SPRITE_DRESSEUR + 'erika.png', niveau: 128,
@@ -279,26 +271,25 @@ export const DRESSEURS = [
   },
   {
     id: 'dr42', nom: 'Mystik Eden', titre: 'Spectre',
-    emoji: '👻', theme: 'Spectre', debloqueA: 55, sprite: SPRITE_DRESSEUR + 'hexmaniac-gen6.png', niveau: 113,
+    emoji: '👻', theme: 'Spectre', debloqueA: 55, sprite: SPRITE_DRESSEUR + 'hexmaniac-gen6.png', niveau: 114,
     equipe: ['scolipede', 'musharna', 'vanillite', 'karrablast'],
     recompense: { argent: 16800 },
   },
   {
     id: 'dr43', nom: 'Karatéka Dante', titre: 'Combat',
-    emoji: '🥋', theme: 'Combat', debloqueA: 56, sprite: SPRITE_DRESSEUR + 'blackbelt-gen4dp.png', niveau: 115,
+    emoji: '🥋', theme: 'Combat', debloqueA: 56, sprite: SPRITE_DRESSEUR + 'blackbelt-gen4dp.png', niveau: 116,
     equipe: ['carracosta', 'whirlipede', 'litwick', 'pawniard'],
     recompense: { argent: 17200, bonbon: 1 },
   },
   {
     id: 'dr44', nom: 'Ouvrier Zoé', titre: 'Sol',
-    emoji: '⛏️', theme: 'Sol', debloqueA: 57, sprite: SPRITE_DRESSEUR + 'worker-gen4.png', niveau: 118,
+    emoji: '⛏️', theme: 'Sol', debloqueA: 57, sprite: SPRITE_DRESSEUR + 'worker-gen4.png', niveau: 120,
     equipe: ['gothitelle', 'cinccino', 'golett', 'stunfisk'],
     recompense: { argent: 17600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss45', nom: 'Sabrina', titre: 'Maîtresse Psy',
-    emoji: '🔮', theme: 'Psy', debloqueA: 58, sprite: SPRITE_DRESSEUR + 'sabrina.png', niveau: 144,
+    emoji: '🔮', theme: 'Psy', debloqueA: 58, sprite: SPRITE_DRESSEUR + 'sabrina.png', niveau: 148,
     equipe: ['alakazam', 'gardevoir', 'gallade', 'espeon', 'gothitelle', 'reuniclus'],
     recompense: { argent: 67500, bonbon: 6 },
     special: 'gardevoir-mega',
@@ -306,32 +297,31 @@ export const DRESSEURS = [
   },
   {
     id: 'dr46', nom: 'Vétéran Axel', titre: 'Varié',
-    emoji: '🎖️', theme: 'Varié', debloqueA: 60, sprite: SPRITE_DRESSEUR + 'veteran-gen4.png', niveau: 123,
+    emoji: '🎖️', theme: 'Varié', debloqueA: 60, sprite: SPRITE_DRESSEUR + 'veteran-gen4.png', niveau: 127,
     equipe: ['vanilluxe', 'klinklang', 'pancham', 'bouffalant', 'furfrou'],
     recompense: { argent: 18400 },
   },
   {
     id: 'dr47', nom: 'Matelot Tess', titre: 'Eau',
-    emoji: '⚓', theme: 'Eau', debloqueA: 61, sprite: SPRITE_DRESSEUR + 'sailor.png', niveau: 126,
+    emoji: '⚓', theme: 'Eau', debloqueA: 61, sprite: SPRITE_DRESSEUR + 'sailor.png', niveau: 131,
     equipe: ['escavalier', 'jellicent-male', 'flabebe', 'fletchling', 'froakie'],
     recompense: { argent: 18800 },
   },
   {
     id: 'dr48', nom: 'Gamin Lana', titre: 'Normal',
-    emoji: '🧒', theme: 'Normal', debloqueA: 62, sprite: SPRITE_DRESSEUR + 'youngster-gen4.png', niveau: 128,
+    emoji: '🧒', theme: 'Normal', debloqueA: 62, sprite: SPRITE_DRESSEUR + 'youngster-gen4.png', niveau: 135,
     equipe: ['beheeyem', 'galvantula', 'clauncher', 'fletchling', 'binacle'],
     recompense: { argent: 19200, bonbon: 1 },
   },
   {
     id: 'dr49', nom: 'Montagnard Max', titre: 'Roche',
-    emoji: '🥾', theme: 'Roche', debloqueA: 64, sprite: SPRITE_DRESSEUR + 'hiker-gen4.png', niveau: 131,
+    emoji: '🥾', theme: 'Roche', debloqueA: 64, sprite: SPRITE_DRESSEUR + 'hiker-gen4.png', niveau: 140,
     equipe: ['accelgor', 'mandibuzz', 'pancham', 'litleo', 'amaura'],
     recompense: { argent: 19600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss50', nom: 'Lance', titre: 'Maître Dragon',
-    emoji: '🐉', theme: 'Dragon', debloqueA: 65, sprite: SPRITE_DRESSEUR + 'lance.png', niveau: 160,
+    emoji: '🐉', theme: 'Dragon', debloqueA: 65, sprite: SPRITE_DRESSEUR + 'lance.png', niveau: 173,
     equipe: ['dragonite', 'salamence', 'garchomp', 'haxorus', 'kingdra', 'gyarados'],
     recompense: { argent: 75000, bonbon: 6, objet: 'porte-bonheur' },
     special: 'rayquaza-mega',
@@ -339,32 +329,31 @@ export const DRESSEURS = [
   },
   {
     id: 'dr51', nom: 'Karatéka Emma', titre: 'Combat',
-    emoji: '🥋', theme: 'Combat', debloqueA: 66, sprite: SPRITE_DRESSEUR + 'blackbelt-gen4dp.png', niveau: 136,
+    emoji: '🥋', theme: 'Combat', debloqueA: 66, sprite: SPRITE_DRESSEUR + 'blackbelt-gen4dp.png', niveau: 149,
     equipe: ['greninja', 'diggersby', 'dedenne', 'phantump', 'oricorio-baile'],
     recompense: { argent: 20400 },
   },
   {
     id: 'dr52', nom: 'Ouvrier Yann', titre: 'Sol',
-    emoji: '⛏️', theme: 'Sol', debloqueA: 68, sprite: SPRITE_DRESSEUR + 'worker-gen4.png', niveau: 139,
+    emoji: '⛏️', theme: 'Sol', debloqueA: 68, sprite: SPRITE_DRESSEUR + 'worker-gen4.png', niveau: 155,
     equipe: ['frogadier', 'aromatisse', 'oricorio-baile', 'bergmite', 'dedenne'],
     recompense: { argent: 20800 },
   },
   {
     id: 'dr53', nom: 'As Nael', titre: 'Varié',
-    emoji: '⭐', theme: 'Varié', debloqueA: 69, sprite: SPRITE_DRESSEUR + 'acetrainer-gen4dp.png', niveau: 141,
+    emoji: '⭐', theme: 'Varié', debloqueA: 69, sprite: SPRITE_DRESSEUR + 'acetrainer-gen4dp.png', niveau: 159,
     equipe: ['gogoat', 'aegislash-shield', 'wimpod', 'oricorio-baile', 'oranguru'],
     recompense: { argent: 21200, bonbon: 1 },
   },
   {
     id: 'dr54', nom: 'Vétéran Vera', titre: 'Varié',
-    emoji: '🎖️', theme: 'Varié', debloqueA: 70, sprite: SPRITE_DRESSEUR + 'veteran-gen4.png', niveau: 144,
+    emoji: '🎖️', theme: 'Varié', debloqueA: 70, sprite: SPRITE_DRESSEUR + 'veteran-gen4.png', niveau: 165,
     equipe: ['aurorus', 'heliolisk', 'yungoos', 'salandit', 'morelull'],
     recompense: { argent: 21600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss55', nom: 'Steven', titre: 'Champion Acier',
-    emoji: '⚙️', theme: 'Acier', debloqueA: 72, sprite: SPRITE_DRESSEUR + 'steven.png', niveau: 175,
+    emoji: '⚙️', theme: 'Acier', debloqueA: 72, sprite: SPRITE_DRESSEUR + 'steven.png', niveau: 205,
     equipe: ['metagross', 'aggron', 'skarmory', 'excadrill', 'aegislash-shield', 'bronzong'],
     recompense: { argent: 82500, bonbon: 6 },
     special: 'metagross-mega',
@@ -372,32 +361,31 @@ export const DRESSEURS = [
   },
   {
     id: 'dr56', nom: 'Gamin Sam', titre: 'Normal',
-    emoji: '🧒', theme: 'Normal', debloqueA: 73, sprite: SPRITE_DRESSEUR + 'youngster-gen4.png', niveau: 149,
+    emoji: '🧒', theme: 'Normal', debloqueA: 73, sprite: SPRITE_DRESSEUR + 'youngster-gen4.png', niveau: 177,
     equipe: ['torracat', 'trevenant', 'incineroar', 'oranguru', 'mimikyu-disguised'],
     recompense: { argent: 22400 },
   },
   {
     id: 'dr57', nom: 'Montagnard Cléo', titre: 'Roche',
-    emoji: '🥾', theme: 'Roche', debloqueA: 74, sprite: SPRITE_DRESSEUR + 'hiker-gen4.png', niveau: 152,
+    emoji: '🥾', theme: 'Roche', debloqueA: 74, sprite: SPRITE_DRESSEUR + 'hiker-gen4.png', niveau: 184,
     equipe: ['gumshoos', 'decidueye', 'toxapex', 'wimpod', 'xurkitree'],
     recompense: { argent: 22800 },
   },
   {
     id: 'dr58', nom: 'Mystik Milo', titre: 'Spectre',
-    emoji: '👻', theme: 'Spectre', debloqueA: 75, sprite: SPRITE_DRESSEUR + 'hexmaniac-gen6.png', niveau: 154,
+    emoji: '👻', theme: 'Spectre', debloqueA: 75, sprite: SPRITE_DRESSEUR + 'hexmaniac-gen6.png', niveau: 191,
     equipe: ['golisopod', 'araquanid', 'mudsdale', 'drampa', 'scorbunny'],
     recompense: { argent: 23200, bonbon: 1 },
   },
   {
     id: 'dr59', nom: 'Karatéka Remy', titre: 'Combat',
-    emoji: '🥋', theme: 'Combat', debloqueA: 77, sprite: SPRITE_DRESSEUR + 'blackbelt-gen4dp.png', niveau: 157,
+    emoji: '🥋', theme: 'Combat', debloqueA: 77, sprite: SPRITE_DRESSEUR + 'blackbelt-gen4dp.png', niveau: 198,
     equipe: ['salazzle', 'toxapex', 'steenee', 'sobble', 'blacephalon'],
     recompense: { argent: 23600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss60', nom: 'Wallace', titre: 'Maître Eau',
-    emoji: '💧', theme: 'Eau', debloqueA: 78, sprite: SPRITE_DRESSEUR + 'wallace.png', niveau: 191,
+    emoji: '💧', theme: 'Eau', debloqueA: 78, sprite: SPRITE_DRESSEUR + 'wallace.png', niveau: 246,
     equipe: ['milotic', 'gyarados', 'starmie', 'ludicolo', 'whiscash', 'wailord'],
     recompense: { argent: 90000, bonbon: 7 },
     special: 'gyarados-mega',
@@ -405,32 +393,31 @@ export const DRESSEURS = [
   },
   {
     id: 'dr61', nom: 'As Paul', titre: 'Varié',
-    emoji: '⭐', theme: 'Varié', debloqueA: 79, sprite: SPRITE_DRESSEUR + 'acetrainer-gen4dp.png', niveau: 162,
+    emoji: '⭐', theme: 'Varié', debloqueA: 79, sprite: SPRITE_DRESSEUR + 'acetrainer-gen4dp.png', niveau: 214,
     equipe: ['corviknight', 'kommo-o', 'thievul', 'hatenna', 'rolycoly'],
     recompense: { argent: 24400 },
   },
   {
     id: 'dr62', nom: 'Vétéran Liam', titre: 'Varié',
-    emoji: '🎖️', theme: 'Varié', debloqueA: 81, sprite: SPRITE_DRESSEUR + 'veteran-gen4.png', niveau: 165,
+    emoji: '🎖️', theme: 'Varié', debloqueA: 81, sprite: SPRITE_DRESSEUR + 'veteran-gen4.png', niveau: 223,
     equipe: ['corviknight', 'coalossal', 'thievul', 'chewtle', 'silicobra'],
     recompense: { argent: 24800 },
   },
   {
     id: 'dr63', nom: 'Matelot Romy', titre: 'Eau',
-    emoji: '⚓', theme: 'Eau', debloqueA: 82, sprite: SPRITE_DRESSEUR + 'sailor.png', niveau: 167,
+    emoji: '⚓', theme: 'Eau', debloqueA: 82, sprite: SPRITE_DRESSEUR + 'sailor.png', niveau: 231,
     equipe: ['thievul', 'barraskewda', 'flapple', 'dreepy', 'indeedee-male'],
     recompense: { argent: 25200, bonbon: 1 },
   },
   {
     id: 'dr64', nom: 'Gamin Iris', titre: 'Normal',
-    emoji: '🧒', theme: 'Normal', debloqueA: 83, sprite: SPRITE_DRESSEUR + 'youngster-gen4.png', niveau: 170,
+    emoji: '🧒', theme: 'Normal', debloqueA: 83, sprite: SPRITE_DRESSEUR + 'youngster-gen4.png', niveau: 241,
     equipe: ['barraskewda', 'hattrem', 'appletun', 'cufant', 'snom'],
     recompense: { argent: 25600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss65', nom: 'Alder', titre: 'Champion Unys',
-    emoji: '🦗', theme: 'Insecte', debloqueA: 84, sprite: SPRITE_DRESSEUR + 'alder.png', niveau: 206,
+    emoji: '🦗', theme: 'Insecte', debloqueA: 84, sprite: SPRITE_DRESSEUR + 'alder.png', niveau: 299,
     equipe: ['volcarona', 'bouffalant', 'escavalier', 'accelgor', 'vanilluxe', 'conkeldurr'],
     recompense: { argent: 97500, bonbon: 7 },
     special: 'eternatus-eternamax',
@@ -438,32 +425,31 @@ export const DRESSEURS = [
   },
   {
     id: 'dr66', nom: 'Mystik Hugo', titre: 'Spectre',
-    emoji: '👻', theme: 'Spectre', debloqueA: 86, sprite: SPRITE_DRESSEUR + 'hexmaniac-gen6.png', niveau: 175,
+    emoji: '👻', theme: 'Spectre', debloqueA: 86, sprite: SPRITE_DRESSEUR + 'hexmaniac-gen6.png', niveau: 260,
     equipe: ['overqwil', 'frosmoth', 'obstagoon', 'dracovish', 'lechonk'],
     recompense: { argent: 26400 },
   },
   {
     id: 'dr67', nom: 'Karatéka Inès', titre: 'Combat',
-    emoji: '🥋', theme: 'Combat', debloqueA: 87, sprite: SPRITE_DRESSEUR + 'blackbelt-gen4dp.png', niveau: 178,
+    emoji: '🥋', theme: 'Combat', debloqueA: 87, sprite: SPRITE_DRESSEUR + 'blackbelt-gen4dp.png', niveau: 272,
     equipe: ['overqwil', 'wyrdeer', 'drakloak', 'toedscool', 'fuecoco'],
     recompense: { argent: 26800 },
   },
   {
     id: 'dr68', nom: 'Ouvrier Enzo', titre: 'Sol',
-    emoji: '⛏️', theme: 'Sol', debloqueA: 88, sprite: SPRITE_DRESSEUR + 'worker-gen4.png', niveau: 180,
+    emoji: '⛏️', theme: 'Sol', debloqueA: 88, sprite: SPRITE_DRESSEUR + 'worker-gen4.png', niveau: 283,
     equipe: ['pawmot', 'meowscarada', 'maushold-family-of-four', 'rellor', 'squawkabilly-green-plumage'],
     recompense: { argent: 27200, bonbon: 1 },
   },
   {
     id: 'dr69', nom: 'As Lena', titre: 'Varié',
-    emoji: '⭐', theme: 'Varié', debloqueA: 90, sprite: SPRITE_DRESSEUR + 'acetrainer-gen4dp.png', niveau: 183,
+    emoji: '⭐', theme: 'Varié', debloqueA: 90, sprite: SPRITE_DRESSEUR + 'acetrainer-gen4dp.png', niveau: 295,
     equipe: ['quaxwell', 'meowscarada', 'oinkologne-male', 'varoom', 'tinkatink'],
     recompense: { argent: 27600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss70', nom: 'Blue', titre: 'Rival Légendaire',
-    emoji: '🏆', theme: 'Varié', debloqueA: 91, sprite: SPRITE_DRESSEUR + 'blue.png', niveau: 222,
+    emoji: '🏆', theme: 'Varié', debloqueA: 91, sprite: SPRITE_DRESSEUR + 'blue.png', niveau: 369,
     equipe: ['pidgeot', 'alakazam', 'rhyperior', 'arcanine', 'exeggutor', 'blastoise'],
     recompense: { argent: 105000, bonbon: 7 },
     special: 'charizard-mega-x',
@@ -471,32 +457,31 @@ export const DRESSEURS = [
   },
   {
     id: 'dr71', nom: 'Matelot Lou', titre: 'Eau',
-    emoji: '⚓', theme: 'Eau', debloqueA: 92, sprite: SPRITE_DRESSEUR + 'sailor.png', niveau: 188,
+    emoji: '⚓', theme: 'Eau', debloqueA: 92, sprite: SPRITE_DRESSEUR + 'sailor.png', niveau: 321,
     equipe: ['rabsca', 'grafaiai', 'wugtrio', 'finizen', 'varoom'],
     recompense: { argent: 28400 },
   },
   {
     id: 'dr72', nom: 'Gamin Théo', titre: 'Normal',
-    emoji: '🧒', theme: 'Normal', debloqueA: 94, sprite: SPRITE_DRESSEUR + 'youngster-gen4.png', niveau: 191,
+    emoji: '🧒', theme: 'Normal', debloqueA: 94, sprite: SPRITE_DRESSEUR + 'youngster-gen4.png', niveau: 336,
     equipe: ['annihilape', 'tinkatuff', 'rabsca', 'slither-wing', 'brute-bonnet'],
     recompense: { argent: 28800 },
   },
   {
     id: 'dr73', nom: 'Montagnard Maya', titre: 'Roche',
-    emoji: '🥾', theme: 'Roche', debloqueA: 95, sprite: SPRITE_DRESSEUR + 'hiker-gen4.png', niveau: 193,
+    emoji: '🥾', theme: 'Roche', debloqueA: 95, sprite: SPRITE_DRESSEUR + 'hiker-gen4.png', niveau: 350,
     equipe: ['cetitan', 'clodsire', 'gholdengo', 'iron-thorns', 'iron-treads'],
     recompense: { argent: 29200, bonbon: 1 },
   },
   {
     id: 'dr74', nom: 'Mystik Kai', titre: 'Spectre',
-    emoji: '👻', theme: 'Spectre', debloqueA: 96, sprite: SPRITE_DRESSEUR + 'hexmaniac-gen6.png', niveau: 196,
+    emoji: '👻', theme: 'Spectre', debloqueA: 96, sprite: SPRITE_DRESSEUR + 'hexmaniac-gen6.png', niveau: 367,
     equipe: ['dipplin', 'archaludon', 'kingambit', 'frigibax', 'iron-crown'],
     recompense: { argent: 29600, bonbon: 1 },
   },
-  // ===== BOSS =====
   {
     id: 'boss75', nom: 'Red', titre: 'Dresseur Ultime',
-    emoji: '👑', theme: 'Légende', debloqueA: 98, sprite: SPRITE_DRESSEUR + 'red.png', niveau: 238,
+    emoji: '👑', theme: 'Légende', debloqueA: 98, sprite: SPRITE_DRESSEUR + 'red.png', niveau: 460,
     equipe: ['pikachu', 'charizard', 'venusaur', 'blastoise', 'snorlax', 'lapras'],
     recompense: { argent: 112500, bonbon: 8, objet: 'charme-chroma' },
     special: 'mewtwo-mega-y',
@@ -510,6 +495,8 @@ export function dresseursDebloques(nbZones) {
 }
 
 // Calcule l'état de chaque dresseur : 'vaincu', 'disponible', ou 'verrouille'.
+// (Ancienne version, conservée pour compatibilité — n'est plus utilisée si on
+//  branche etatsDresseursAvecReset, mais on la garde au cas où.)
 export function etatsDresseurs(nbZones, dresseursVaincus) {
   const vaincus = dresseursVaincus || []
   return DRESSEURS.map((d, index) => {
@@ -530,4 +517,62 @@ export function decrireRecompenseDresseur(recompense) {
   if (recompense.bonbon) parts.push(`${recompense.bonbon} super-bonbon(s)`)
   if (recompense.objet) parts.push(`1 objet rare ⚙️`)
   return parts.join(', ') || 'Gloire !'
+}
+
+// ============================================================
+// RESET D'ARÈNE TOUTES LES 3H (créneaux fixes, synchronisés pour tous)
+// On ne stocke plus une simple liste d'ids vaincus, mais le CRÉNEAU de 3h
+// où chaque dresseur a été vaincu (objet { id: créneau }). Si le créneau actuel
+// ≠ celui de la victoire, le dresseur redevient « à refaire ». Comme le créneau
+// vient de l'horloge, tout le monde reset en même temps (0h/3h/6h... UTC), sans serveur.
+// ============================================================
+
+export const DUREE_CRENEAU_MS = 3 * 60 * 60 * 1000 // 3 heures
+
+// Identifiant du créneau de 3h en cours (entier qui change toutes les 3h).
+export function creneauActuel(maintenant = Date.now()) {
+  return Math.floor(maintenant / DUREE_CRENEAU_MS)
+}
+
+// Temps restant (ms) avant le prochain reset (passage au créneau suivant).
+export function tempsAvantResetMs(maintenant = Date.now()) {
+  const finCreneau = (creneauActuel(maintenant) + 1) * DUREE_CRENEAU_MS
+  return Math.max(0, finCreneau - maintenant)
+}
+
+// Formate un temps (ms) en « 1h23 » / « 12 min » / « 45 s ».
+export function formaterTempsReset(ms) {
+  const totalSec = Math.floor(ms / 1000)
+  const h = Math.floor(totalSec / 3600)
+  const m = Math.floor((totalSec % 3600) / 60)
+  const s = totalSec % 60
+  if (h > 0) return `${h}h${String(m).padStart(2, '0')}`
+  if (m > 0) return `${m} min`
+  return `${s} s`
+}
+
+// Un dresseur est « vaincu » SEULEMENT si sa victoire date du créneau actuel.
+// `dresseursVaincus` peut être :
+//   - un OBJET { id: créneau }  → nouveau format
+//   - un TABLEAU d'ids          → ancien format (considéré périmé : reset au lancement)
+function estVaincuCeCreneau(dresseursVaincus, id, creneau) {
+  if (!dresseursVaincus) return false
+  if (Array.isArray(dresseursVaincus)) return false // ancien format → tout à refaire
+  return dresseursVaincus[id] === creneau
+}
+
+// Calcule l'état de chaque dresseur EN TENANT COMPTE du créneau 3h.
+export function etatsDresseursAvecReset(nbZones, dresseursVaincus, maintenant = Date.now()) {
+  const creneau = creneauActuel(maintenant)
+  return DRESSEURS.map((d, index) => {
+    const dejaVaincu = estVaincuCeCreneau(dresseursVaincus, d.id, creneau)
+    const assezDeZones = nbZones >= d.debloqueA
+    const precedentVaincu = index === 0
+      ? true
+      : estVaincuCeCreneau(dresseursVaincus, DRESSEURS[index - 1].id, creneau)
+    let etat = 'verrouille'
+    if (dejaVaincu) etat = 'vaincu'
+    else if (assezDeZones && precedentVaincu) etat = 'disponible'
+    return { ...d, etat, assezDeZones, precedentVaincu }
+  })
 }

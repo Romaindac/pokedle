@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { ROLES, compterRoles, COMPOSITION_REQUISE } from './roles'
+import { tempsAvantResetMs, formaterTempsReset } from './arene'
 
 // Ordre de rareté pour le tri (du plus rare au plus commun)
 const ORDRE_RARETE = { legendaire: 0, tresRare: 1, rare: 2, commun: 3 }
@@ -39,20 +40,20 @@ const IconeCadenas = () => (
 function IconeRole({ role, taille = 14 }) {
   const sombre = '#15172a'
   const formes = {
-    tank: ( // bouclier
+    tank: (
       <path d="M8 1.5 L13 3.5 V8 C13 11 10.5 13.5 8 14.5 C5.5 13.5 3 11 3 8 V3.5 Z" fill={sombre} />
     ),
-    dps: ( // épée
+    dps: (
       <g stroke={sombre} strokeWidth="1.8" strokeLinecap="round" fill="none">
         <line x1="4.5" y1="11.5" x2="11.5" y2="4.5" />
         <line x1="3" y1="9.5" x2="6.5" y2="13" />
         <line x1="10" y1="3" x2="13" y2="6" />
       </g>
     ),
-    eclaireur: ( // éclair
+    eclaireur: (
       <path d="M9 1.5 L4 8.5 H7.5 L6.5 14.5 L12 7 H8.5 Z" fill={sombre} />
     ),
-    soutien: ( // croix de soin
+    soutien: (
       <g fill={sombre}>
         <rect x="6.5" y="2.5" width="3" height="11" rx="1" />
         <rect x="2.5" y="6.5" width="11" height="3" rx="1" />
@@ -63,6 +64,25 @@ function IconeRole({ role, taille = 14 }) {
     <svg viewBox="0 0 16 16" width={taille} height={taille} aria-hidden="true">
       {formes[role] || null}
     </svg>
+  )
+}
+
+// --- Minuteur de reset d'arène : « Reset dans 1h23 ». Se met à jour chaque seconde. ---
+function MinuteurReset() {
+  const [ms, setMs] = useState(() => tempsAvantResetMs())
+  useEffect(() => {
+    const t = setInterval(() => setMs(tempsAvantResetMs()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  return (
+    <div className="arene-reset-bandeau" title="Tous les dresseurs redeviennent disponibles à intervalles fixes de 3 h.">
+      <svg className="arene-ico" viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="8" cy="8.5" r="6" fill="none" stroke="#a87810" strokeWidth="1.5" />
+        <path d="M8 4.8 V8.5 L10.5 10" fill="none" stroke="#a87810" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M6 1.5 H10" stroke="#a87810" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+      <span>Reset des dresseurs dans <strong>{formaterTempsReset(ms)}</strong></span>
+    </div>
   )
 }
 
@@ -117,12 +137,10 @@ function PanneauArene({
   compoDiagnostic = [],
   onRetour,
 }) {
-  // L'équipe doit respecter la compo 1T/1E/2S/2D pour combattre.
   const equipePrete = compoValide
 
-  // --- Recherche + tri + filtre rôle de la collection ---
   const [recherche, setRecherche] = useState('')
-  const [tri, setTri] = useState('niveau') // 'niveau' | 'rarete' | 'nom' | 'numero'
+  const [tri, setTri] = useState('niveau')
   const [roleFiltre, setRoleFiltre] = useState('tous')
 
   const collectionFiltree = useMemo(() => {
@@ -131,7 +149,6 @@ function PanneauArene({
     if (q) {
       liste = liste.filter((p) => (p.nom || '').toLowerCase().includes(q))
     }
-    // Filtre par rôle.
     if (roleFiltre !== 'tous') {
       liste = liste.filter((p) => p.role === roleFiltre)
     }
@@ -171,10 +188,12 @@ function PanneauArene({
           Ils deviennent plus coriaces à mesure que tu progresses !
         </p>
 
+        {/* Minuteur de reset (les dresseurs redeviennent dispo toutes les 3 h) */}
+        <MinuteurReset />
+
         {/* ===== Équipe d'arène ===== */}
         <h3 className="arene-section-titre">Ton équipe d'arène ({equipeArene.length}/6)</h3>
 
-        {/* Indicateur de composition */}
         <IndicateurCompoArene equipe={equipeArene} valide={compoValide} />
 
         {equipeArene.length === 0 && (
@@ -219,7 +238,6 @@ function PanneauArene({
           </select>
         </div>
 
-        {/* Filtres par rôle : bordure colorée pour repérer chaque classe */}
         <div className="arene-filtres-role">
           <button
             className={`filtre-role ${roleFiltre === 'tous' ? 'actif' : ''}`}

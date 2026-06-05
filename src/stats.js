@@ -14,34 +14,26 @@ export function genererIV() {
 }
 
 // --- Helper anti-NaN ---
-// Renvoie un nombre fini et >= min, sinon la valeur de repli.
-// C'est la clé du blindage : si une stat de base ou un IV est undefined/NaN,
-// on retombe sur une valeur saine au lieu de produire NaN (qui fige le combat).
 function nombreSur(valeur, repli) {
   return Number.isFinite(valeur) ? valeur : repli
 }
 
-// Montée d'XP "marathon" (courbe D2) : début fluide, fin très longue (montée en puissance).
+// Montée d'XP "marathon" assouplie pour aller jusqu'au niveau ~500 sans mur.
+// (Avant : 1 + niveau*0.025. Adouci à 0.02 pour une fin plus fluide.)
 function multiplicateurProgressif(niveau) {
-  return 1 + niveau * 0.025
+  return 1 + niveau * 0.02
 }
 
 // XP nécessaire pour passer du niveau actuel au suivant.
+// Exposant assoupli de 1.8 → 1.55 : la fin (niv 200-500) reste longue mais jouable
+// (« xp non-stop »), cohérent avec les zones/arène qui montent jusqu'à ~500.
 export function xpRequise(niveau, xpBase) {
   const n = nombreSur(niveau, 1)
-  const base = nombreSur(xpBase, 20) * Math.pow(n, 1.8)
+  const base = nombreSur(xpBase, 20) * Math.pow(n, 1.55)
   return Math.max(1, Math.round(base * multiplicateurProgressif(n)))
 }
 
 // Calcule les stats finales : (base + IV) × multiplicateur de niveau, + bonus de PASSIF + objet.
-// Le PV perso du passif (Colosse +40%, Carapace +25%, etc.) est appliqué ici.
-// La DÉFENSE peut aussi être boostée par un passif (Caméléon du Joker : defMult).
-// Les bonus d'ÉQUIPE (Gardien +20% PV équipe) sont appliqués ailleurs (construction de l'équipe).
-//
-// BLINDAGE ANTI-FREEZE : chaque stat de base et chaque IV passe par nombreSur(...) pour
-// ne JAMAIS produire NaN. Une vitesse NaN bloquerait la jauge ATB → combat figé.
-// Valeurs de repli raisonnables : base 50, IV 0, multiplicateurs 1. En dernier recours,
-// on force chaque sortie à être un entier fini >= 1.
 export function statsFinales(pokemon, bonusNiveau = 0.08) {
   const p = pokemon || {}
   const ivBrut = p.iv || {}
@@ -53,17 +45,14 @@ export function statsFinales(pokemon, bonusNiveau = 0.08) {
   const niveau = nombreSur(p.niveau, 1)
   const mult = 1 + nombreSur(bonusNiveau, 0.08) * (niveau - 1)
 
-  // Stats de base : repli à 50 si absentes/cassées (cas formes spéciales mal lues, vieilles saves).
   const pvBase = nombreSur(p.pvBase, 50)
   const attaqueBase = nombreSur(p.attaqueBase, 50)
   const vitesseBase = nombreSur(p.vitesseBase, 50)
   const defBase = nombreSur(p.defBase, 50)
 
-  // Rôle + passif (déduits du type/style, ou stockés sur le pokémon).
   const role = p.role || determinerRole(p)
   const passif = bonusDuPassif({ ...p, role })
 
-  // Bonus de l'objet équipé (déjà neutre par défaut, mais on sécurise quand même).
   const obj = bonusStatsObjet(p.objetEquipe) || {}
   const objPv = nombreSur(obj.pv, 1)
   const objAtt = nombreSur(obj.attaque, 1)
@@ -73,7 +62,6 @@ export function statsFinales(pokemon, bonusNiveau = 0.08) {
   const pvMult = nombreSur(passif.pvMult, 1)
   const defMult = nombreSur(passif.defMult, 1)
 
-  // Calcul + garde-fou final : chaque sortie est un entier fini >= 1.
   const finir = (v, min) => {
     const r = Math.round(v)
     return Number.isFinite(r) && r >= min ? r : min
@@ -99,13 +87,9 @@ export function fusionnerIV(ivAncien, ivNouveau) {
 }
 
 // Ajoute de l'XP à un Pokémon, gère les montées de niveau (peut en gagner plusieurs).
-// BLINDAGE : la boucle while est bornée (sécurité anti-boucle-infinie) et l'XP requise
-// ne peut pas être <= 0 (xpRequise force un minimum de 1).
 export function ajouterXP(pokemon, xp, xpBase, bonusNiveau) {
   let p = { ...pokemon, xp: nombreSur(pokemon.xp, 0) + nombreSur(xp, 0), niveau: nombreSur(pokemon.niveau, 1) }
   let niveauxGagnes = 0
-  // Plafond de sécurité : jamais plus de 500 montées d'un coup (anti-boucle infinie
-  // si une valeur déraille). En pratique on n'atteint jamais ça.
   let garde = 0
   while (p.xp >= xpRequise(p.niveau, xpBase) && garde < 500) {
     p.xp -= xpRequise(p.niveau, xpBase)

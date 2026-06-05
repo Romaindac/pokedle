@@ -5,27 +5,27 @@ import TimerAnneau from './TimerAnneau'
 import { VITESSE_COMBAT } from './config'
 
 // ============================================================
-// COMBAT D'ARÈNE — combat 1 contre 1 (le suivant entre quand l'actuel est KO).
+// COMBAT D'ARÈNE — combat 6 contre 6 SIMULTANÉ (refonte : avant c'était du 1v1).
 //
-// Composant ISOLÉ : il a sa PROPRE boucle setInterval et son propre état (en refs),
-// totalement séparé de la boucle de combat principale d'App.jsx. La boucle principale
-// est mise en pause pendant l'arène (modeJeuRef === 'arene' côté App).
+// Composant ISOLÉ : sa PROPRE boucle setInterval + son propre état (en refs),
+// séparé de la boucle principale (mise en pause via modeJeuRef === 'arene' côté App).
+// Réutilise ticCombat (même moteur que le combat principal / PvP) sur les ÉQUIPES
+// COMPLÈTES → tous les passifs d'équipe (soin, buffs, malus) fonctionnent vraiment.
 //
-// Réutilise ticCombat (le même moteur que le combat principal), mais en lui passant
-// à chaque tic UNIQUEMENT le Pokémon actif de chaque camp (combat singulier). Quand
-// l'un tombe, on passe au suivant de son équipe. Quand une équipe entière est KO,
-// le combat se termine (overlay victoire/défaite + callback onTermine).
+// Spécificités arène conservées :
+//   - Timer de boss (dresseur.estBoss) : 45s pour gagner, sinon défaite.
+//   - Overlay 🏆 VICTOIRE / 💀 DÉFAITE + callback onTermine.
+//   - Journal des K.O.
 //
 // Props :
 //   - dresseur       : le dresseur affronté (peut avoir estBoss = true → timer).
-//   - equipeJoueur   : tableau de Pokémon du joueur (ordre = ordre d'entrée).
-//   - equipeDresseur : tableau de Pokémon du dresseur.
+//   - equipeJoueur   : tableau de Pokémon du joueur (équipe complète).
+//   - equipeDresseur : tableau de Pokémon du dresseur (équipe complète).
 //   - vitesse        : multiplicateur de vitesse (×1/×2/×4/×8).
-//   - onTermine(res) : appelé avec 'victoire' ou 'defaite' à la fin.
-//   - onQuitter()    : appelé si le joueur quitte le combat manuellement.
+//   - onTermine(res) : 'victoire' | 'defaite' à la fin.
+//   - onQuitter()    : si le joueur quitte manuellement.
 // ============================================================
 
-// Helper anti-NaN : nombre fini >= 0 sinon repli.
 function nombreSur(v, repli) {
   return Number.isFinite(v) ? v : repli
 }
@@ -35,44 +35,26 @@ const TEMPS_BOSS = 45 // secondes pour battre un boss d'arène (sinon défaite)
 function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse = 1, onTermine, onQuitter }) {
   const estBoss = !!(dresseur && dresseur.estBoss)
 
-  // --- Index du Pokémon actif dans chaque équipe ---
-  const [indexJ, setIndexJ] = useState(0)
-  const [indexE, setIndexE] = useState(0)
+  // PV / jauges de TOUTE l'équipe (6v6 simultané).
+  const [pvJ, setPvJ] = useState(() => (equipeJoueur || []).map((p) => nombreSur(p?.pvMax, 1)))
+  const [pvE, setPvE] = useState(() => (equipeDresseur || []).map((p) => nombreSur(p?.pvMax, 1)))
+  const [jaugeJ, setJaugeJ] = useState(() => (equipeJoueur || []).map(() => 0))
+  const [jaugeE, setJaugeE] = useState(() => (equipeDresseur || []).map(() => 0))
 
-  // --- PV et jauge du combattant actif de chaque camp ---
-  // On garde un tableau de PV pour TOUTE l'équipe (pour savoir qui est encore debout
-  // et afficher l'état), mais le combat ne fait s'affronter que les actifs.
-  const [pvJoueur, setPvJoueur] = useState(() => (equipeJoueur || []).map((p) => nombreSur(p?.pvMax, 1)))
-  const [pvEnnemi, setPvEnnemi] = useState(() => (equipeDresseur || []).map((p) => nombreSur(p?.pvMax, 1)))
-  const [jaugeJ, setJaugeJ] = useState(0)
-  const [jaugeE, setJaugeE] = useState(0)
-
-  // --- Résultat (null tant que le combat dure, sinon 'victoire' / 'defaite') ---
-  const [resultat, setResultat] = useState(null)
-
-  // --- Timer de boss (en secondes, basé sur le temps réel) ---
+  const [resultat, setResultat] = useState(null) // null | 'victoire' | 'defaite'
   const [tempsBoss, setTempsBoss] = useState(TEMPS_BOSS)
-
-  // --- Journal simple du combat d'arène (quelques lignes) ---
   const [journal, setJournal] = useState([])
   const compteurJournal = useRef(0)
 
-  // ===== REFS (la boucle lit/écrit ici pour éviter les soucis de closure) =====
-  const indexJRef = useRef(0)
-  const indexERef = useRef(0)
-  const pvJRef = useRef(pvJoueur)
-  const pvERef = useRef(pvEnnemi)
-  const jaugeJRef = useRef(0)
-  const jaugeERef = useRef(0)
+  // État de combat en ref (la boucle lit/écrit ici, évite les soucis de closure).
+  const etat = useRef({
+    pvJ: (equipeJoueur || []).map((p) => nombreSur(p?.pvMax, 1)),
+    jJ: (equipeJoueur || []).map(() => 0),
+    pvE: (equipeDresseur || []).map((p) => nombreSur(p?.pvMax, 1)),
+    jE: (equipeDresseur || []).map(() => 0),
+  })
+  const fini = useRef(false)
   const resultatRef = useRef(null)
-
-  useEffect(() => { indexJRef.current = indexJ }, [indexJ])
-  useEffect(() => { indexERef.current = indexE }, [indexE])
-  useEffect(() => { pvJRef.current = pvJoueur }, [pvJoueur])
-  useEffect(() => { pvERef.current = pvEnnemi }, [pvEnnemi])
-  useEffect(() => { jaugeJRef.current = jaugeJ }, [jaugeJ])
-  useEffect(() => { jaugeERef.current = jaugeE }, [jaugeE])
-  useEffect(() => { resultatRef.current = resultat }, [resultat])
 
   function ajouterJournal(texte, type = 'info') {
     compteurJournal.current += 1
@@ -80,18 +62,17 @@ function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse = 1, onTe
     setJournal((l) => [...l, ligne].slice(-5))
   }
 
-  // Trouve l'index du prochain Pokémon vivant (pv > 0) à partir de `depuis`.
-  function prochainVivant(pvs, depuis) {
-    for (let i = depuis; i < pvs.length; i++) {
-      if (nombreSur(pvs[i], 0) > 0) return i
-    }
-    return -1
+  function finir(res) {
+    if (resultatRef.current) return
+    resultatRef.current = res
+    fini.current = true
+    setResultat(res)
+    ajouterJournal(res === 'victoire' ? '🏆 VICTOIRE !' : '💀 DÉFAITE…', res === 'victoire' ? 'victoire' : 'echec')
   }
 
-  // ===== TIMER DE BOSS (séparé de la boucle de combat, basé sur Date.now) =====
+  // ===== TIMER DE BOSS (basé sur Date.now, indépendant de la vitesse) =====
   useEffect(() => {
     if (!estBoss) return
-    if (resultat) return
     setTempsBoss(TEMPS_BOSS)
     const debut = Date.now()
     const tic = setInterval(() => {
@@ -100,107 +81,49 @@ function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse = 1, onTe
       if (reste <= 0) {
         clearInterval(tic)
         if (!resultatRef.current) {
-          resultatRef.current = 'defaite'
-          setResultat('defaite')
           ajouterJournal('⏱️ Temps écoulé ! Le boss vous a résisté.', 'echec')
+          finir('defaite')
         }
       }
     }, 100)
     return () => clearInterval(tic)
-    // On relance le timer seulement au montage du combat (pas à chaque tic).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estBoss])
 
-  // ===== BOUCLE DE COMBAT (isolée) =====
+  // ===== BOUCLE DE COMBAT 6v6 (isolée) =====
   useEffect(() => {
-    if (resultat) return // combat terminé : on n'arme pas la boucle
-
     const horloge = setInterval(() => {
-      // Si le combat est déjà résolu (timer boss par ex.), on s'arrête.
-      if (resultatRef.current) return
+      if (fini.current) return
+      const e = etat.current
+      const avantPvE = [...e.pvE]
+      const avantPvJ = [...e.pvJ]
+      const r = ticCombat(equipeJoueur, e.pvJ, e.jJ, equipeDresseur, e.pvE, e.jE)
+      etat.current = { pvJ: r.pvJoueur, jJ: r.jaugeJoueur, pvE: r.pvEnnemis, jE: r.jaugeEnnemis }
+      setPvJ(r.pvJoueur); setJaugeJ(r.jaugeJoueur)
+      setPvE(r.pvEnnemis); setJaugeE(r.jaugeEnnemis)
 
-      const iJ = indexJRef.current
-      const iE = indexERef.current
-      const actifJ = equipeJoueur[iJ]
-      const actifE = equipeDresseur[iE]
+      // Journal des K.O. ce tic (des deux côtés).
+      r.pvEnnemis.forEach((pv, i) => {
+        if (avantPvE[i] > 0 && pv <= 0 && equipeDresseur[i]) {
+          ajouterJournal(`${equipeDresseur[i].nom} est K.O. !`, 'victoire')
+        }
+      })
+      r.pvJoueur.forEach((pv, i) => {
+        if (avantPvJ[i] > 0 && pv <= 0 && equipeJoueur[i]) {
+          ajouterJournal(`Ton ${equipeJoueur[i].nom} est K.O. !`, 'echec')
+        }
+      })
 
-      // Sécurité : si l'un des actifs n'existe pas, on tente de passer au suivant
-      // vivant ; si personne, on termine le combat (évite tout blocage).
-      if (!actifJ || !actifE) {
-        const vJ = prochainVivant(pvJRef.current, 0)
-        const vE = prochainVivant(pvERef.current, 0)
-        if (vJ === -1) { finir('defaite'); return }
-        if (vE === -1) { finir('victoire'); return }
-        if (!equipeJoueur[iJ]) setIndexJ(vJ)
-        if (!equipeDresseur[iE]) setIndexE(vE)
-        return
-      }
-
-      // On fait un tic de combat singulier : 1 Pokémon vs 1 Pokémon.
-      // ticCombat attend des tableaux : on lui passe des tableaux d'UN élément.
-      const pvJActif = [nombreSur(pvJRef.current[iJ], nombreSur(actifJ.pvMax, 1))]
-      const pvEActif = [nombreSur(pvERef.current[iE], nombreSur(actifE.pvMax, 1))]
-      const r = ticCombat(
-        [actifJ], pvJActif, [nombreSur(jaugeJRef.current, 0)],
-        [actifE], pvEActif, [nombreSur(jaugeERef.current, 0)]
-      )
-
-      // Récupère les nouveaux PV/jauges du combattant actif.
-      const nouveauPvJ = nombreSur(r.pvJoueur[0], 0)
-      const nouveauPvE = nombreSur(r.pvEnnemis[0], 0)
-      const nouvelleJaugeJ = nombreSur(r.jaugeJoueur[0], 0)
-      const nouvelleJaugeE = nombreSur(r.jaugeEnnemis[0], 0)
-
-      // Met à jour le tableau de PV complet (seul l'actif change).
-      const pvJArr = [...pvJRef.current]; pvJArr[iJ] = nouveauPvJ
-      const pvEArr = [...pvERef.current]; pvEArr[iE] = nouveauPvE
-      pvJRef.current = pvJArr
-      pvERef.current = pvEArr
-      setPvJoueur(pvJArr)
-      setPvEnnemi(pvEArr)
-
-      jaugeJRef.current = nouvelleJaugeJ
-      jaugeERef.current = nouvelleJaugeE
-      setJaugeJ(nouvelleJaugeJ)
-      setJaugeE(nouvelleJaugeE)
-
-      // L'ennemi actif est-il KO ? → on passe au suivant, ou victoire si plus aucun.
-      if (nouveauPvE <= 0) {
-        ajouterJournal(`${actifE.nom} est K.O. !`, 'victoire')
-        const suivant = prochainVivant(pvEArr, iE + 1)
-        if (suivant === -1) { finir('victoire'); return }
-        setIndexE(suivant)
-        indexERef.current = suivant
-        jaugeERef.current = 0; setJaugeE(0)
-        return
-      }
-
-      // Le joueur actif est-il KO ? → suivant, ou défaite si plus aucun.
-      if (nouveauPvJ <= 0) {
-        ajouterJournal(`${actifJ.nom} est K.O. !`, 'echec')
-        const suivant = prochainVivant(pvJArr, iJ + 1)
-        if (suivant === -1) { finir('defaite'); return }
-        setIndexJ(suivant)
-        indexJRef.current = suivant
-        jaugeJRef.current = 0; setJaugeJ(0)
-        return
+      if (r.resultat !== 'en_cours') {
+        finir(r.resultat)
       }
     }, VITESSE_COMBAT / Math.max(1, vitesse))
 
     return () => clearInterval(horloge)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resultat, vitesse])
+  }, [vitesse])
 
-  // Termine le combat une seule fois (garde anti-double).
-  function finir(res) {
-    if (resultatRef.current) return
-    resultatRef.current = res
-    setResultat(res)
-    ajouterJournal(res === 'victoire' ? '🏆 VICTOIRE !' : '💀 DÉFAITE…', res === 'victoire' ? 'victoire' : 'echec')
-  }
-
-  // Quand le résultat est posé, on prévient le parent après un court délai
-  // (laisse le temps d'afficher l'overlay 🏆 / 💀).
+  // Quand le résultat est posé, prévient le parent après un court délai (affiche l'overlay).
   useEffect(() => {
     if (!resultat) return
     const t = setTimeout(() => { onTermine && onTermine(resultat) }, 1600)
@@ -208,12 +131,9 @@ function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse = 1, onTe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultat])
 
-  const actifJ = equipeJoueur[indexJ]
-  const actifE = equipeDresseur[indexE]
-
-  // Compteur de Pokémon restants par camp (pour l'affichage).
-  const restantsJ = pvJoueur.filter((pv) => nombreSur(pv, 0) > 0).length
-  const restantsE = pvEnnemi.filter((pv) => nombreSur(pv, 0) > 0).length
+  // Compteurs de Pokémon restants par camp.
+  const restantsJ = pvJ.filter((pv) => nombreSur(pv, 0) > 0).length
+  const restantsE = pvE.filter((pv) => nombreSur(pv, 0) > 0).length
 
   return (
     <div className="app app-layout">
@@ -234,34 +154,40 @@ function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse = 1, onTe
           )}
         </div>
 
-        {/* Zone de combat : actif joueur VS actif ennemi */}
-        <div className="arene-combat-zone">
-          <div className="arene-combat-camp">
-            <span className="arene-combat-restants">Ton équipe — {restantsJ} restant{restantsJ > 1 ? 's' : ''}</span>
-            {actifJ && (
-              <CartePokemon
-                pokemon={actifJ}
-                pvActuels={nombreSur(pvJoueur[indexJ], 0)}
-                jauge={jaugeJ}
-                niveau={actifJ.niveau}
-                compact
-              />
-            )}
+        {/* Zone de combat 6v6 : équipe dresseur en haut, équipe joueur en bas */}
+        <div className="arene-combat-zone arene-combat-6v6">
+          <div className="arene-combat-cote">
+            <span className="arene-combat-restants">{dresseur?.nom} — {restantsE} restant{restantsE > 1 ? 's' : ''}</span>
+            <div className="arene-combat-equipe">
+              {equipeDresseur.map((poke, i) => (
+                <CartePokemon
+                  key={i}
+                  pokemon={poke}
+                  pvActuels={nombreSur(pvE[i], 0)}
+                  jauge={jaugeE[i]}
+                  niveau={poke.niveau}
+                  compact
+                />
+              ))}
+            </div>
           </div>
 
           <div className="vs"><span className="vs-texte">VS</span></div>
 
-          <div className="arene-combat-camp">
-            <span className="arene-combat-restants">{dresseur?.nom} — {restantsE} restant{restantsE > 1 ? 's' : ''}</span>
-            {actifE && (
-              <CartePokemon
-                pokemon={actifE}
-                pvActuels={nombreSur(pvEnnemi[indexE], 0)}
-                jauge={jaugeE}
-                niveau={actifE.niveau}
-                compact
-              />
-            )}
+          <div className="arene-combat-cote">
+            <span className="arene-combat-restants">Ton équipe — {restantsJ} restant{restantsJ > 1 ? 's' : ''}</span>
+            <div className="arene-combat-equipe">
+              {equipeJoueur.map((poke, i) => (
+                <CartePokemon
+                  key={poke.uid || i}
+                  pokemon={poke}
+                  pvActuels={nombreSur(pvJ[i], 0)}
+                  jauge={jaugeJ[i]}
+                  niveau={poke.niveau}
+                  compact
+                />
+              ))}
+            </div>
           </div>
         </div>
 

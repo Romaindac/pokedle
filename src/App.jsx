@@ -22,7 +22,7 @@ import PanneauPvp from './PanneauPvp'
 import CombatPvp from './CombatPvp'
 import Tutoriel from './Tutoriel'
 import { publierDefense, chargerMaDefense, listerDefenses, appliquerResultatPvp, reconstruireEquipeSnapshot, capperEquipePvp, equipeComplete, NIVEAU_MAX_PVP, rangDepuisPoints, POINTS_DEPART } from './apiPvp'
-import { dresseursDebloques, etatsDresseurs, decrireRecompenseDresseur, DRESSEURS } from './arene'
+import { dresseursDebloques, etatsDresseurs, etatsDresseursAvecReset, creneauActuel, decrireRecompenseDresseur, DRESSEURS } from './arene'
 import { OBJETS, bonusStatsObjet, objetsAchetables, effetsSpeciauxEquipe, bonusXpObjet, tirerObjetDrop } from './objets'
 import MenuRoutes from './MenuRoutes'
 import ChoixStarter from './ChoixStarter'
@@ -42,7 +42,12 @@ import ChoixPseudo from './ChoixPseudo'
 import { chargerIdentite, envoyerScore } from './apiClassement'
 import { chargerTableNoms } from './pokedexNoms'
 
+
 const CLE_SAUVEGARDE = 'pokedex-idle-save-v11'
+// Reset d'histoire forcé (une fois pour tous) : si la save n'a pas ce numéro,
+// on remet la progression d'histoire à zéro au chargement (zones, victoires, boss).
+// Pour reforcer un reset plus tard, incrémenter ce numéro (2, 3, ...).
+const VERSION_RESET_HISTOIRE = 2
 
 // Correspondance type de ball -> icône image (sans toucher à config.js)
 // Icônes = sprites officiels PokeAPI (dérivés de config.js). Look authentique Pokémon.
@@ -435,7 +440,7 @@ function App() {
   // Équipe dédiée à l'arène (uid des Pokémon), séparée de l'équipe principale.
   const [equipeAreneIds, setEquipeAreneIds] = useState([])
   // Dresseurs déjà vaincus en arène (ids) — une seule victoire par dresseur, pas de farm.
-  const [dresseursVaincus, setDresseursVaincus] = useState([])
+  const [dresseursVaincus, setDresseursVaincus] = useState({})
   // Dresseur actuellement sélectionné / affronté en arène.
   const [dresseurActif, setDresseurActif] = useState(null)
   // Équipe du dresseur chargée (Pokémon prêts au combat) + état de chargement.
@@ -1284,16 +1289,27 @@ function App() {
           if (data.equipeDefenseIds) setEquipeDefenseIds(data.equipeDefenseIds)
           if (data.equipeAttaqueIds) setEquipeAttaqueIds(data.equipeAttaqueIds)
           if (data.tutoVu) setTutoVu(true)
-          if (data.dresseursVaincus) setDresseursVaincus(data.dresseursVaincus)
-          setVictoiresParRoute(data.victoiresParRoute || {})
-          setBossVaincus(data.bossVaincus || {})
+          // Reset 3h : on n'accepte que le nouveau format objet { id: créneau }.
+          // Une ancienne save (tableau d'ids) est ignorée → reset au lancement.
+          if (data.dresseursVaincus && !Array.isArray(data.dresseursVaincus)) {
+            setDresseursVaincus(data.dresseursVaincus)
+          }
+          // Reset d'histoire forcé : si la save est d'une version antérieure, on repart zone 1.
+          const histoireDejaReset = data.resetHistoire === VERSION_RESET_HISTOIRE
+          setVictoiresParRoute(histoireDejaReset ? (data.victoiresParRoute || {}) : {})
+          setBossVaincus(histoireDejaReset ? (data.bossVaincus || {}) : {})
           setSuccesDebloques(data.succesDebloques || [])
           setAmeliorations(data.ameliorations || {})
           ameliorationsRef.current = data.ameliorations || {}
           bonusShinyGlobal = multiplicateur(data.ameliorations || {}, 'chroma')
           if (data.vitesse) setVitesse(data.vitesse)
           if (data.reglesCapture) { setReglesCapture(data.reglesCapture); reglesCaptureRef.current = data.reglesCapture }
-          if (data.routeActive) { setRouteActive(data.routeActive); routeActiveRef.current = data.routeActive }
+          // Si l'histoire n'a pas encore été reset (nouvelle version), on force le retour zone 1.
+          if (histoireDejaReset && data.routeActive) {
+            setRouteActive(data.routeActive); routeActiveRef.current = data.routeActive
+          } else {
+            setRouteActive('tutoriel'); routeActiveRef.current = 'tutoriel'
+          }
           capturesRef.current = data.captures || []
           victoiresParRouteRef.current = data.victoiresParRoute || {}
           bossVaincusRef.current = data.bossVaincus || {}
@@ -1331,7 +1347,7 @@ function App() {
 
   useEffect(() => {
     if (!partieChargee || captures.length === 0) return
-    const data = { captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
+    const data = { resetHistoire: VERSION_RESET_HISTOIRE, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
     localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify(data))
   }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds])
 
@@ -2330,7 +2346,7 @@ function App() {
   // ===== ÉCRAN MODE ARÈNE (remplace l'écran principal) =====
   if (modeJeu === 'arene') {
     const nbZonesArene = ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length
-    const listeDresseurs = etatsDresseurs(nbZonesArene, dresseursVaincus)
+    const listeDresseurs = etatsDresseursAvecReset(nbZonesArene, dresseursVaincus)
     const equipeArene = equipeAreneIds.map((uid) => captures.find((p) => p.uid === uid)).filter(Boolean)
     // L'équipe d'arène doit aussi respecter la compo 1T/1E/2S/2D pour combattre.
     const equipeAreneValide = compositionValide(equipeArene)
@@ -2377,9 +2393,10 @@ function App() {
         if (r.argent) setPokeDollars((a) => a + Math.round(r.argent * multiplicateur(ameliorationsRef.current, 'champion')))
         if (r.bonbon) setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + r.bonbon }))
         if (r.objet) setObjets((o) => ({ ...o, [r.objet]: (o[r.objet] || 0) + 1 }))
-        // Marquer le dresseur comme vaincu (une seule fois, débloque le suivant).
-        const dejaVaincu = dresseursVaincus.includes(dresseurActif.id)
-        setDresseursVaincus((v) => v.includes(dresseurActif.id) ? v : [...v, dresseurActif.id])
+        // Marquer le dresseur comme vaincu POUR CE CRÉNEAU de 3h (refarm au reset suivant).
+        const creneau = creneauActuel()
+        const dejaVaincu = dresseursVaincus[dresseurActif.id] === creneau
+        setDresseursVaincus((v) => ({ ...v, [dresseurActif.id]: creneau }))
         ajouterAuJournal(`🏆 Arène : ${dresseurActif.nom} vaincu ! Récompense : ${decrireRecompenseDresseur(r)}`, 'victoire')
         // Pokémon spécial (boss) : débloqué la 1re fois qu'on bat ce boss.
         const special = specialDuBoss(dresseurActif.id)

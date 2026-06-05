@@ -11952,3 +11952,65 @@ img[src*="PokeAPI/sprites"] {
 
 /* Pas d'ombre de texte dans ce bloc (DA claire). */
 .fiche-passif-modes, .fiche-passif-modes * { text-shadow: none !important; }
+/* ============================================================
+   COMBAT D'ARÈNE 6v6 — affichage des deux équipes complètes
+   À COLLER À LA FIN de src/App.css.
+   (Avant, l'arène était en 1v1 : une seule carte par camp. Maintenant 6v6.)
+   ============================================================ */
+
+.arene-combat-6v6 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Chaque camp (dresseur en haut, joueur en bas). */
+.arene-combat-6v6 .arene-combat-cote {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* La rangée des 6 cartes : grille qui s'adapte, centrée. */
+.arene-combat-6v6 .arene-combat-equipe {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 920px;
+}
+
+/* Sur écran étroit, on passe à 3 colonnes (2 rangées de 3). */
+@media (max-width: 760px) {
+  .arene-combat-6v6 .arene-combat-equipe {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Le séparateur VS au centre. */
+.arene-combat-6v6 .vs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2px 0;
+}
+.arene-combat-6v6 .vs-texte {
+  font-family: 'Silkscreen', monospace;
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: #c8901a;
+  background: rgba(255, 250, 235, 0.85);
+  border: 2px solid #c8a23a;
+  border-radius: 8px;
+  padding: 2px 12px;
+}
+
+/* Compteur de restants par camp. */
+.arene-combat-6v6 .arene-combat-restants {
+  font-size: 0.78rem;
+  font-weight: bold;
+  color: #5a4520;
+}

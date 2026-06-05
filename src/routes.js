@@ -19,10 +19,8 @@ export const ROUTES = [
     niveau: 1,
     requisDe: null,
     decor: '/prairie.png',
-    handicapEnnemi: 0.45, // ZONE TUTO : ennemis (et boss) affaiblis à 45% des stats pour un démarrage accessible.
+    handicapEnnemi: 0.45,
   },
-
-  // ============ 2. Route de l'Aurore ============
   {
     id: 'zone2',
     nom: 'Route de l\'Aurore',
@@ -37,10 +35,8 @@ export const ROUTES = [
     niveau: 3,
     requisDe: 'tutoriel',
     decor: '/prairie.png',
-    handicapEnnemi: 0.55, // coup de pouce dégressif (équipe encore incomplète)
+    handicapEnnemi: 0.55,
   },
-
-  // ============ 3. Bois de Jade ============
   {
     id: 'zone3',
     nom: 'Bois de Jade',
@@ -55,10 +51,8 @@ export const ROUTES = [
     niveau: 5,
     requisDe: 'zone2',
     decor: '/foret.png',
-    handicapEnnemi: 0.65, // coup de pouce dégressif
+    handicapEnnemi: 0.65,
   },
-
-  // ============ 4. Prairie Verdoyante ============
   {
     id: 'zone4',
     nom: 'Prairie Verdoyante',
@@ -73,10 +67,8 @@ export const ROUTES = [
     niveau: 7,
     requisDe: 'zone3',
     decor: '/prairie.png',
-    handicapEnnemi: 0.80, // dernier petit coup de pouce avant l'équilibrage normal
+    handicapEnnemi: 0.80,
   },
-
-  // ============ 5. Caverne d'Écho ============
   {
     id: 'zone5',
     nom: 'Caverne d\'Écho',
@@ -92,8 +84,6 @@ export const ROUTES = [
     requisDe: 'zone4',
     decor: '/grotte.png',
   },
-
-  // ============ 6. Mont Sélénite ============
   {
     id: 'zone6',
     nom: 'Mont Sélénite',
@@ -109,8 +99,6 @@ export const ROUTES = [
     requisDe: 'zone5',
     decor: '/grotte.png',
   },
-
-  // ============ 7. Forge Ardente ============
   {
     id: 'zone7',
     nom: 'Forge Ardente',
@@ -126,8 +114,6 @@ export const ROUTES = [
     requisDe: 'zone6',
     decor: '/volcan.png',
   },
-
-  // ============ 8. Plaine Cendrée ============
   {
     id: 'zone8',
     nom: 'Plaine Cendrée',
@@ -143,8 +129,6 @@ export const ROUTES = [
     requisDe: 'zone7',
     decor: '/desert.png',
   },
-
-  // ============ 9. Dunes Brûlantes ============
   {
     id: 'zone9',
     nom: 'Dunes Brûlantes',
@@ -160,8 +144,6 @@ export const ROUTES = [
     requisDe: 'zone8',
     decor: '/desert.png',
   },
-
-  // ============ 10. Oasis Perdue ============
   {
     id: 'zone10',
     nom: 'Oasis Perdue',
@@ -177,8 +159,6 @@ export const ROUTES = [
     requisDe: 'zone9',
     decor: '/desert.png',
   },
-
-  // ============ 11. Rivage Naissant ============
   {
     id: 'zone11',
     nom: 'Rivage Naissant',
@@ -194,8 +174,6 @@ export const ROUTES = [
     requisDe: 'zone10',
     decor: '/abysses.png',
   },
-
-  // ============ 12. Côte Azurée ============
   {
     id: 'zone12',
     nom: 'Côte Azurée',
@@ -211,8 +189,6 @@ export const ROUTES = [
     requisDe: 'zone11',
     decor: '/abysses.png',
   },
-
-  // ============ 13. Lagon Turquoise ============
   {
     id: 'zone13',
     nom: 'Lagon Turquoise',
@@ -228,8 +204,6 @@ export const ROUTES = [
     requisDe: 'zone12',
     decor: '/abysses.png',
   },
-
-  // ============ 14. Marais Brumeux ============
   {
     id: 'zone14',
     nom: 'Marais Brumeux',
@@ -245,8 +219,6 @@ export const ROUTES = [
     requisDe: 'zone13',
     decor: '/marais.png',
   },
-
-  // ============ 15. Tourbière Toxique ============
   {
     id: 'zone15',
     nom: 'Tourbière Toxique',
@@ -262,8 +234,6 @@ export const ROUTES = [
     requisDe: 'zone14',
     decor: '/marais.png',
   },
-
-  // ============ 16. Plaine Statique ============
   {
     id: 'zone16',
     nom: 'Plaine Statique',
@@ -279,8 +249,6 @@ export const ROUTES = [
     requisDe: 'zone15',
     decor: '/electrique.png',
   },
-
-  // ============ 17. Centrale Abandonnée ============
   {
     id: 'zone17',
     nom: 'Centrale Abandonnée',
@@ -296,8 +264,6 @@ export const ROUTES = [
     requisDe: 'zone16',
     decor: '/electrique.png',
   },
-
-  // ============ 18. Temple de l'Esprit ============
   {
     id: 'zone18',
     nom: 'Temple de l\'Esprit',
@@ -313,8 +279,6 @@ export const ROUTES = [
     requisDe: 'zone17',
     decor: '/temple.png',
   },
-
-  // ============ 19. Sanctuaire Mental ============
   {
     id: 'zone19',
     nom: 'Sanctuaire Mental',
@@ -330,8 +294,6 @@ export const ROUTES = [
     requisDe: 'zone18',
     decor: '/temple.png',
   },
-
-  // ============ 20. Pics Enneigés ============
   {
     id: 'zone20',
     nom: 'Pics Enneigés',
@@ -347,8 +309,6 @@ export const ROUTES = [
     requisDe: 'zone19',
     decor: '/neige.png',
   },
-
-  // ============ 21. Toundra Gelée ============
   {
     id: 'zone21',
     nom: 'Toundra Gelée',
@@ -364,8 +324,6 @@ export const ROUTES = [
     requisDe: 'zone20',
     decor: '/neige.png',
   },
-
-  // ============ 22. Glacier Éternel ============
   {
     id: 'zone22',
     nom: 'Glacier Éternel',
@@ -381,8 +339,6 @@ export const ROUTES = [
     requisDe: 'zone21',
     decor: '/neige.png',
   },
-
-  // ============ 23. Dojo des Cimes ============
   {
     id: 'zone23',
     nom: 'Dojo des Cimes',
@@ -398,8 +354,6 @@ export const ROUTES = [
     requisDe: 'zone22',
     decor: '/grotte.png',
   },
-
-  // ============ 24. Arène Rocheuse ============
   {
     id: 'zone24',
     nom: 'Arène Rocheuse',
@@ -415,8 +369,6 @@ export const ROUTES = [
     requisDe: 'zone23',
     decor: '/cristal.png',
   },
-
-  // ============ 25. Caverne de Cristal ============
   {
     id: 'zone25',
     nom: 'Caverne de Cristal',
@@ -432,8 +384,6 @@ export const ROUTES = [
     requisDe: 'zone24',
     decor: '/cristal.png',
   },
-
-  // ============ 26. Mine Étincelante ============
   {
     id: 'zone26',
     nom: 'Mine Étincelante',
@@ -449,8 +399,6 @@ export const ROUTES = [
     requisDe: 'zone25',
     decor: '/cristal.png',
   },
-
-  // ============ 27. Ruines Hantées ============
   {
     id: 'zone27',
     nom: 'Ruines Hantées',
@@ -466,8 +414,6 @@ export const ROUTES = [
     requisDe: 'zone26',
     decor: '/temple.png',
   },
-
-  // ============ 28. Manoir Abandonné ============
   {
     id: 'zone28',
     nom: 'Manoir Abandonné',
@@ -483,8 +429,6 @@ export const ROUTES = [
     requisDe: 'zone27',
     decor: '/temple.png',
   },
-
-  // ============ 29. Volcan Ardent ============
   {
     id: 'zone29',
     nom: 'Volcan Ardent',
@@ -500,8 +444,6 @@ export const ROUTES = [
     requisDe: 'zone28',
     decor: '/volcan.png',
   },
-
-  // ============ 30. Cratère Fumant ============
   {
     id: 'zone30',
     nom: 'Cratère Fumant',
@@ -517,8 +459,6 @@ export const ROUTES = [
     requisDe: 'zone29',
     decor: '/volcan.png',
   },
-
-  // ============ 31. Abysses Obscures ============
   {
     id: 'zone31',
     nom: 'Abysses Obscures',
@@ -534,8 +474,6 @@ export const ROUTES = [
     requisDe: 'zone30',
     decor: '/abysses.png',
   },
-
-  // ============ 32. Fosse Marine ============
   {
     id: 'zone32',
     nom: 'Fosse Marine',
@@ -551,8 +489,6 @@ export const ROUTES = [
     requisDe: 'zone31',
     decor: '/abysses.png',
   },
-
-  // ============ 33. Antre des Dragons ============
   {
     id: 'zone33',
     nom: 'Antre des Dragons',
@@ -568,8 +504,6 @@ export const ROUTES = [
     requisDe: 'zone32',
     decor: '/dragon.png',
   },
-
-  // ============ 34. Repaire Draconique ============
   {
     id: 'zone34',
     nom: 'Repaire Draconique',
@@ -585,8 +519,6 @@ export const ROUTES = [
     requisDe: 'zone33',
     decor: '/dragon.png',
   },
-
-  // ============ 35. Clairière Féerique ============
   {
     id: 'zone35',
     nom: 'Clairière Féerique',
@@ -602,8 +534,6 @@ export const ROUTES = [
     requisDe: 'zone34',
     decor: '/prairie.png',
   },
-
-  // ============ 36. Bosquet Enchanté ============
   {
     id: 'zone36',
     nom: 'Bosquet Enchanté',
@@ -619,8 +549,6 @@ export const ROUTES = [
     requisDe: 'zone35',
     decor: '/foret.png',
   },
-
-  // ============ 37. Jungle Luxuriante ============
   {
     id: 'zone37',
     nom: 'Jungle Luxuriante',
@@ -636,8 +564,6 @@ export const ROUTES = [
     requisDe: 'zone36',
     decor: '/foret.png',
   },
-
-  // ============ 38. Canopée Tropicale ============
   {
     id: 'zone38',
     nom: 'Canopée Tropicale',
@@ -653,8 +579,6 @@ export const ROUTES = [
     requisDe: 'zone37',
     decor: '/foret.png',
   },
-
-  // ============ 39. Savane Dorée ============
   {
     id: 'zone39',
     nom: 'Savane Dorée',
@@ -670,8 +594,6 @@ export const ROUTES = [
     requisDe: 'zone38',
     decor: '/prairie.png',
   },
-
-  // ============ 40. Steppe Sauvage ============
   {
     id: 'zone40',
     nom: 'Steppe Sauvage',
@@ -687,8 +609,6 @@ export const ROUTES = [
     requisDe: 'zone39',
     decor: '/prairie.png',
   },
-
-  // ============ 41. Falaises Venteuses ============
   {
     id: 'zone41',
     nom: 'Falaises Venteuses',
@@ -704,8 +624,6 @@ export const ROUTES = [
     requisDe: 'zone40',
     decor: '/grotte.png',
   },
-
-  // ============ 42. Pic du Vautour ============
   {
     id: 'zone42',
     nom: 'Pic du Vautour',
@@ -721,8 +639,6 @@ export const ROUTES = [
     requisDe: 'zone41',
     decor: '/neige.png',
   },
-
-  // ============ 43. Grotte Souterraine ============
   {
     id: 'zone43',
     nom: 'Grotte Souterraine',
@@ -738,8 +654,6 @@ export const ROUTES = [
     requisDe: 'zone42',
     decor: '/grotte.png',
   },
-
-  // ============ 44. Galerie Profonde ============
   {
     id: 'zone44',
     nom: 'Galerie Profonde',
@@ -755,8 +669,6 @@ export const ROUTES = [
     requisDe: 'zone43',
     decor: '/grotte.png',
   },
-
-  // ============ 45. Champ Magnétique ============
   {
     id: 'zone45',
     nom: 'Champ Magnétique',
@@ -772,8 +684,6 @@ export const ROUTES = [
     requisDe: 'zone44',
     decor: '/electrique.png',
   },
-
-  // ============ 46. Tour Foudroyée ============
   {
     id: 'zone46',
     nom: 'Tour Foudroyée',
@@ -789,8 +699,6 @@ export const ROUTES = [
     requisDe: 'zone45',
     decor: '/electrique.png',
   },
-
-  // ============ 47. Lac Cristallin ============
   {
     id: 'zone47',
     nom: 'Lac Cristallin',
@@ -806,8 +714,6 @@ export const ROUTES = [
     requisDe: 'zone46',
     decor: '/abysses.png',
   },
-
-  // ============ 48. Source Sacrée ============
   {
     id: 'zone48',
     nom: 'Source Sacrée',
@@ -823,8 +729,6 @@ export const ROUTES = [
     requisDe: 'zone47',
     decor: '/abysses.png',
   },
-
-  // ============ 49. Désert de Verre ============
   {
     id: 'zone49',
     nom: 'Désert de Verre',
@@ -840,8 +744,6 @@ export const ROUTES = [
     requisDe: 'zone48',
     decor: '/desert.png',
   },
-
-  // ============ 50. Mesa Aride ============
   {
     id: 'zone50',
     nom: 'Mesa Aride',
@@ -857,8 +759,6 @@ export const ROUTES = [
     requisDe: 'zone49',
     decor: '/desert.png',
   },
-
-  // ============ 51. Forêt Pétrifiée ============
   {
     id: 'zone51',
     nom: 'Forêt Pétrifiée',
@@ -874,8 +774,6 @@ export const ROUTES = [
     requisDe: 'zone50',
     decor: '/foret.png',
   },
-
-  // ============ 52. Bois Maudit ============
   {
     id: 'zone52',
     nom: 'Bois Maudit',
@@ -891,8 +789,6 @@ export const ROUTES = [
     requisDe: 'zone51',
     decor: '/temple.png',
   },
-
-  // ============ 53. Cimetière Ancien ============
   {
     id: 'zone53',
     nom: 'Cimetière Ancien',
@@ -904,12 +800,10 @@ export const ROUTES = [
       tresRare: ['gallade', 'probopass', 'pignite', 'stoutland', 'emboar', 'servine'],
       legendaire: ['hoopa', 'volcanion', 'type-null', 'silvally'],
     },
-    niveau: 105,
+    niveau: 106,
     requisDe: 'zone52',
     decor: '/temple.png',
   },
-
-  // ============ 54. Crypte Oubliée ============
   {
     id: 'zone54',
     nom: 'Crypte Oubliée',
@@ -921,12 +815,10 @@ export const ROUTES = [
       tresRare: ['gigalith', 'musharna', 'simisear', 'unfezant', 'liepard', 'tranquill'],
       legendaire: ['volcanion', 'type-null', 'silvally', 'tapu-koko'],
     },
-    niveau: 107,
+    niveau: 108,
     requisDe: 'zone53',
     decor: '/temple.png',
   },
-
-  // ============ 55. Champs de Lave ============
   {
     id: 'zone55',
     nom: 'Champs de Lave',
@@ -938,12 +830,10 @@ export const ROUTES = [
       tresRare: ['swoobat', 'palpitoad', 'watchog', 'gigalith', 'boldore', 'stoutland'],
       legendaire: ['type-null', 'silvally', 'tapu-koko', 'tapu-lele'],
     },
-    niveau: 109,
+    niveau: 111,
     requisDe: 'zone54',
     decor: '/volcan.png',
   },
-
-  // ============ 56. Caldeira ============
   {
     id: 'zone56',
     nom: 'Caldeira',
@@ -955,12 +845,10 @@ export const ROUTES = [
       tresRare: ['whirlipede', 'swoobat', 'tranquill', 'seismitoad', 'boldore', 'musharna'],
       legendaire: ['silvally', 'tapu-koko', 'tapu-lele', 'tapu-bulu'],
     },
-    niveau: 111,
+    niveau: 113,
     requisDe: 'zone55',
     decor: '/volcan.png',
   },
-
-  // ============ 57. Banquise Polaire ============
   {
     id: 'zone57',
     nom: 'Banquise Polaire',
@@ -972,12 +860,10 @@ export const ROUTES = [
       tresRare: ['gurdurr', 'unfezant', 'swadloon', 'scolipede', 'seismitoad', 'leavanny'],
       legendaire: ['tapu-koko', 'tapu-lele', 'tapu-bulu', 'tapu-fini'],
     },
-    niveau: 113,
+    niveau: 116,
     requisDe: 'zone56',
     decor: '/neige.png',
   },
-
-  // ============ 58. Iceberg Dérivant ============
   {
     id: 'zone58',
     nom: 'Iceberg Dérivant',
@@ -989,12 +875,10 @@ export const ROUTES = [
       tresRare: ['cofagrigus', 'gurdurr', 'leavanny', 'conkeldurr', 'carracosta', 'whirlipede'],
       legendaire: ['tapu-lele', 'tapu-bulu', 'tapu-fini', 'cosmog'],
     },
-    niveau: 115,
+    niveau: 119,
     requisDe: 'zone57',
     decor: '/neige.png',
   },
-
-  // ============ 59. Récif Corallien ============
   {
     id: 'zone59',
     nom: 'Récif Corallien',
@@ -1006,12 +890,10 @@ export const ROUTES = [
       tresRare: ['krokorok', 'lilligant', 'zoroark', 'archeops', 'whimsicott', 'krookodile'],
       legendaire: ['tapu-bulu', 'tapu-fini', 'cosmog', 'cosmoem'],
     },
-    niveau: 117,
+    niveau: 122,
     requisDe: 'zone58',
     decor: '/abysses.png',
   },
-
-  // ============ 60. Grotte Sous-marine ============
   {
     id: 'zone60',
     nom: 'Grotte Sous-marine',
@@ -1023,12 +905,10 @@ export const ROUTES = [
       tresRare: ['vanillish', 'zoroark', 'gothitelle', 'gothorita', 'darmanitan-standard', 'scrafty'],
       legendaire: ['tapu-fini', 'cosmog', 'cosmoem', 'solgaleo'],
     },
-    niveau: 119,
+    niveau: 125,
     requisDe: 'zone59',
     decor: '/abysses.png',
   },
-
-  // ============ 61. Marécage Putride ============
   {
     id: 'zone61',
     nom: 'Marécage Putride',
@@ -1040,12 +920,10 @@ export const ROUTES = [
       tresRare: ['sawsbuck', 'reuniclus', 'vanillish', 'swanna', 'escavalier', 'gothorita'],
       legendaire: ['cosmog', 'cosmoem', 'solgaleo', 'lunala'],
     },
-    niveau: 121,
+    niveau: 129,
     requisDe: 'zone60',
     decor: '/marais.png',
   },
-
-  // ============ 62. Mangrove Sombre ============
   {
     id: 'zone62',
     nom: 'Mangrove Sombre',
@@ -1057,12 +935,10 @@ export const ROUTES = [
       tresRare: ['klinklang', 'zoroark', 'jellicent-male', 'klang', 'amoonguss', 'escavalier'],
       legendaire: ['cosmoem', 'solgaleo', 'lunala', 'necrozma'],
     },
-    niveau: 123,
+    niveau: 132,
     requisDe: 'zone61',
     decor: '/marais.png',
   },
-
-  // ============ 63. Cime des Géants ============
   {
     id: 'zone63',
     nom: 'Cime des Géants',
@@ -1074,12 +950,10 @@ export const ROUTES = [
       tresRare: ['beheeyem', 'galvantula', 'vanilluxe', 'escavalier', 'chandelure', 'swanna'],
       legendaire: ['solgaleo', 'lunala', 'necrozma', 'magearna'],
     },
-    niveau: 125,
+    niveau: 136,
     requisDe: 'zone62',
     decor: '/dragon.png',
   },
-
-  // ============ 64. Vallée du Tonnerre ============
   {
     id: 'zone64',
     nom: 'Vallée du Tonnerre',
@@ -1091,12 +965,10 @@ export const ROUTES = [
       tresRare: ['klang', 'haxorus', 'sawsbuck', 'jellicent-male', 'chandelure', 'amoonguss'],
       legendaire: ['lunala', 'necrozma', 'magearna', 'marshadow'],
     },
-    niveau: 127,
+    niveau: 139,
     requisDe: 'zone63',
     decor: '/electrique.png',
   },
-
-  // ============ 65. Plateau Venteux ============
   {
     id: 'zone65',
     nom: 'Plateau Venteux',
@@ -1108,12 +980,10 @@ export const ROUTES = [
       tresRare: ['braviary', 'mandibuzz', 'golurk', 'accelgor', 'klinklang', 'lampent'],
       legendaire: ['necrozma', 'magearna', 'marshadow', 'zeraora'],
     },
-    niveau: 129,
+    niveau: 143,
     requisDe: 'zone64',
     decor: '/prairie.png',
   },
-
-  // ============ 66. Prairie Astrale ============
   {
     id: 'zone66',
     nom: 'Prairie Astrale',
@@ -1125,12 +995,10 @@ export const ROUTES = [
       tresRare: ['beheeyem', 'accelgor', 'mandibuzz', 'braviary', 'zweilous', 'lampent'],
       legendaire: ['magearna', 'marshadow', 'zeraora', 'meltan'],
     },
-    niveau: 131,
+    niveau: 147,
     requisDe: 'zone65',
     decor: '/sanctuaire.png',
   },
-
-  // ============ 67. Jardin Céleste ============
   {
     id: 'zone67',
     nom: 'Jardin Céleste',
@@ -1142,12 +1010,10 @@ export const ROUTES = [
       tresRare: ['mienshao', 'quilladin', 'bisharp', 'chesnaught', 'hydreigon', 'diggersby'],
       legendaire: ['marshadow', 'zeraora', 'meltan', 'melmetal'],
     },
-    niveau: 133,
+    niveau: 152,
     requisDe: 'zone66',
     decor: '/sanctuaire.png',
   },
-
-  // ============ 68. Temple Solaire ============
   {
     id: 'zone68',
     nom: 'Temple Solaire',
@@ -1159,12 +1025,10 @@ export const ROUTES = [
       tresRare: ['mandibuzz', 'talonflame', 'vivillon', 'greninja', 'hydreigon', 'pyroar-male'],
       legendaire: ['zeraora', 'meltan', 'melmetal', 'zacian'],
     },
-    niveau: 135,
+    niveau: 156,
     requisDe: 'zone67',
     decor: '/temple.png',
   },
-
-  // ============ 69. Temple Lunaire ============
   {
     id: 'zone69',
     nom: 'Temple Lunaire',
@@ -1176,12 +1040,10 @@ export const ROUTES = [
       tresRare: ['talonflame', 'spewpa', 'diggersby', 'delphox', 'braixen', 'chesnaught'],
       legendaire: ['meltan', 'melmetal', 'zacian', 'zamazenta'],
     },
-    niveau: 137,
+    niveau: 161,
     requisDe: 'zone68',
     decor: '/temple.png',
   },
-
-  // ============ 70. Forêt Ancestrale ============
   {
     id: 'zone70',
     nom: 'Forêt Ancestrale',
@@ -1193,12 +1055,10 @@ export const ROUTES = [
       tresRare: ['pangoro', 'vivillon', 'meowstic-male', 'frogadier', 'pyroar-male', 'aromatisse'],
       legendaire: ['melmetal', 'zacian', 'zamazenta', 'eternatus'],
     },
-    niveau: 139,
+    niveau: 166,
     requisDe: 'zone69',
     decor: '/foret.png',
   },
-
-  // ============ 71. Bambouseraie ============
   {
     id: 'zone71',
     nom: 'Bambouseraie',
@@ -1210,12 +1070,10 @@ export const ROUTES = [
       tresRare: ['florges', 'talonflame', 'clawitzer', 'pyroar-male', 'aromatisse', 'meowstic-male'],
       legendaire: ['zacian', 'zamazenta', 'eternatus', 'kubfu'],
     },
-    niveau: 141,
+    niveau: 171,
     requisDe: 'zone70',
     decor: '/foret.png',
   },
-
-  // ============ 72. Grotte de Glace ============
   {
     id: 'zone72',
     nom: 'Grotte de Glace',
@@ -1227,12 +1085,10 @@ export const ROUTES = [
       tresRare: ['goodra', 'sylveon', 'aegislash-shield', 'clawitzer', 'aromatisse', 'pangoro'],
       legendaire: ['zamazenta', 'eternatus', 'kubfu', 'urshifu-single-strike'],
     },
-    niveau: 143,
+    niveau: 176,
     requisDe: 'zone71',
     decor: '/neige.png',
   },
-
-  // ============ 73. Caverne Magmatique ============
   {
     id: 'zone73',
     nom: 'Caverne Magmatique',
@@ -1244,12 +1100,10 @@ export const ROUTES = [
       tresRare: ['clawitzer', 'avalugg', 'gourgeist-average', 'tyrantrum', 'heliolisk', 'sliggoo'],
       legendaire: ['eternatus', 'kubfu', 'urshifu-single-strike', 'zarude'],
     },
-    niveau: 145,
+    niveau: 182,
     requisDe: 'zone72',
     decor: '/volcan.png',
   },
-
-  // ============ 74. Marais Spectral ============
   {
     id: 'zone74',
     nom: 'Marais Spectral',
@@ -1261,12 +1115,10 @@ export const ROUTES = [
       tresRare: ['torracat', 'trevenant', 'dragalge', 'noivern', 'clawitzer', 'barbaracle'],
       legendaire: ['kubfu', 'urshifu-single-strike', 'zarude', 'regieleki'],
     },
-    niveau: 147,
+    niveau: 188,
     requisDe: 'zone73',
     decor: '/marais.png',
   },
-
-  // ============ 75. Dunes Mouvantes ============
   {
     id: 'zone75',
     nom: 'Dunes Mouvantes',
@@ -1278,12 +1130,10 @@ export const ROUTES = [
       tresRare: ['avalugg', 'incineroar', 'decidueye', 'primarina', 'sylveon', 'goodra'],
       legendaire: ['urshifu-single-strike', 'zarude', 'regieleki', 'regidrago'],
     },
-    niveau: 149,
+    niveau: 194,
     requisDe: 'zone74',
     decor: '/desert.png',
   },
-
-  // ============ 76. Citadelle Rocheuse ============
   {
     id: 'zone76',
     nom: 'Citadelle Rocheuse',
@@ -1295,12 +1145,10 @@ export const ROUTES = [
       tresRare: ['ribombee', 'charjabug', 'gumshoos', 'brionne', 'torracat', 'noivern'],
       legendaire: ['zarude', 'regieleki', 'regidrago', 'glastrier'],
     },
-    niveau: 151,
+    niveau: 201,
     requisDe: 'zone75',
     decor: '/cristal.png',
   },
-
-  // ============ 77. Mont Foudre ============
   {
     id: 'zone77',
     nom: 'Mont Foudre',
@@ -1312,12 +1160,10 @@ export const ROUTES = [
       tresRare: ['lycanroc-midday', 'charjabug', 'ribombee', 'mudsdale', 'vikavolt', 'toucannon'],
       legendaire: ['regieleki', 'regidrago', 'glastrier', 'spectrier'],
     },
-    niveau: 153,
+    niveau: 207,
     requisDe: 'zone76',
     decor: '/electrique.png',
   },
-
-  // ============ 78. Abîme Insondable ============
   {
     id: 'zone78',
     nom: 'Abîme Insondable',
@@ -1329,12 +1175,10 @@ export const ROUTES = [
       tresRare: ['palossand', 'toucannon', 'shiinotic', 'golisopod', 'gumshoos', 'steenee'],
       legendaire: ['regidrago', 'glastrier', 'spectrier', 'calyrex'],
     },
-    niveau: 155,
+    niveau: 214,
     requisDe: 'zone77',
     decor: '/abysses.png',
   },
-
-  // ============ 79. Sanctuaire Draconique ============
   {
     id: 'zone79',
     nom: 'Sanctuaire Draconique',
@@ -1346,12 +1190,10 @@ export const ROUTES = [
       tresRare: ['araquanid', 'mudsdale', 'lycanroc-midday', 'steenee', 'shiinotic', 'palossand'],
       legendaire: ['glastrier', 'spectrier', 'calyrex', 'enamorus-incarnate'],
     },
-    niveau: 157,
+    niveau: 222,
     requisDe: 'zone78',
     decor: '/dragon.png',
   },
-
-  // ============ 80. Nid de Wyverne ============
   {
     id: 'zone80',
     nom: 'Nid de Wyverne',
@@ -1363,12 +1205,10 @@ export const ROUTES = [
       tresRare: ['naganadel', 'palossand', 'cinderace', 'lurantis', 'raboot', 'rillaboom'],
       legendaire: ['spectrier', 'calyrex', 'enamorus-incarnate', 'wo-chien'],
     },
-    niveau: 159,
+    niveau: 230,
     requisDe: 'zone79',
     decor: '/dragon.png',
   },
-
-  // ============ 81. Vallée Enchantée ============
   {
     id: 'zone81',
     nom: 'Vallée Enchantée',
@@ -1380,12 +1220,10 @@ export const ROUTES = [
       tresRare: ['rillaboom', 'golisopod', 'dottler', 'cinderace', 'steenee', 'hakamo-o'],
       legendaire: ['calyrex', 'enamorus-incarnate', 'wo-chien', 'chien-pao'],
     },
-    niveau: 161,
+    niveau: 238,
     requisDe: 'zone80',
     decor: '/prairie.png',
   },
-
-  // ============ 82. Pré Fleuri ============
   {
     id: 'zone82',
     nom: 'Pré Fleuri',
@@ -1397,12 +1235,10 @@ export const ROUTES = [
       tresRare: ['inteleon', 'orbeetle', 'drizzile', 'corvisquire', 'kommo-o', 'thievul'],
       legendaire: ['enamorus-incarnate', 'wo-chien', 'chien-pao', 'ting-lu'],
     },
-    niveau: 163,
+    niveau: 246,
     requisDe: 'zone81',
     decor: '/prairie.png',
   },
-
-  // ============ 83. Sylve Profonde ============
   {
     id: 'zone83',
     nom: 'Sylve Profonde',
@@ -1414,12 +1250,10 @@ export const ROUTES = [
       tresRare: ['carkol', 'dottler', 'coalossal', 'drizzile', 'eldegoss', 'boltund'],
       legendaire: ['wo-chien', 'chien-pao', 'ting-lu', 'chi-yu'],
     },
-    niveau: 165,
+    niveau: 255,
     requisDe: 'zone82',
     decor: '/foret.png',
   },
-
-  // ============ 84. Caverne Écarlate ============
   {
     id: 'zone84',
     nom: 'Caverne Écarlate',
@@ -1431,12 +1265,10 @@ export const ROUTES = [
       tresRare: ['dottler', 'orbeetle', 'toxtricity-amped', 'grapploct', 'barraskewda', 'dubwool'],
       legendaire: ['chien-pao', 'ting-lu', 'chi-yu', 'koraidon'],
     },
-    niveau: 167,
+    niveau: 265,
     requisDe: 'zone83',
     decor: '/grotte.png',
   },
-
-  // ============ 85. Plaine Désolée ============
   {
     id: 'zone85',
     nom: 'Plaine Désolée',
@@ -1448,12 +1280,10 @@ export const ROUTES = [
       tresRare: ['dubwool', 'carkol', 'boltund', 'hattrem', 'drednaw', 'barraskewda'],
       legendaire: ['ting-lu', 'chi-yu', 'koraidon', 'miraidon'],
     },
-    niveau: 169,
+    niveau: 274,
     requisDe: 'zone84',
     decor: '/desert.png',
   },
-
-  // ============ 86. Lac de Lave ============
   {
     id: 'zone86',
     nom: 'Lac de Lave',
@@ -1465,12 +1295,10 @@ export const ROUTES = [
       tresRare: ['sandaconda', 'sirfetchd', 'appletun', 'cursola', 'morgrem', 'coalossal'],
       legendaire: ['chi-yu', 'koraidon', 'miraidon', 'okidogi'],
     },
-    niveau: 171,
+    niveau: 285,
     requisDe: 'zone85',
     decor: '/volcan.png',
   },
-
-  // ============ 87. Océan Déchaîné ============
   {
     id: 'zone87',
     nom: 'Océan Déchaîné',
@@ -1482,12 +1310,10 @@ export const ROUTES = [
       tresRare: ['frosmoth', 'mr-rime', 'runerigus', 'centiskorch', 'alcremie', 'polteageist'],
       legendaire: ['koraidon', 'miraidon', 'okidogi', 'munkidori'],
     },
-    niveau: 173,
+    niveau: 296,
     requisDe: 'zone86',
     decor: '/abysses.png',
   },
-
-  // ============ 88. Tempête Éternelle ============
   {
     id: 'zone88',
     nom: 'Tempête Éternelle',
@@ -1499,12 +1325,10 @@ export const ROUTES = [
       tresRare: ['obstagoon', 'drakloak', 'mr-rime', 'morgrem', 'kleavor', 'grimmsnarl'],
       legendaire: ['miraidon', 'okidogi', 'munkidori', 'fezandipiti'],
     },
-    niveau: 175,
+    niveau: 307,
     requisDe: 'zone87',
     decor: '/electrique.png',
   },
-
-  // ============ 89. Pic Glacial ============
   {
     id: 'zone89',
     nom: 'Pic Glacial',
@@ -1516,12 +1340,10 @@ export const ROUTES = [
       tresRare: ['wyrdeer', 'runerigus', 'mr-rime', 'basculegion-male', 'perrserker', 'cursola'],
       legendaire: ['okidogi', 'munkidori', 'fezandipiti', 'ogerpon'],
     },
-    niveau: 177,
+    niveau: 319,
     requisDe: 'zone88',
     decor: '/neige.png',
   },
-
-  // ============ 90. Temple du Vide ============
   {
     id: 'zone90',
     nom: 'Temple du Vide',
@@ -1533,12 +1355,10 @@ export const ROUTES = [
       tresRare: ['kleavor', 'meowscarada', 'wyrdeer', 'quaxwell', 'quaquaval', 'overqwil'],
       legendaire: ['munkidori', 'fezandipiti', 'ogerpon', 'terapagos'],
     },
-    niveau: 179,
+    niveau: 332,
     requisDe: 'zone89',
     decor: '/temple.png',
   },
-
-  // ============ 91. Forêt Spectrale ============
   {
     id: 'zone91',
     nom: 'Forêt Spectrale',
@@ -1550,12 +1370,10 @@ export const ROUTES = [
       tresRare: ['kleavor', 'maushold-family-of-four', 'wyrdeer', 'pawmo', 'pawmot', 'sneasler'],
       legendaire: ['fezandipiti', 'ogerpon', 'terapagos', 'pecharunt'],
     },
-    niveau: 181,
+    niveau: 345,
     requisDe: 'zone90',
     decor: '/temple.png',
   },
-
-  // ============ 92. Mont Dragon ============
   {
     id: 'zone92',
     nom: 'Mont Dragon',
@@ -1567,12 +1385,10 @@ export const ROUTES = [
       tresRare: ['dolliv', 'arboliva', 'spidops', 'dachsbun', 'oinkologne-male', 'maushold-family-of-four'],
       legendaire: ['ogerpon', 'terapagos', 'pecharunt', 'articuno'],
     },
-    niveau: 183,
+    niveau: 359,
     requisDe: 'zone91',
     decor: '/dragon.png',
   },
-
-  // ============ 93. Scommet Céleste ============
   {
     id: 'zone93',
     nom: 'Scommet Céleste',
@@ -1584,12 +1400,10 @@ export const ROUTES = [
       tresRare: ['naclstack', 'pawmot', 'dachsbun', 'skeledirge', 'kilowattrel', 'garganacl'],
       legendaire: ['terapagos', 'pecharunt', 'articuno', 'zapdos'],
     },
-    niveau: 185,
+    niveau: 373,
     requisDe: 'zone92',
     decor: '/sanctuaire.png',
   },
-
-  // ============ 94. Plaine des Origines ============
   {
     id: 'zone94',
     nom: 'Plaine des Origines',
@@ -1601,12 +1415,10 @@ export const ROUTES = [
       tresRare: ['dolliv', 'scovillain', 'garganacl', 'kilowattrel', 'bellibolt', 'mabosstiff'],
       legendaire: ['pecharunt', 'articuno', 'zapdos', 'moltres'],
     },
-    niveau: 187,
+    niveau: 389,
     requisDe: 'zone93',
     decor: '/sanctuaire.png',
   },
-
-  // ============ 95. Ruines Élémentaires ============
   {
     id: 'zone95',
     nom: 'Ruines Élémentaires',
@@ -1618,12 +1430,10 @@ export const ROUTES = [
       tresRare: ['arboliva', 'armarouge', 'ceruledge', 'brambleghast', 'tinkaton', 'naclstack'],
       legendaire: ['articuno', 'zapdos', 'moltres', 'mewtwo'],
     },
-    niveau: 189,
+    niveau: 405,
     requisDe: 'zone94',
     decor: '/cristal.png',
   },
-
-  // ============ 96. Caverne Primordiale ============
   {
     id: 'zone96',
     nom: 'Caverne Primordiale',
@@ -1635,12 +1445,10 @@ export const ROUTES = [
       tresRare: ['palafin-zero', 'tinkatuff', 'cetitan', 'glimmora', 'bellibolt', 'mabosstiff'],
       legendaire: ['zapdos', 'moltres', 'mewtwo', 'mew'],
     },
-    niveau: 191,
+    niveau: 422,
     requisDe: 'zone95',
     decor: '/grotte.png',
   },
-
-  // ============ 97. Vallée Sacrée ============
   {
     id: 'zone97',
     nom: 'Vallée Sacrée',
@@ -1652,12 +1460,10 @@ export const ROUTES = [
       tresRare: ['clodsire', 'palafin-zero', 'scovillain', 'toedscruel', 'annihilape', 'dudunsparce-two-segment'],
       legendaire: ['moltres', 'mewtwo', 'mew', 'raikou'],
     },
-    niveau: 193,
+    niveau: 440,
     requisDe: 'zone96',
     decor: '/sanctuaire.png',
   },
-
-  // ============ 98. Jardin des Légendes ============
   {
     id: 'zone98',
     nom: 'Jardin des Légendes',
@@ -1669,12 +1475,10 @@ export const ROUTES = [
       tresRare: ['cetitan', 'clodsire', 'dipplin', 'glimmora', 'tinkatuff', 'revavroom'],
       legendaire: ['mewtwo', 'mew', 'raikou', 'entei'],
     },
-    niveau: 195,
+    niveau: 459,
     requisDe: 'zone97',
     decor: '/sanctuaire.png',
   },
-
-  // ============ 99. Trône Céleste ============
   {
     id: 'zone99',
     nom: 'Trône Céleste',
@@ -1686,12 +1490,10 @@ export const ROUTES = [
       tresRare: ['cetitan', 'dudunsparce-two-segment', 'houndstone', 'clodsire', 'hydrapple', 'baxcalibur'],
       legendaire: ['mew', 'raikou', 'entei', 'suicune'],
     },
-    niveau: 197,
+    niveau: 479,
     requisDe: 'zone98',
     decor: '/sanctuaire.png',
   },
-
-  // ============ 100. Nexus Originel ============
   {
     id: 'zone100',
     nom: 'Nexus Originel',
@@ -1703,7 +1505,7 @@ export const ROUTES = [
       tresRare: ['hydrapple', 'gholdengo', 'farigiraf', 'sinistcha', 'baxcalibur', 'dudunsparce-two-segment'],
       legendaire: ['raikou', 'entei', 'suicune', 'lugia'],
     },
-    niveau: 199,
+    niveau: 500,
     requisDe: 'zone99',
     decor: '/sanctuaire.png',
   },
