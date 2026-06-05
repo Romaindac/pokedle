@@ -12014,3 +12014,19 @@ img[src*="PokeAPI/sprites"] {
   font-weight: bold;
   color: #5a4520;
 }
+/* ============================================================
+   RÈGLE D'ÉQUIPE — petite ligne explicative dans le panneau Équipe
+   À COLLER À LA FIN de src/App.css.
+   ============================================================ */
+
+.banc-regle-compo {
+  margin: 2px 0 10px;
+  padding: 7px 11px;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: #5a4520;
+  background: rgba(255, 245, 220, 0.75);
+  border: 1px dashed #c8a23a;
+  border-radius: 9px;
+  text-shadow: none;
+}

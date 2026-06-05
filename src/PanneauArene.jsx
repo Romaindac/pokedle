@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { ROLES, compterRoles, COMPOSITION_REQUISE } from './roles'
+import { ROLES, compterRoles, compterSpeciaux, COMPOSITION_REQUISE, MIN_PAR_ROLE, MAX_PAR_ROLE, MAX_SPECIAL } from './roles'
 import { tempsAvantResetMs, formaterTempsReset } from './arene'
 
 // Ordre de rareté pour le tri (du plus rare au plus commun)
@@ -96,29 +96,38 @@ function RecompenseDresseur({ recompense }) {
   return <>{parts}</>
 }
 
-// Indicateur de composition d'équipe d'arène (1 Tank / 1 Éclaireur / 2 Soutien / 2 DPS).
+// Indicateur de composition d'équipe d'arène (souple : 1 à 2 par rôle, 1 spécial max).
 function IndicateurCompoArene({ equipe, valide }) {
   const compte = compterRoles(equipe)
+  const nbSpeciaux = compterSpeciaux(equipe)
   const ordre = ['tank', 'eclaireur', 'soutien', 'dps']
   return (
     <div className={`compo-indicateur ${valide ? 'compo-ok' : 'compo-ko'}`}>
       <div className="compo-titre">
-        {valide ? '✓ Équipe d\'arène prête au combat' : 'Composition requise : 1 Tank · 1 Éclaireur · 2 Soutien · 2 DPS'}
+        {valide
+          ? '✓ Équipe d\'arène prête au combat'
+          : `Compo : 1 à 2 par rôle (chaque rôle présent) · ${MAX_SPECIAL} spécial max`}
       </div>
       <div className="compo-roles">
         {ordre.map((role) => {
           const info = ROLES[role]
           const actuel = compte[role]
-          const requis = COMPOSITION_REQUISE[role]
-          const ok = actuel === requis
+          const ok = actuel >= MIN_PAR_ROLE && actuel <= MAX_PAR_ROLE
           return (
             <span key={role} className={`compo-role ${ok ? 'role-ok' : 'role-ko'}`} style={{ borderColor: info.couleur }}>
               <span className="compo-role-emoji"><IconeRole role={role} taille={13} /></span>
               <span className="compo-role-txt">{info.nom}</span>
-              <span className="compo-role-compte">{actuel}/{requis}</span>
+              <span className="compo-role-compte">{actuel}/{MAX_PAR_ROLE}</span>
             </span>
           )
         })}
+        {nbSpeciaux > 0 && (
+          <span className={`compo-role ${nbSpeciaux <= MAX_SPECIAL ? 'role-ok' : 'role-ko'}`} style={{ borderColor: '#d986ff' }}>
+            <span className="compo-role-emoji">🌟</span>
+            <span className="compo-role-txt">Spécial</span>
+            <span className="compo-role-compte">{nbSpeciaux}/{MAX_SPECIAL}</span>
+          </span>
+        )}
       </div>
     </div>
   )

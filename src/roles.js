@@ -1,12 +1,5 @@
 // ============================================================
 // RÔLES DES POKÉMON (système enrichi : 4 rôles × passifs + Joker)
-//
-// REWORK PASSIFS (équilibrage) :
-//   TANK      : Colosse (+40% PV) / Carapace (+20% PV, -12% dégâts équipe) / Provocateur (+20% PV, renvoi 15%)
-//   DPS       : Bourrin (+35%) / Assassin (+20%, +50% sous 35% PV) / Briseur (+20%, -50% soins ennemis)
-//   ÉCLAIREUR : Vif (+15% vitesse équipe) / Saboteur (-15% attaque ennemie) / Handicapeur (-15% vitesse ennemie)
-//   SOUTIEN   : Stratège (+18% attaque équipe) / Gardien (+18% défense +12% PV équipe) / Guérisseur (12% PV / 7s)
-//   JOKER     : case + N'IMPORTE QUEL des 9 passifs (passif libre).
 // ============================================================
 
 import { roleParNumero } from './rolesPokemon'
@@ -25,6 +18,12 @@ export const CASES_JOKER = ['tank', 'eclaireur', 'soutien', 'dps']
 export const COMPOSITION_REQUISE = { tank: 1, eclaireur: 1, soutien: 2, dps: 2 }
 export const TAILLE_EQUIPE = 6
 
+// ===== NOUVELLE RÈGLE DE COMPO (souple) =====
+// Au moins 1 de chaque rôle, au plus 2 de chaque rôle, et 1 spécial max par équipe.
+export const MIN_PAR_ROLE = 1
+export const MAX_PAR_ROLE = 2
+export const MAX_SPECIAL = 1
+
 // Cadence du soin périodique du Guérisseur (millisecondes de temps réel).
 export const PERIODE_SOIN_MS = 7000
 
@@ -41,7 +40,6 @@ export const ROLES_FORCES = {}
 
 // ---------- LES PASSIFS (3 par rôle) ----------
 export const PASSIFS = {
-  // ===== TANK =====
   colosse: {
     nom: 'Colosse', role: 'tank', emoji: '🛡️',
     description: '+40% PV max et attire les coups',
@@ -57,8 +55,6 @@ export const PASSIFS = {
     description: '+20% PV, attire les coups et renvoie 15% des dégâts subis',
     effet: { pvMult: 1.20, attireCoups: true, renvoiDegats: 0.15 },
   },
-
-  // ===== DPS =====
   bourrin: {
     nom: 'Bourrin', role: 'dps', emoji: '⚔️',
     description: '+35% de dégâts',
@@ -74,8 +70,6 @@ export const PASSIFS = {
     description: '+20% dégâts et réduit de 50% les soins de l\'équipe ennemie',
     effet: { degatsMult: 1.20, reducSoinAdverse: 0.50 },
   },
-
-  // ===== ÉCLAIREUR (debuffer) =====
   vif: {
     nom: 'Vif', role: 'eclaireur', emoji: '⚡',
     description: '+15% de vitesse de jauge pour toute l\'équipe',
@@ -91,8 +85,6 @@ export const PASSIFS = {
     description: 'Réduit de 15% la vitesse de jauge de toute l\'équipe ennemie',
     effet: { jaugeMult: 1.10, reducVitesseAdverse: 0.15 },
   },
-
-  // ===== SOUTIEN (attaque / défense / soin) =====
   stratege: {
     nom: 'Stratège', role: 'soutien', emoji: '🧠',
     description: 'Augmente de 18% l\'attaque de toute l\'équipe',
@@ -142,7 +134,6 @@ export const PASSIFS_PAR_ROLE = {
   soutien:   ['stratege', 'gardien', 'guerisseur'],
 }
 
-// Les 9 passifs (pour le Joker, passif libre).
 export const TOUS_LES_PASSIFS = [
   ...PASSIFS_PAR_ROLE.tank,
   ...PASSIFS_PAR_ROLE.dps,
@@ -165,7 +156,6 @@ export function passifAppartientAuRole(clePassif, role) {
   return (PASSIFS_PAR_ROLE[role] || []).includes(clePassif)
 }
 
-// ---------- FONCTIONS ----------
 export function determinerRole(pokemon) {
   if (!pokemon) return 'dps'
   if (pokemon.roleForce && (ROLES[pokemon.roleForce] || pokemon.roleForce === 'joker')) {
@@ -228,9 +218,6 @@ export function passifDe(pokemon) {
   return PASSIFS[cle] || null
 }
 
-// ---------- PASSIFS PAR MODE ----------
-// Renvoie la clé du passif pour un mode ('principal'|'arene'|'pvp').
-// Champs : passifChoisi (principal), passifArene, passifPvp. Repli en cascade, validé contre le rôle.
 export function passifPourMode(pokemon, mode = 'principal') {
   if (!pokemon) return passifParDefautDuRole('dps')
   const role = pokemon.roleForce || pokemon.role || determinerRole(pokemon)
@@ -248,7 +235,6 @@ export function champPassifDuMode(mode = 'principal') {
   return mode === 'arene' ? 'passifArene' : mode === 'pvp' ? 'passifPvp' : 'passifChoisi'
 }
 
-// ---------- COMPATIBILITÉ (bonusDuRole) ----------
 export const BONUS_ROLE = {
   tank:      { pvMult: 1.30, degatsMult: 1.0,  jaugeMult: 1.0,  regenEquipe: 0 },
   dps:       { pvMult: 1.0,  degatsMult: 1.25, jaugeMult: 1.0,  regenEquipe: 0 },
@@ -259,7 +245,6 @@ export function bonusDuRole(role) {
   return BONUS_ROLE[role] || { pvMult: 1, degatsMult: 1, jaugeMult: 1, regenEquipe: 0 }
 }
 
-// Effet chiffré du passif (fusionné avec des neutres : jamais d'undefined dans le moteur).
 export function bonusDuPassif(pokemon) {
   const neutre = {
     pvMult: 1, degatsMult: 1, jaugeMult: 1, defMult: 1,
@@ -289,36 +274,49 @@ export function compterRoles(equipe) {
   return compte
 }
 
+// Compte les Pokémon spéciaux (méga / formes — rareté max) dans une équipe.
+export function compterSpeciaux(equipe) {
+  let n = 0
+  for (const p of (equipe || [])) {
+    if (!p) continue
+    if (p.estSpecial === true || p.rarete === 'special') n += 1
+  }
+  return n
+}
+
+// ===== NOUVELLE RÈGLE DE COMPO (souple) =====
+// Valide si : au moins 1 de chaque rôle, au plus 2 de chaque rôle, et 1 spécial max.
+// (Tant que l'équipe a moins de 6 Pokémon, la compo n'est pas bloquante — early game.)
 export function compositionValide(equipe) {
   const membres = (equipe || []).filter(Boolean)
   if (membres.length < TAILLE_EQUIPE) return true
   const compte = compterRoles(membres)
-  return (
-    compte.tank === COMPOSITION_REQUISE.tank &&
-    compte.eclaireur === COMPOSITION_REQUISE.eclaireur &&
-    compte.soutien === COMPOSITION_REQUISE.soutien &&
-    compte.dps === COMPOSITION_REQUISE.dps
-  )
+  for (const role of ['tank', 'eclaireur', 'soutien', 'dps']) {
+    if (compte[role] < MIN_PAR_ROLE) return false
+    if (compte[role] > MAX_PAR_ROLE) return false
+  }
+  if (compterSpeciaux(membres) > MAX_SPECIAL) return false
+  return true
 }
 
 export function diagnostiqueComposition(equipe) {
   const membres = (equipe || []).filter(Boolean)
   if (membres.length < TAILLE_EQUIPE) {
-    return [`Équipe libre (${membres.length}/${TAILLE_EQUIPE}). La compo 1T/1E/2S/2D sera requise à 6 Pokémon.`]
+    return [`Équipe libre (${membres.length}/${TAILLE_EQUIPE}). À 6 Pokémon : 1 de chaque rôle minimum, 2 maximum par rôle, 1 spécial max.`]
   }
   const compte = compterRoles(membres)
   const messages = []
   for (const role of ['tank', 'eclaireur', 'soutien', 'dps']) {
-    const requis = COMPOSITION_REQUISE[role]
-    const actuel = compte[role]
     const labelRole = ROLES[role].nom
-    if (actuel < requis) messages.push(`Il manque ${requis - actuel} ${labelRole}`)
-    else if (actuel > requis) messages.push(`${actuel - requis} ${labelRole} en trop`)
+    if (compte[role] < MIN_PAR_ROLE) messages.push(`Il manque un ${labelRole}`)
+    else if (compte[role] > MAX_PAR_ROLE) messages.push(`Trop de ${labelRole} (max ${MAX_PAR_ROLE})`)
+  }
+  if (compterSpeciaux(membres) > MAX_SPECIAL) {
+    messages.push(`1 seul Pokémon spécial autorisé par équipe`)
   }
   return messages
 }
 
-// ---------- TRI PAR RÔLE ----------
 export const ORDRE_ROLES = { tank: 0, eclaireur: 1, dps: 2, soutien: 3 }
 
 function rangRole(pokemon) {
