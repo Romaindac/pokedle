@@ -165,7 +165,7 @@ function PanneauArene({
         </button>
       </header>
 
-      <div className="arene-ecran arene-ecran-doree">
+      <div className="arene-ecran arene-ecran-doree arene-v2">
         <p className="arene-intro">
           Compose ton <strong>équipe d'arène</strong> (1 Tank, 1 Éclaireur, 2 Soutien, 2 DPS), puis défie les dresseurs.
           Ils deviennent plus coriaces à mesure que tu progresses !

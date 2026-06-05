@@ -11455,3 +11455,173 @@ img[src*="PokeAPI/sprites"] {
 .boost-v2 .bouton-fermer { color: #fff !important; }
 .boost-v2 .amelio-max { color: #2e7d32 !important; }
 .boost-v2 .bouton-achat-lot:disabled { color: #b09a64 !important; }
+/* ============================================================
+   ÉCRAN ARÈNE v2 — DA du menu Routes (parchemin clair + doré)
+   À COLLER À LA FIN de src/App.css.
+   L'arène est un écran plein (app-layout) → on stylise la zone .arene-v2.
+   ============================================================ */
+
+/* ---------- ZONE ARÈNE (panneau clair posé sur le fond) ---------- */
+.arene-ecran.arene-v2 {
+  background: linear-gradient(180deg, rgba(255, 247, 224, 0.95), rgba(240, 221, 174, 0.95)) !important;
+  border: 3px solid #c8a23a !important;
+  border-radius: 16px;
+  color: #4a3410;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  padding: 16px;
+}
+.arene-v2 .arene-intro { color: #5a4520 !important; font-size: 0.86rem; line-height: 1.4; }
+.arene-v2 .arene-intro strong { color: #7a5a1e !important; }
+.arene-v2 .arene-section-titre {
+  color: #7a5a1e !important; font-size: 0.95rem;
+  border-bottom: 2px dashed #c8a23a; padding-bottom: 5px; margin: 16px 0 10px;
+}
+.arene-v2 .arene-vide { color: #8a7038 !important; font-style: italic; font-size: 0.82rem; }
+
+/* ---------- INDICATEUR COMPO ---------- */
+.arene-v2 .compo-indicateur {
+  border-radius: 12px; border: 2px solid #b89348;
+  background: linear-gradient(180deg, #fffaee, #f7e9c2); padding: 9px 12px; margin-bottom: 10px;
+}
+.arene-v2 .compo-indicateur.compo-ok { border-color: #6bbf6e; background: linear-gradient(180deg, #eefaef, #d9f0da); }
+.arene-v2 .compo-titre { color: #5a4520 !important; font-size: 0.8rem; font-weight: bold; margin-bottom: 7px; }
+.arene-v2 .compo-ok .compo-titre { color: #2e7d32 !important; }
+.arene-v2 .compo-roles { display: flex; gap: 7px; flex-wrap: wrap; }
+.arene-v2 .compo-role {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px;
+  border-radius: 8px; border: 2px solid; background: rgba(255, 255, 255, 0.6);
+  font-size: 0.74rem; color: #4a3410 !important;
+}
+.arene-v2 .compo-role.role-ok { background: rgba(214, 247, 216, 0.8); }
+.arene-v2 .compo-role-compte { font-weight: bold; }
+
+/* ---------- ÉQUIPE D'ARÈNE ---------- */
+.arene-v2 .arene-equipe { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.arene-v2 .arene-membre {
+  position: relative; width: 70px; height: 84px;
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+  border: 2px solid #c8a23a; border-radius: 12px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: transform 0.08s;
+}
+.arene-v2 .arene-membre:hover { transform: translateY(-2px); border-color: #e0b93d; }
+.arene-v2 .arene-membre img { width: 50px; height: 50px; object-fit: contain; image-rendering: pixelated; }
+.arene-v2 .arene-membre-niv { color: #5a4520 !important; font-size: 0.66rem; font-weight: bold; }
+.arene-v2 .arene-membre-retirer {
+  position: absolute; top: -5px; right: -5px; width: 18px; height: 18px;
+  background: #c0392b; color: #fff !important; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 0.7rem;
+}
+
+/* ---------- OUTILS (recherche / tri) ---------- */
+.arene-v2 .arene-outils { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.arene-v2 .banc-recherche, .arene-v2 .tri-select {
+  border: 2px solid #b89348; border-radius: 9px; background: #fff7e0; color: #4a3410 !important;
+  font-family: inherit; font-size: 0.8rem; padding: 7px 10px; outline: none;
+}
+.arene-v2 .banc-recherche::placeholder { color: #b09a64; }
+.arene-v2 .banc-recherche:focus, .arene-v2 .tri-select:focus { border-color: #e0b93d; }
+
+/* ---------- FILTRES RÔLE ---------- */
+.arene-v2 .arene-filtres-role { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.arene-v2 .filtre-role {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348; border-radius: 9px; color: #4a3410 !important;
+  font-family: inherit; font-size: 0.74rem; padding: 5px 10px; cursor: pointer;
+}
+.arene-v2 .filtre-role:hover { border-color: #e0b93d; }
+.arene-v2 .filtre-role.actif {
+  border-color: var(--role-couleur, #e0b93d);
+  box-shadow: 0 0 0 1px var(--role-couleur, #e0b93d) inset;
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+}
+
+/* ---------- COLLECTION ---------- */
+.arene-v2 .arene-collection {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 8px; margin-bottom: 8px;
+}
+.arene-v2 .arene-collection-item {
+  position: relative; background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348; border-radius: 10px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; padding: 6px 3px;
+  transition: transform 0.08s, border-color 0.12s;
+}
+.arene-v2 .arene-collection-item:hover { transform: translateY(-2px); border-color: #e0b93d; }
+.arene-v2 .arene-collection-item.choisi {
+  border-color: #e0b93d; box-shadow: 0 0 0 2px #e0b93d inset;
+  background: linear-gradient(180deg, #fffaee, #f7e9c2);
+}
+.arene-v2 .arene-collection-item img { width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated; }
+.arene-v2 .arene-collection-niv { color: #5a4520 !important; font-size: 0.62rem; font-weight: bold; }
+.arene-v2 .arene-collection-pastille {
+  position: absolute; top: -4px; left: -4px; width: 20px; height: 20px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  border: 2px solid #fff7e0;
+}
+.arene-v2 .arene-collection-check {
+  position: absolute; top: -4px; right: -4px; width: 18px; height: 18px;
+  background: #4caf50; color: #fff !important; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 0.62rem;
+  border: 2px solid #fff7e0;
+}
+
+/* ---------- DRESSEURS ---------- */
+.arene-v2 .arene-dresseurs { display: flex; flex-direction: column; gap: 8px; }
+.arene-v2 .arene-dresseur {
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4);
+  border: 2px solid #b89348; border-radius: 12px; padding: 10px 12px;
+}
+.arene-v2 .arene-dresseur.etat-verrouille { opacity: 0.6; filter: grayscale(0.4); }
+.arene-v2 .arene-dresseur.etat-vaincu { background: linear-gradient(180deg, #eef7ee, #dcecdc); }
+.arene-v2 .arene-dresseur.est-boss {
+  border-color: #e0b93d; box-shadow: 0 0 0 1px #e0b93d inset, 0 2px 10px rgba(224, 185, 61, 0.3);
+}
+.arene-v2 .arene-dresseur-emoji {
+  width: 64px; height: 64px; min-width: 64px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.5); border-radius: 10px; overflow: hidden;
+  font-size: 1.8rem;
+}
+.arene-v2 .arene-dresseur-sprite {
+  width: 60px; height: 60px; object-fit: contain; image-rendering: pixelated;
+}
+.arene-v2 .arene-dresseur-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.arene-v2 .arene-dresseur-nom { color: #4a3410 !important; font-weight: bold; font-size: 0.86rem; }
+.arene-v2 .arene-dresseur-titre { color: #7a5a1e !important; font-size: 0.74rem; font-style: italic; }
+.arene-v2 .arene-dresseur-detail { color: #8a7038 !important; font-size: 0.72rem; }
+.arene-v2 .arene-dresseur-recompense { color: #5a4520 !important; font-size: 0.74rem; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.arene-v2 .arene-recomp-item { display: inline-flex; align-items: center; gap: 3px; }
+.arene-v2 .arene-ico { width: 14px; height: 14px; }
+.arene-v2 .arene-badge-boss { background: #e0b93d; color: #4a3410 !important; font-size: 0.6rem; font-weight: bold; padding: 1px 5px; border-radius: 5px; }
+.arene-v2 .arene-badge-vaincu { color: #2e7d32 !important; }
+.arene-v2 .arene-dresseur-statut { color: #2e7d32 !important; font-weight: bold; font-size: 0.8rem; }
+
+/* Bouton combattre */
+.arene-v2 .bouton-combattre {
+  background: linear-gradient(180deg, #ffd451, #e0a81e); border: none; border-radius: 9px;
+  color: #4a3410 !important; font-family: inherit; font-weight: bold; font-size: 0.8rem;
+  padding: 8px 16px; cursor: pointer; box-shadow: 0 2px 0 #b8861a; flex-shrink: 0;
+}
+.arene-v2 .bouton-combattre:hover:not(:disabled) { transform: translateY(-1px); }
+.arene-v2 .bouton-combattre:disabled {
+  background: #e8dcc0; color: #b09a64 !important; box-shadow: 0 2px 0 #c8b88a;
+  cursor: not-allowed; opacity: 0.8;
+}
+
+/* Bouton retour arène (dans la topbar). */
+.bouton-retour-arene {
+  background: linear-gradient(180deg, #fff7e0, #f4e3b4); border: 2px solid #b89348;
+  border-radius: 9px; color: #4a3410; font-family: inherit; font-size: 0.8rem;
+  padding: 6px 12px; cursor: pointer;
+}
+.bouton-retour-arene:hover { border-color: #e0b93d; }
+
+/* ---------- TEXTE : foncé + pas d'ombre ---------- */
+.arene-v2,
+.arene-v2 h3, .arene-v2 p, .arene-v2 span, .arene-v2 button, .arene-v2 select, .arene-v2 input {
+  color: #4a3410;
+}
+.arene-v2, .arene-v2 * { text-shadow: none !important; }
