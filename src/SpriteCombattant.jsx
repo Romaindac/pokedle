@@ -69,14 +69,29 @@ function SpriteCombattant({
   }, [pvActuels])
 
   // --- Bond d'attaque (la jauge ATB retombe = le Pokémon vient d'agir) ---
+  // On anime directement l'élément DOM via une ref (Web Animations API) :
+  // pas de recréation du sprite, pas de rechargement du GIF → bien plus fluide.
   const jaugePrec = useRef(jauge)
-  const [compteurAttaque, setCompteurAttaque] = useState(0)
+  const bondRef = useRef(null)
   useEffect(() => {
-    if (jauge < jaugePrec.current - 25 && !ko) {
-      setCompteurAttaque((n) => n + 1) // change à chaque attaque → relance l'animation
+    if (jauge < jaugePrec.current - 25 && !ko && bondRef.current) {
+      const dx = estJoueur ? 16 : -16
+      const dy = estJoueur ? -12 : 12
+      try {
+        bondRef.current.animate(
+          [
+            { transform: 'translate(0,0)' },
+            { transform: `translate(${dx}px, ${dy}px)`, offset: 0.35 },
+            { transform: 'translate(0,0)' },
+          ],
+          { duration: 380, easing: 'ease-out' }
+        )
+      } catch {
+        // navigateur sans WAAPI : on ignore, pas grave
+      }
     }
     jaugePrec.current = jauge
-  }, [jauge, ko])
+  }, [jauge, ko, estJoueur])
 
   const role = pokemon.role || determinerRole(pokemon)
   const infoRole = ROLES[role]
@@ -112,10 +127,7 @@ function SpriteCombattant({
               onError={(e) => { e.currentTarget.replaceWith(document.createTextNode('⚫')) }} />
           </button>
         )}
-        <div
-          className={`cbt-sprite-bond ${estJoueur ? 'bond-joueur' : 'bond-ennemi'} ${compteurAttaque > 0 ? 'a-attaque' : ''}`}
-          key={compteurAttaque}
-        >
+        <div className="cbt-sprite-bond" ref={bondRef}>
           <img
             src={sources[0]}
             alt={pokemon.nom}

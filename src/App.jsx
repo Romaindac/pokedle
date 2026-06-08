@@ -4,7 +4,7 @@ import {
   BookOpen, Users, Map as MapIcon, BarChart3, ShoppingBag, Backpack,
   Trophy, Zap, Swords, Flame, Crosshair, Medal, Save, HelpCircle, Trash2,
   Settings, Gauge, Boxes, ChevronLeft, ChevronRight, Coins, Target, Play, Pause,
-  Sparkles, Crown, Plus, Repeat,
+  Sparkles, Crown, Plus, Repeat, Egg,
 } from 'lucide-react'
 import { VITESSE_COMBAT, PAUSE_RESPAWN, GAIN_PAR_VICTOIRE, GAIN_BASE_ENNEMI, BONUS_STAT_NIVEAU, XP_BASE_NIVEAU, XP_BASE_ENNEMI, TAUX_CAPTURE_RARETE, BALLS, BALL_AUTO_PAR_RARETE, TAUX_SHINY, PIERRES, BONBONS, prixDynamique, multiplicateurSurclassement } from './config'
 import { ticCombat, appliquerUltime } from './moteurCombat'
@@ -14,6 +14,10 @@ import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionVali
 import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
 import CartePokemon from './CartePokemon'
 import SpriteCombattant from './SpriteCombattant'
+import TutoFenetre from './TutoFenetre'
+import { reinitialiserTutos } from './tuto'
+import PanneauOeufs from './PanneauOeufs'
+import { creerOeuf, tirerRareteOeuf, pretAEclore, combatsRequis, NB_INCUBATEURS, TAUX_DROP_OEUF, TYPES_OEUF, infoOeuf, JETONS_PAR_ECLOSION, JETONS_PAR_BOSS, CHANCE_JETON_COMBAT, tirerContenuOeuf, ivDepuisOeuf, shinyDepuisOeuf } from './oeufs'
 import TimerAnneau from './TimerAnneau'
 import Pokedex from './Pokedex'
 import Equipe from './Equipe'
@@ -426,6 +430,13 @@ function App() {
   const [jaugeEnnemis, setJaugeEnnemis] = useState([])
   const [chargement, setChargement] = useState(true)
   const [vaincus, setVaincus] = useState(0)
+  // Œufs : réserve (en attente) + incubateurs (tableau de NB_INCUBATEURS, null = libre).
+  const [reserveOeufs, setReserveOeufs] = useState([])
+  const [oeufsIncubes, setOeufsIncubes] = useState(() => Array(NB_INCUBATEURS).fill(null))
+  const oeufsIncubesRef = useRef(oeufsIncubes)
+  useEffect(() => { oeufsIncubesRef.current = oeufsIncubes }, [oeufsIncubes])
+  // Jetons d'élevage : monnaie dédiée aux œufs.
+  const [jetonsElevage, setJetonsElevage] = useState(0)
   const [pokeDollars, setPokeDollars] = useState(0)
   const [balls, setBalls] = useState({ poke: 0, super: 0, hyper: 0, master: 0 })
   const [pierres, setPierres] = useState({})
@@ -1413,6 +1424,13 @@ function App() {
           if (data.equipeAreneIds) setEquipeAreneIds(data.equipeAreneIds)
           if (data.raidsCooldowns) setRaidsCooldowns(data.raidsCooldowns)
           if (data.equipeRaidIds) setEquipeRaidIds(data.equipeRaidIds)
+          if (Array.isArray(data.reserveOeufs)) setReserveOeufs(data.reserveOeufs)
+          if (typeof data.jetonsElevage === 'number') setJetonsElevage(data.jetonsElevage)
+          if (Array.isArray(data.oeufsIncubes)) {
+            const slots = Array(NB_INCUBATEURS).fill(null)
+            data.oeufsIncubes.forEach((o, i) => { if (i < NB_INCUBATEURS) slots[i] = o || null })
+            setOeufsIncubes(slots)
+          }
           if (data.equipeDefenseIds) setEquipeDefenseIds(data.equipeDefenseIds)
           if (data.equipeAttaqueIds) setEquipeAttaqueIds(data.equipeAttaqueIds)
           if (data.tutoVu) setTutoVu(true)
@@ -1487,7 +1505,7 @@ function App() {
   const donneesSauvegardeRef = useRef(null)
   useEffect(() => {
     if (!partieChargee || captures.length === 0) return
-    const data = { resetHistoire: VERSION_RESET_HISTOIRE, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, ciblesMasterBall, tutoVu, raidsCooldowns, equipeRaidIds }
+    const data = { resetHistoire: VERSION_RESET_HISTOIRE, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, ciblesMasterBall, tutoVu, raidsCooldowns, equipeRaidIds, reserveOeufs, oeufsIncubes, jetonsElevage }
     donneesSauvegardeRef.current = data
     localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify(data))
   }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, ciblesMasterBall, tutoVu, raidsCooldowns, equipeRaidIds])
@@ -1711,6 +1729,8 @@ function App() {
           const routeGagnee = routeActiveRef.current
           if (combatBossRef.current) {
             const boss = equipeEnnemieRef.current[0]
+            // Refarm ? (boss déjà vaincu une fois sur cette zone) → beaucoup moins de jetons.
+            const bossDejaVaincu = !!bossVaincusRef.current[routeGagnee]
             const gainBoss = Math.round((boss?.niveau || 1) * 30 * multiplicateur(ameliorationsRef.current, 'fortune') * bonusCompletionArgent * bonusPrestigeArgent * bonusArgentObjets * bonusSuccesArgent)
             setPokeDollars((a) => a + gainBoss)
             setBossVaincus((b) => ({ ...b, [routeGagnee]: true }))
@@ -1731,8 +1751,11 @@ function App() {
               setBonbons((b) => ({ ...b, 'super-bonbon': (b['super-bonbon'] || 0) + bonbonsBoss }))
             }
             tirerObjetsBoss('zone')
+            // Jetons d'élevage : 5 à la première victoire, 1 seulement au refarm (anti-spam).
+            const jetonsGagnes = bossDejaVaincu ? 1 : JETONS_PAR_BOSS
+            setJetonsElevage((j) => j + jetonsGagnes)
             if (boss) {
-              ajouterAuJournal(`👑 BOSS VAINCU ! ${boss.nom} ✨ terrassé ! (+${gainBoss} 💰)`, 'victoire')
+              ajouterAuJournal(`👑 BOSS VAINCU ! ${boss.nom} ✨ terrassé ! (+${gainBoss} 💰, +${jetonsGagnes} jeton${jetonsGagnes > 1 ? 's' : ''} d'élevage)`, 'victoire')
             }
             if (bonbonsBoss > 0) {
               ajouterAuJournal(`${BONBONS['super-bonbon'].emoji} Butin de boss : ${bonbonsBoss} ${BONBONS['super-bonbon'].nom} !`, 'capture')
@@ -1778,6 +1801,22 @@ function App() {
               const objetDrop = tirerObjetDrop()
               setObjets((o) => ({ ...o, [objetDrop]: (o[objetDrop] || 0) + 1 }))
               ajouterAuJournal(`⚙️ Objet trouvé : ${OBJETS[objetDrop].nom} ! (rare)`, 'capture')
+            }
+            // Incubation : chaque œuf en incubateur progresse d'un combat.
+            if (oeufsIncubesRef.current.some((o) => o && !pretAEclore(o))) {
+              setOeufsIncubes((slots) => slots.map((o) =>
+                (o && o.progression < combatsRequis(o)) ? { ...o, progression: o.progression + 1 } : o
+              ))
+            }
+            // Jeton d'élevage (petit drop régulier).
+            if (Math.random() < CHANCE_JETON_COMBAT) {
+              setJetonsElevage((j) => j + 1)
+            }
+            // Drop d'œuf gratuit (rare).
+            if (Math.random() < TAUX_DROP_OEUF) {
+              const nouvelOeuf = creerOeuf(tirerRareteOeuf())
+              setReserveOeufs((r) => [...r, nouvelOeuf])
+              ajouterAuJournal(`🥚 Tu as trouvé un ${infoOeuf(nouvelOeuf.rarete).nom} !`, 'capture')
             }
             setVictoiresParRoute((v) => ({ ...v, [routeGagnee]: (v[routeGagnee] || 0) + 1 }))
             ajouterAuJournal(`Équipe ennemie vaincue ! (+${gainArgent} 💰)`, 'victoire')
@@ -1864,6 +1903,93 @@ function App() {
     if (pokeDollars >= coutTotal) {
       setPokeDollars((argent) => argent - coutTotal)
       setBonbons((b) => ({ ...b, [type]: (b[type] || 0) + quantite }))
+    }
+  }
+
+  // ===== ŒUFS / ÉLEVAGE =====
+  // Place un œuf de la réserve dans le premier incubateur libre.
+  function placerOeuf(oeuf) {
+    const libre = oeufsIncubesRef.current.findIndex((o) => !o)
+    if (libre === -1) {
+      ajouterAuJournal('Tous les incubateurs sont occupés.', 'info')
+      return
+    }
+    setOeufsIncubes((slots) => {
+      const maj = [...slots]
+      maj[libre] = oeuf
+      return maj
+    })
+    setReserveOeufs((r) => r.filter((o) => o.id !== oeuf.id))
+  }
+
+  // Achète un œuf avec des jetons d'élevage (boutique intégrée au panneau).
+  function acheterOeuf(cle) {
+    const info = infoOeuf(cle)
+    const prix = info.prix
+    if (!prix || jetonsElevage < prix) return
+    setJetonsElevage((j) => j - prix)
+    const nouvelOeuf = creerOeuf(cle)
+    setReserveOeufs((r) => [...r, nouvelOeuf])
+    ajouterAuJournal(`🥚 ${info.nom} acheté ! (-${prix} jetons)`, 'info')
+  }
+
+  // Fait éclore un œuf prêt selon son type (contenu, IV, shiny dépendent du type d'œuf).
+  async function eclore(oeuf) {
+    if (!pretAEclore(oeuf)) return
+    // Libère l'incubateur tout de suite (évite double-clic).
+    setOeufsIncubes((slots) => slots.map((o) => (o && o.id === oeuf.id ? null : o)))
+    // Contenu : numéro de Pokémon (base aléatoire, ou bébé/légendaire pour l'œuf mystère).
+    const contenu = tirerContenuOeuf(oeuf)
+    try {
+      // PokeAPI accepte l'ID numérique directement (ex: /pokemon/25).
+      const pkmn = await chargerPokemon(String(contenu.numero))
+      // Shiny et IV selon le TYPE d'œuf.
+      const shiny = shinyDepuisOeuf(oeuf)
+      const ivBonifie = ivDepuisOeuf(oeuf)
+      const base = {
+        ...pkmn,
+        shiny,
+        sprite: shiny ? (pkmn.spriteShiny || pkmn.sprite) : (pkmn.spriteNormal || pkmn.sprite),
+        iv: ivBonifie,
+      }
+      const finales = statsFinales(base, BONUS_STAT_NIVEAU)
+      const nouveau = { ...base, ...finales }
+      // Mention spéciale dans le journal selon le contenu.
+      const mention = contenu.estLegendaire ? ' 🌟 LÉGENDAIRE' : (contenu.estBebe ? ' 🍼 bébé' : '')
+
+      // Doublon ? Si on possède déjà cette espèce avec le même statut shiny,
+      // on fusionne les IV sur l'existant (comme une capture normale) — pas de doublon en collection.
+      const existant = capturesRef.current.find(
+        (p) => p.id === nouveau.id && (p.shiny ?? false) === shiny
+      )
+      if (existant) {
+        const ivFusionnes = fusionnerIV(existant.iv, nouveau.iv)
+        setCaptures((c) => c.map((p) => {
+          if (p.uid !== existant.uid) return p
+          const maj = { ...p, iv: ivFusionnes }
+          return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
+        }))
+        marquerVu(nouveau.id)
+        if (shiny) marquerShiny(nouveau.id)
+        ajouterAuJournal(`✦ Œuf éclos : ${nouveau.nom}${mention} (doublon) → IV améliorés sur le tien !`, 'capture')
+      } else {
+        setCaptures((c) => [...c, nouveau])
+        marquerVu(nouveau.id)
+        if (shiny) marquerShiny(nouveau.id)
+        ajouterAuJournal(`✦ Ton œuf a éclos : ${nouveau.nom}${mention}${shiny ? ' ✨ SHINY' : ''} (niv 1) !`, 'capture')
+        montrerCapture(nouveau)
+      }
+      // Petite relance : l'éclosion rapporte quelques jetons d'élevage.
+      setJetonsElevage((j) => j + JETONS_PAR_ECLOSION)
+    } catch (err) {
+      console.warn('Échec éclosion œuf', err)
+      ajouterAuJournal("L'œuf n'a pas pu éclore (erreur réseau). Réessaie.", 'echec')
+      // Remet l'œuf prêt dans un incubateur libre.
+      setOeufsIncubes((slots) => {
+        const libre = slots.findIndex((o) => !o)
+        if (libre === -1) return slots
+        const maj = [...slots]; maj[libre] = oeuf; return maj
+      })
     }
   }
 
@@ -2405,6 +2531,7 @@ function App() {
 
     return (
       <>
+        <TutoFenetre id="pvp" />
         <PanneauPvp
           captures={captures}
           equipeDefense={equipeDefense}
@@ -2569,6 +2696,7 @@ function App() {
 
     return (
       <>
+        <TutoFenetre id="raids" />
         <PanneauRaids
           raids={RAIDS}
           nbZones={nbZonesRaid}
@@ -2731,6 +2859,7 @@ function App() {
 
     return (
       <>
+        <TutoFenetre id="arene" />
         <PanneauArene
           listeDresseurs={listeDresseurs}
           equipeArene={equipeArene}
@@ -2802,6 +2931,9 @@ function App() {
           </button>
           <button className="tbm-item" onClick={() => setVueOuverte('sac')} title="Sac">
             <Backpack size={17} /><span>Sac</span>
+          </button>
+          <button className="tbm-item" data-tuto="oeufs" onClick={() => setVueOuverte('oeufs')} title="Élevage / Œufs">
+            <Egg size={17} /><span>Œufs</span>
           </button>
           <button className="tbm-item" onClick={() => setVueOuverte('succes')} title="Succès">
             <Trophy size={17} /><span>Succès</span>
@@ -2974,7 +3106,7 @@ function App() {
           }}>
             {/* Particules d'ambiance (varie selon la zone : feuilles, neige, cendres...) */}
             <div className={`terrain-particules ambiance-${ambianceDeZone(routeParId(routeActive).decor)}`} aria-hidden="true">
-              {Array.from({ length: 14 }).map((_, i) => (
+              {Array.from({ length: 8 }).map((_, i) => (
                 <span key={i} className={`particule particule-${i % 7}`}></span>
               ))}
             </div>
@@ -3303,6 +3435,8 @@ function App() {
         <Classement onFermer={() => setVueOuverte(null)} />
       )}
       {vueOuverte === 'pokedex' && (
+        <>
+        <TutoFenetre id="pokedex" />
         <Pokedex
           pokedexVus={pokedexVus}
           pokedexShiny={pokedexShiny}
@@ -3311,8 +3445,11 @@ function App() {
           onReclamer={reclamerRecompense}
           onFermer={() => setVueOuverte(null)}
         />
+        </>
       )}
       {vueOuverte === 'equipe' && (
+        <>
+        <TutoFenetre id="equipe" />
         <Equipe
           equipe={equipeJoueur}
           collection={captures}
@@ -3345,8 +3482,11 @@ function App() {
           onAutoEquipe={autoEquipe}
           onFermer={() => setVueOuverte(null)}
         />
+        </>
       )}
       {vueOuverte === 'routes' && (
+        <>
+        <TutoFenetre id="routes" />
         <MenuRoutes
           routeActive={routeActive}
           victoiresParRoute={victoiresParRoute}
@@ -3386,6 +3526,7 @@ function App() {
           }}
           onFermer={() => setVueOuverte(null)}
         />
+        </>
       )}
       {vueOuverte === 'prestige' && (
         <PanneauPrestige
@@ -3440,6 +3581,8 @@ function App() {
         />
       )}
       {vueOuverte === 'boutique' && (
+        <>
+        <TutoFenetre id="boutique" />
         <Boutique
           pokeDollars={pokeDollars}
           balls={balls}
@@ -3455,8 +3598,11 @@ function App() {
           onAcheterParchemin={acheterParchemin}
           onFermer={() => setVueOuverte(null)}
         />
+        </>
       )}
       {vueOuverte === 'sac' && (
+        <>
+        <TutoFenetre id="sac" />
         <Sac
           balls={balls}
           pierres={pierres}
@@ -3468,6 +3614,7 @@ function App() {
           onUtiliserBonbonIV={utiliserBonbonIV}
           onFermer={() => setVueOuverte(null)}
         />
+        </>
       )}
       {vueOuverte === 'succes' && (
         <PanneauSucces
@@ -3498,7 +3645,25 @@ function App() {
       )}
 
       {vueOuverte === 'sauvegarde' && (
-        <PanneauSauvegarde onFermer={() => setVueOuverte(null)} />
+        <PanneauSauvegarde onFermer={() => setVueOuverte(null)} onRevoirTutos={() => {
+          reinitialiserTutos()
+          ajouterAuJournal('Tutos réinitialisés : ils réapparaîtront en ouvrant chaque fenêtre.', 'info')
+        }} />
+      )}
+
+      {vueOuverte === 'oeufs' && (
+        <>
+        <TutoFenetre id="oeufs" />
+        <PanneauOeufs
+          oeufsIncubes={oeufsIncubes}
+          reserveOeufs={reserveOeufs}
+          jetonsElevage={jetonsElevage}
+          onPlacerOeuf={placerOeuf}
+          onEclore={eclore}
+          onAcheterOeuf={acheterOeuf}
+          onFermer={() => setVueOuverte(null)}
+        />
+        </>
       )}
 
       {renduTutoriel}
