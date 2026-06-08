@@ -213,6 +213,17 @@ export function defenseComplete(snapshot) {
   return true
 }
 
+// Filtre d'AFFICHAGE des défenses adverses (plus tolérant que defenseComplete).
+// On affiche toute défense qui a 6 Pokémon, peu importe la compo exacte des rôles.
+// Pourquoi : une défense ancienne (snapshot sans `role`) ou à compo atypique
+// reste un vrai combat 6v6 et ne doit pas disparaître silencieusement de la liste.
+// La PUBLICATION, elle, reste verrouillée à la compo stricte (equipeComplete),
+// donc les nouvelles défenses sont propres de toute façon.
+export function defenseAffichable(snapshot) {
+  const equipe = (snapshot || []).filter((p) => p)
+  return equipe.length === 6
+}
+
 // Même règle stricte, mais pour une équipe VIVANTE (objets de la collection).
 // Contrairement à compositionValide() de roles.js, exige EXACTEMENT 6 membres
 // (pas de "jeu libre <6"). Utilisé pour autoriser la publication de la défense.
@@ -298,9 +309,10 @@ export async function listerDefenses(limite = 50) {
     console.warn('listerDefenses échoué :', error.message)
     return { ok: false, raison: error.message, lignes: [] }
   }
-  // On enlève sa propre ligne ET les défenses incomplètes (compo non valide).
+  // On enlève sa propre ligne ET les défenses non affichables (moins de 6 Pokémon).
+  // (Filtre tolérant : on ne cache plus une défense pour une compo de rôles atypique.)
   const lignes = (data || []).filter(
-    (l) => (!identite || l.id !== identite.id) && defenseComplete(l.equipe)
+    (l) => (!identite || l.id !== identite.id) && defenseAffichable(l.equipe)
   )
   return { ok: true, lignes }
 }

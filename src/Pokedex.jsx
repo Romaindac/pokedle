@@ -7,14 +7,11 @@ import {
   decrireGains,
 } from './recompenses'
 import { SPECIAUX, SPECIAUX_RAID, TOUS_SPECIAUX, spriteSpecial } from './speciaux'
+import { nomShowdown } from './pokedexNoms'
 
-// Grille du Pokédex national (1025 Pokémon, Gen 1-9).
 const TOTAL_POKEDEX = 1025
-
-// Total des spéciaux (arène + raid) pour le compteur de l'onglet Spéciaux.
 const TOTAL_SPECIAUX = TOUS_SPECIAUX.length
 
-// Bornes des générations (pour le compteur de complétion).
 const GENERATIONS = [
   { nom: 'Gen 1', debut: 1, fin: 151 },
   { nom: 'Gen 2', debut: 152, fin: 251 },
@@ -30,7 +27,7 @@ const GENERATIONS = [
 function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesReclamees = [], onReclamer, onFermer }) {
   const [onglet, setOnglet] = useState('dex') // 'dex' | 'recompenses'
   const [modeShiny, setModeShiny] = useState(false)
-  const [modeSpeciaux, setModeSpeciaux] = useState(false) // affiche la galerie des spéciaux
+  const [modeSpeciaux, setModeSpeciaux] = useState(false)
   const [filtre, setFiltre] = useState('tous') // 'tous' | 'obtenus' | 'manquants'
 
   const idsVus = new Set(pokedexVus || [])
@@ -38,10 +35,8 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
   const idsSpeciaux = new Set(pokedexSpeciaux || [])
   const reclamees = new Set(recompensesReclamees || [])
 
-  // Selon le mode, on illumine d'après le registre normal ou shiny.
   const registreActif = modeShiny ? idsShiny : idsVus
 
-  // Compteur de complétion par génération (sur le registre actif).
   const completionParGen = GENERATIONS.map((g) => {
     let obtenus = 0
     for (let n = g.debut; n <= g.fin; n++) {
@@ -50,7 +45,6 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
     return { ...g, obtenus, total: g.fin - g.debut + 1 }
   })
 
-  // Liste des numéros à afficher selon le filtre obtenu/manquant.
   const numeros = Array.from({ length: TOTAL_POKEDEX }, (_, i) => i + 1).filter((numero) => {
     const vu = registreActif.has(numero)
     if (filtre === 'obtenus') return vu
@@ -58,10 +52,8 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
     return true
   })
 
-  // --- Données pour l'onglet Récompenses ---
   const nbVus = idsVus.size
 
-  // État d'un palier global : 'reclame' | 'dispo' | 'verrouille'
   function etatPalierGlobal(p) {
     if (reclamees.has(p.id)) return 'reclame'
     if (nbVus >= p.seuil) return 'dispo'
@@ -83,51 +75,41 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
 
   function LigneRecompense({ palier, sousTitre, etat }) {
     return (
-      <div className={`recomp-ligne recomp-${etat}`}>
-        <div className="recomp-info">
-          <span className="recomp-nom">{palier.nom}</span>
-          <span className="recomp-sous">{sousTitre}</span>
-          <span className="recomp-gains">{decrireGains(palier.gains)}</span>
+      <div className={`pkx-recomp pkx-recomp-${etat}`}>
+        <div className="pkx-recomp-info">
+          <span className="pkx-recomp-nom">{palier.nom}</span>
+          <span className="pkx-recomp-sous">{sousTitre}</span>
+          <span className="pkx-recomp-gains">{decrireGains(palier.gains)}</span>
         </div>
-        <div className="recomp-action">
-          {etat === 'reclame' && <span className="recomp-badge-ok">✓ Réclamé</span>}
-          {etat === 'verrouille' && <span className="recomp-badge-lock">🔒</span>}
+        <div className="pkx-recomp-action">
+          {etat === 'reclame' && <span className="pkx-badge-ok">✓ Réclamé</span>}
+          {etat === 'verrouille' && <span className="pkx-badge-lock">🔒</span>}
           {etat === 'dispo' && (
-            <button className="bouton-reclamer" onClick={() => onReclamer && onReclamer(palier)}>
-              🎁 Réclamer
-            </button>
+            <button className="pkx-reclamer" onClick={() => onReclamer && onReclamer(palier)}>🎁 Réclamer</button>
           )}
         </div>
       </div>
     )
   }
 
-  // Affiche une case de Pokémon spécial (factorisé pour arène + raid).
-  // sp = { id, nomFr, boss, emoji? }, label = texte sous le nom (boss / raid).
   function CaseSpeciale({ sp, label }) {
     const debloque = idsSpeciaux.has(sp.id)
     const prefixe = sp.emoji ? `${sp.emoji} ` : ''
     return (
-      <div
-        className={`case-pokedex case-speciale ${debloque ? 'capturee' : ''}`}
-        title={debloque ? `${sp.nomFr} (${label})` : `??? — ${label}`}
-      >
-        <img
-          src={spriteSpecial(sp.id)}
-          alt={sp.nomFr}
-          className={`sprite-pokedex ${debloque ? '' : 'non-capture'}`}
-          loading="lazy"
-        />
-        <span className="case-speciale-nom">{debloque ? sp.nomFr : '???'}</span>
-        <span className="case-speciale-boss">{debloque ? `✓ ${prefixe}${label}` : `🔒 ${prefixe}${label}`}</span>
+      <div className={`pkx-case pkx-case-speciale ${debloque ? 'obtenu' : ''}`}
+        title={debloque ? `${sp.nomFr} (${label})` : `??? — ${label}`}>
+        <img src={spriteSpecial(sp.id)} alt={sp.nomFr}
+          className={`pkx-sprite ${debloque ? '' : 'pkx-non-obtenu'}`} loading="lazy" />
+        <span className="pkx-speciale-nom">{debloque ? sp.nomFr : '???'}</span>
+        <span className="pkx-speciale-boss">{debloque ? `✓ ${prefixe}${label}` : `🔒 ${prefixe}${label}`}</span>
       </div>
     )
   }
 
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="panneau-pokedex panneau-pokedex-doree pokedex-v2" onClick={(e) => e.stopPropagation()}>
-        <div className="pokedex-entete">
+      <div className="pkx-panneau" onClick={(e) => e.stopPropagation()}>
+        <div className="pkx-entete">
           <h2>
             {onglet === 'dex'
               ? (modeSpeciaux
@@ -135,149 +117,120 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
                   : `Pokédex ${modeShiny ? '✨' : '📖'} (${registreActif.size}/${TOTAL_POKEDEX})`)
               : '🎁 Récompenses'}
           </h2>
-          <button className="bouton-fermer" onClick={onFermer}>✕</button>
+          <button className="pkx-fermer" onClick={onFermer}>✕</button>
         </div>
 
-        {/* Onglets Pokédex / Récompenses */}
-        <div className="pokedex-modes">
-          <button className={`mode-btn ${onglet === 'dex' ? 'actif' : ''}`} onClick={() => setOnglet('dex')}>
-            📖 Pokédex
-          </button>
-          <button className={`mode-btn ${onglet === 'recompenses' ? 'actif' : ''}`} onClick={() => setOnglet('recompenses')}>
+        {/* Onglets principaux */}
+        <div className="pkx-onglets">
+          <button className={`pkx-onglet ${onglet === 'dex' ? 'actif' : ''}`} onClick={() => setOnglet('dex')}>📖 Pokédex</button>
+          <button className={`pkx-onglet ${onglet === 'recompenses' ? 'actif' : ''}`} onClick={() => setOnglet('recompenses')}>
             🎁 Récompenses{nbDispo > 0 ? ` (${nbDispo})` : ''}
           </button>
         </div>
 
         {onglet === 'dex' && (
           <>
-            {/* Compteur de complétion par génération (masqué en mode spéciaux) */}
             {!modeSpeciaux && (
-            <div className="dex-completion">
-              {completionParGen.map((g) => {
-                const pct = Math.round((g.obtenus / g.total) * 100)
-                return (
-                  <div key={g.nom} className="dex-gen">
-                    <span className="dex-gen-nom">{g.nom}</span>
-                    <span className="dex-gen-compte">{g.obtenus}/{g.total}</span>
-                    <span className="dex-gen-barre">
-                      <span className="dex-gen-fill" style={{ width: `${pct}%` }}></span>
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
+              <div className="pkx-completion">
+                {completionParGen.map((g) => {
+                  const pct = Math.round((g.obtenus / g.total) * 100)
+                  return (
+                    <div key={g.nom} className="pkx-gen">
+                      <span className="pkx-gen-nom">{g.nom}</span>
+                      <span className="pkx-gen-compte">{g.obtenus}/{g.total}</span>
+                      <span className="pkx-gen-barre"><span className="pkx-gen-fill" style={{ width: `${pct}%` }}></span></span>
+                    </div>
+                  )
+                })}
+              </div>
             )}
 
             {/* Mode Normal / Shiny / Spéciaux */}
-            <div className="pokedex-modes">
-              <button className={`mode-btn ${!modeShiny && !modeSpeciaux ? 'actif' : ''}`} onClick={() => { setModeShiny(false); setModeSpeciaux(false) }}>
-                📖 Normal ({idsVus.size})
-              </button>
-              <button className={`mode-btn ${modeShiny && !modeSpeciaux ? 'actif' : ''}`} onClick={() => { setModeShiny(true); setModeSpeciaux(false) }}>
-                ✨ Shiny ({idsShiny.size})
-              </button>
-              <button className={`mode-btn ${modeSpeciaux ? 'actif' : ''}`} onClick={() => setModeSpeciaux(true)}>
-                🌟 Spéciaux ({idsSpeciaux.size}/{TOTAL_SPECIAUX})
-              </button>
+            <div className="pkx-sous-onglets">
+              <button className={`pkx-pilule ${!modeShiny && !modeSpeciaux ? 'actif' : ''}`} onClick={() => { setModeShiny(false); setModeSpeciaux(false) }}>📖 Normal ({idsVus.size})</button>
+              <button className={`pkx-pilule ${modeShiny && !modeSpeciaux ? 'actif' : ''}`} onClick={() => { setModeShiny(true); setModeSpeciaux(false) }}>✨ Shiny ({idsShiny.size})</button>
+              <button className={`pkx-pilule ${modeSpeciaux ? 'actif' : ''}`} onClick={() => setModeSpeciaux(true)}>🌟 Spéciaux ({idsSpeciaux.size}/{TOTAL_SPECIAUX})</button>
             </div>
 
-            {/* Filtre obtenu / non obtenu (masqué en mode spéciaux) */}
             {!modeSpeciaux && (
-            <div className="pokedex-modes">
-              <button className={`mode-btn ${filtre === 'tous' ? 'actif' : ''}`} onClick={() => setFiltre('tous')}>
-                Tous
-              </button>
-              <button className={`mode-btn ${filtre === 'obtenus' ? 'actif' : ''}`} onClick={() => setFiltre('obtenus')}>
-                Obtenus
-              </button>
-              <button className={`mode-btn ${filtre === 'manquants' ? 'actif' : ''}`} onClick={() => setFiltre('manquants')}>
-                Non obtenus
-              </button>
-            </div>
+              <div className="pkx-sous-onglets">
+                <button className={`pkx-pilule ${filtre === 'tous' ? 'actif' : ''}`} onClick={() => setFiltre('tous')}>Tous</button>
+                <button className={`pkx-pilule ${filtre === 'obtenus' ? 'actif' : ''}`} onClick={() => setFiltre('obtenus')}>Obtenus</button>
+                <button className={`pkx-pilule ${filtre === 'manquants' ? 'actif' : ''}`} onClick={() => setFiltre('manquants')}>Non obtenus</button>
+              </div>
             )}
 
             {modeSpeciaux ? (
-              <div className="pokedex-speciaux-zone">
-                {/* --- Section 1 : spéciaux d'ARÈNE (mégas/formes des 15 boss) --- */}
-                <h3 className="speciaux-section-titre">⚔️ Champions d'Arène ({SPECIAUX.filter((s) => idsSpeciaux.has(s.id)).length}/{SPECIAUX.length})</h3>
-                <div className="pokedex-grille pokedex-grille-speciaux">
-                  {SPECIAUX.map((sp) => (
-                    <CaseSpeciale key={sp.id} sp={sp} label={sp.boss} />
-                  ))}
+              <div className="pkx-speciaux-zone">
+                <h3 className="pkx-section-titre">⚔️ Champions d'Arène ({SPECIAUX.filter((s) => idsSpeciaux.has(s.id)).length}/{SPECIAUX.length})</h3>
+                <div className="pkx-grille pkx-grille-speciaux">
+                  {SPECIAUX.map((sp) => (<CaseSpeciale key={sp.id} sp={sp} label={sp.boss} />))}
                 </div>
-
-                {/* --- Section 2 : spéciaux de RAID (gros boss capturables) --- */}
-                <h3 className="speciaux-section-titre">🔥 Boss de Raid ({SPECIAUX_RAID.filter((s) => idsSpeciaux.has(s.id)).length}/{SPECIAUX_RAID.length})</h3>
-                <div className="pokedex-grille pokedex-grille-speciaux">
-                  {SPECIAUX_RAID.map((sp) => (
-                    <CaseSpeciale key={sp.id} sp={sp} label={sp.boss} />
-                  ))}
+                <h3 className="pkx-section-titre">🔥 Boss de Raid ({SPECIAUX_RAID.filter((s) => idsSpeciaux.has(s.id)).length}/{SPECIAUX_RAID.length})</h3>
+                <div className="pkx-grille pkx-grille-speciaux">
+                  {SPECIAUX_RAID.map((sp) => (<CaseSpeciale key={sp.id} sp={sp} label={sp.boss} />))}
                 </div>
               </div>
             ) : (
-            <div className="pokedex-grille">
-              {numeros.length === 0 ? (
-                <p className="banc-vide">Aucun Pokémon dans ce filtre.</p>
-              ) : (
-                numeros.map((numero) => {
-                  const vu = registreActif.has(numero)
-                  const aussiShiny = idsShiny.has(numero)
-                  return (
-                    <div
-                      key={numero}
-                      className={`case-pokedex ${vu ? 'capturee' : ''} ${modeShiny && vu ? 'case-shiny' : ''}`}
-                      title={vu ? `N°${numero}${aussiShiny ? ' ✨' : ''}` : `N°${numero} — ???`}
-                    >
-                      <img
-                        src={
-                          modeShiny
-                            ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${numero}.png`
-                            : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${numero}.png`
-                        }
-                        alt={`Pokémon ${numero}`}
-                        className={`sprite-pokedex ${vu ? '' : 'non-capture'}`}
-                        loading="lazy"
-                      />
-                      <span className="numero">{numero}</span>
-                      {!modeShiny && aussiShiny && <span className="dex-shiny-mark">✨</span>}
-                    </div>
-                  )
-                })
-              )}
-            </div>
+              <div className="pkx-grille">
+                {numeros.length === 0 ? (
+                  <p className="pkx-vide">Aucun Pokémon dans ce filtre.</p>
+                ) : (
+                  numeros.map((numero) => {
+                    const vu = registreActif.has(numero)
+                    const aussiShiny = idsShiny.has(numero)
+                    // Sprite statique (PokeAPI par numéro) = base affichée.
+                    const urlStatique = modeShiny
+                      ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${numero}.png`
+                      : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${numero}.png`
+                    // Sprite animé au survol : Showdown (toutes gen 1-9), par nom anglais.
+                    const nomSd = nomShowdown(numero)
+                    const dossierSd = modeShiny ? 'ani-shiny' : 'ani'
+                    const urlAnimee = nomSd ? `https://play.pokemonshowdown.com/sprites/${dossierSd}/${nomSd}.gif` : null
+                    // Au survol d'un Pokémon obtenu : bascule sur l'animé. Si l'animé échoue, on revient au statique.
+                    const survol = (e) => { if (vu && urlAnimee) { e.currentTarget.dataset.statique = urlStatique; e.currentTarget.src = urlAnimee } }
+                    const sortie = (e) => { e.currentTarget.src = urlStatique }
+                    const erreurAnime = (e) => { e.currentTarget.src = e.currentTarget.dataset.statique || urlStatique }
+                    return (
+                      <div key={numero}
+                        className={`pkx-case ${vu ? 'obtenu' : ''} ${modeShiny && vu ? 'pkx-case-shiny' : ''} ${vu && urlAnimee ? 'pkx-animable' : ''}`}
+                        title={vu ? `N°${numero}${aussiShiny ? ' ✨' : ''}` : `N°${numero} — ???`}>
+                        <img
+                          src={urlStatique}
+                          alt={`Pokémon ${numero}`}
+                          className={`pkx-sprite ${vu ? '' : 'pkx-non-obtenu'}`}
+                          loading="lazy"
+                          onMouseEnter={survol}
+                          onMouseLeave={sortie}
+                          onError={erreurAnime} />
+                        <span className="pkx-numero">{numero}</span>
+                        {!modeShiny && aussiShiny && <span className="pkx-shiny-mark">✨</span>}
+                      </div>
+                    )
+                  })
+                )}
+              </div>
             )}
           </>
         )}
 
         {onglet === 'recompenses' && (
-          <div className="recomp-liste">
-            <p className="recomp-intro">
+          <div className="pkx-recomp-liste">
+            <p className="pkx-recomp-intro">
               Pokémon vus : <strong>{nbVus}/{TOTAL_POKEDEX}</strong>. Réclame tes paliers de complétion !
             </p>
-
-            <h3 className="recomp-titre">Paliers globaux</h3>
+            <h3 className="pkx-section-titre">Paliers globaux</h3>
             {PALIERS_GLOBAUX.map((p) => (
-              <LigneRecompense
-                key={p.id}
-                palier={p}
-                sousTitre={`${p.seuil} Pokémon vus`}
-                etat={etatPalierGlobal(p)}
-              />
+              <LigneRecompense key={p.id} palier={p} sousTitre={`${p.seuil} Pokémon vus`} etat={etatPalierGlobal(p)} />
             ))}
-
-            <h3 className="recomp-titre">Par génération</h3>
+            <h3 className="pkx-section-titre">Par génération</h3>
             {GENS_RECOMP.map((g) => {
               const palier = PALIERS_GENERATION.find((p) => p.generation === g.cle)
               if (!palier) return null
               const total = g.fin - g.debut + 1
               const obtenus = compteGeneration(idsVus, g)
               return (
-                <LigneRecompense
-                  key={palier.id}
-                  palier={palier}
-                  sousTitre={`${obtenus}/${total} capturés`}
-                  etat={etatPalierGen(palier, g)}
-                />
+                <LigneRecompense key={palier.id} palier={palier} sousTitre={`${obtenus}/${total} capturés`} etat={etatPalierGen(palier, g)} />
               )
             })}
           </div>

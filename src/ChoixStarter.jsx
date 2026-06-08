@@ -1,6 +1,6 @@
 import { useState } from 'react'
+import { nomShowdown } from './pokedexNoms'
 
-// Les starters de toutes les générations (gen 1-9). Noms = identifiants PokeAPI valides.
 const STARTERS_PAR_GEN = [
   { gen: 'Gen 1', liste: [
     { num: 1, nom: 'bulbasaur', fr: 'Bulbizarre' },
@@ -49,51 +49,63 @@ const STARTERS_PAR_GEN = [
   ]},
 ]
 
-const SPRITE = (num) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${num}.png`
+const SPRITE_STATIQUE = (num) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${num}.png`
 const NB_CHOIX = 3
 
+// Sprite animé Showdown avec repli statique.
+function SpriteStarter({ num, nom, fr }) {
+  const nomSd = nomShowdown(num) || nom
+  const urlAnime = `https://play.pokemonshowdown.com/sprites/ani/${nomSd}.gif`
+  const onError = (e) => {
+    const img = e.currentTarget
+    if (img.dataset.failed === '1') return
+    img.dataset.failed = '1'
+    img.src = SPRITE_STATIQUE(num)
+  }
+  return <img src={urlAnime} alt={fr} className="strt-sprite" data-failed="0" loading="lazy" onError={onError} />
+}
+
 function ChoixStarter({ onChoisir }) {
-  const [choisis, setChoisis] = useState([]) // tableau de noms PokeAPI
+  const [choisis, setChoisis] = useState([])
 
   function basculer(nom) {
     setChoisis((c) => {
-      if (c.includes(nom)) return c.filter((n) => n !== nom)      // décocher
-      if (c.length >= NB_CHOIX) return c                          // déjà 3 : on ignore
-      return [...c, nom]                                          // cocher
+      if (c.includes(nom)) return c.filter((n) => n !== nom)
+      if (c.length >= NB_CHOIX) return c
+      return [...c, nom]
     })
   }
 
   const pret = choisis.length === NB_CHOIX
 
   return (
-    <div className="overlay overlay-starter">
-      <div className="panneau-starter" onClick={(e) => e.stopPropagation()}>
-        <div className="starter-entete">
+    <div className="overlay strt-overlay">
+      <div className="strt-panneau" onClick={(e) => e.stopPropagation()}>
+        <div className="strt-entete">
           <h2>🌟 Choisis ton équipe de départ</h2>
-          <p className="starter-sous-titre">
+          <p className="strt-sous-titre">
             Sélectionne <strong>{NB_CHOIX} starters</strong> parmi toutes les générations.
-            ({choisis.length}/{NB_CHOIX} choisis)
+            <span className="strt-compteur"> {choisis.length}/{NB_CHOIX} choisis</span>
           </p>
         </div>
 
-        <div className="starter-gens">
+        <div className="strt-gens">
           {STARTERS_PAR_GEN.map((g) => (
-            <div key={g.gen} className="starter-gen">
-              <h3 className="starter-gen-titre">{g.gen}</h3>
-              <div className="starter-gen-grille">
+            <div key={g.gen} className="strt-gen">
+              <h3 className="strt-gen-titre">{g.gen}</h3>
+              <div className="strt-gen-grille">
                 {g.liste.map((s) => {
                   const actif = choisis.includes(s.nom)
                   const bloque = !actif && choisis.length >= NB_CHOIX
                   return (
                     <button
                       key={s.nom}
-                      className={`starter-carte ${actif ? 'choisi' : ''} ${bloque ? 'bloque' : ''}`}
+                      className={`strt-carte ${actif ? 'choisi' : ''} ${bloque ? 'bloque' : ''}`}
                       onClick={() => basculer(s.nom)}
-                      title={s.fr}
-                    >
-                      <img src={SPRITE(s.num)} alt={s.fr} className="starter-sprite" loading="lazy" />
-                      <span className="starter-nom">{s.fr}</span>
-                      {actif && <span className="starter-check">✓</span>}
+                      title={s.fr}>
+                      <div className="strt-sprite-zone"><SpriteStarter num={s.num} nom={s.nom} fr={s.fr} /></div>
+                      <span className="strt-nom">{s.fr}</span>
+                      {actif && <span className="strt-check">✓</span>}
                     </button>
                   )
                 })}
@@ -102,12 +114,11 @@ function ChoixStarter({ onChoisir }) {
           ))}
         </div>
 
-        <div className="starter-pied">
+        <div className="strt-pied">
           <button
-            className={`starter-valider ${pret ? '' : 'desactive'}`}
+            className={`strt-valider ${pret ? '' : 'desactive'}`}
             disabled={!pret}
-            onClick={() => pret && onChoisir(choisis)}
-          >
+            onClick={() => pret && onChoisir(choisis)}>
             {pret ? `C'est parti ! (${NB_CHOIX} Pokémon)` : `Choisis encore ${NB_CHOIX - choisis.length} Pokémon`}
           </button>
         </div>

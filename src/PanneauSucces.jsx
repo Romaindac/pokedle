@@ -1,7 +1,6 @@
 import { SUCCES, FAMILLES_SUCCES } from './succes'
 import { BALLS, PIERRES } from './config'
 
-// Décrit une récompense de succès de façon lisible (au lieu de [object Object]).
 function decrireRecompense(r) {
   if (!r) return ''
   switch (r.type) {
@@ -31,28 +30,27 @@ function Succes({ succesDebloques, etatSucces, onFermer }) {
 
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="panneau-banc succes-v2" onClick={(e) => e.stopPropagation()}>
-        <div className="pokedex-entete">
+      <div className="scs-panneau" onClick={(e) => e.stopPropagation()}>
+        <div className="scs-entete">
           <h2>🏆 Succès ({debloques.length}/{SUCCES.length})</h2>
-          <button className="bouton-fermer" onClick={onFermer}>✕</button>
+          <button className="scs-fermer" onClick={onFermer}>✕</button>
         </div>
 
-        <div className="succes-liste">
+        <div className="scs-liste">
           {FAMILLES_SUCCES.map((fam) => {
             const succesFamille = SUCCES.filter((s) => s.famille === fam.cle)
             if (succesFamille.length === 0) return null
             const nbObtenus = succesFamille.filter((s) => debloques.includes(s.id)).length
 
             return (
-              <div key={fam.cle} className="succes-famille">
-                <div className="succes-famille-titre">
+              <div key={fam.cle} className="scs-famille">
+                <div className="scs-famille-titre">
                   <span>{fam.emoji} {fam.nom}</span>
-                  <span className="succes-famille-compte">{nbObtenus}/{succesFamille.length}</span>
+                  <span className="scs-famille-compte">{nbObtenus}/{succesFamille.length}</span>
                 </div>
 
                 {succesFamille.map((s) => {
                   const obtenu = debloques.includes(s.id)
-                  // Progression (barre). Si obtenu → barre pleine.
                   let actuel = 0, cible = 1
                   if (typeof s.progres === 'function') {
                     const p = s.progres(etat)
@@ -63,17 +61,17 @@ function Succes({ succesDebloques, etatSucces, onFermer }) {
                   const affiche = obtenu ? cible : Math.min(actuel, cible)
 
                   return (
-                    <div key={s.id} className={`succes-item ${obtenu ? 'obtenu' : ''}`}>
-                      <span className="succes-emoji">{obtenu ? s.emoji : '🔒'}</span>
-                      <div className="succes-infos">
-                        <span className="succes-nom">{s.nom}</span>
-                        <span className="succes-desc">{s.description}</span>
-                        <div className="succes-barre">
-                          <div className="succes-barre-remplissage" style={{ width: `${pourcent}%` }}></div>
-                          <span className="succes-barre-texte">{affiche.toLocaleString('fr-FR')} / {cible.toLocaleString('fr-FR')}</span>
+                    <div key={s.id} className={`scs-item ${obtenu ? 'obtenu' : ''}`}>
+                      <span className="scs-emoji">{obtenu ? s.emoji : '🔒'}</span>
+                      <div className="scs-infos">
+                        <span className="scs-nom">{s.nom}</span>
+                        <span className="scs-desc">{s.description}</span>
+                        <div className="scs-barre">
+                          <div className="scs-barre-fill" style={{ width: `${pourcent}%` }}></div>
+                          <span className="scs-barre-texte">{affiche.toLocaleString('fr-FR')} / {cible.toLocaleString('fr-FR')}</span>
                         </div>
                       </div>
-                      <span className="succes-recompense">
+                      <span className="scs-recompense">
                         {obtenu ? '✓' : decrireRecompense(s.recompense)}
                       </span>
                     </div>

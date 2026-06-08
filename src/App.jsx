@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
+import {
+  BookOpen, Users, Map as MapIcon, BarChart3, ShoppingBag, Backpack,
+  Trophy, Zap, Swords, Flame, Crosshair, Medal, Save, HelpCircle, Trash2,
+  Settings, Gauge, Boxes, ChevronLeft, ChevronRight, Coins, Target, Play, Pause,
+  Sparkles, Crown, Plus, Repeat,
+} from 'lucide-react'
 import { VITESSE_COMBAT, PAUSE_RESPAWN, GAIN_PAR_VICTOIRE, GAIN_BASE_ENNEMI, BONUS_STAT_NIVEAU, XP_BASE_NIVEAU, XP_BASE_ENNEMI, TAUX_CAPTURE_RARETE, BALLS, BALL_AUTO_PAR_RARETE, TAUX_SHINY, PIERRES, BONBONS, prixDynamique, multiplicateurSurclassement } from './config'
 import { ticCombat, appliquerUltime } from './moteurCombat'
 import { ULTIMES, ultimeDuRole, COUT_ULTIME } from './ultimes'
@@ -7,6 +13,7 @@ import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise, normaliserI
 import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole, passifPourMode, champPassifDuMode } from './roles'
 import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
 import CartePokemon from './CartePokemon'
+import SpriteCombattant from './SpriteCombattant'
 import TimerAnneau from './TimerAnneau'
 import Pokedex from './Pokedex'
 import Equipe from './Equipe'
@@ -16,7 +23,7 @@ import PanneauArene from './PanneauArene'
 import CombatArene from './CombatArene'
 import PanneauRaids from './PanneauRaids'
 import CombatRaid from './CombatRaid'
-import { RAIDS, raidParId, etatRaid, tempsRestantRaid, COOLDOWN_RAID_MS, FORCE_BOSS_RAID_PV, FORCE_BOSS_RAID_ATK, TAUX_CAPTURE_BOSS_RAID } from './raids'
+import { RAIDS, raidParId, etatRaid, tempsRestantRaid, COOLDOWN_RAID_MS, FORCE_BOSS_RAID_PV, FORCE_BOSS_RAID_ATK, TAUX_CAPTURE_BOSS_RAID, bonbonsIvRefarm } from './raids'
 import { PARCHEMINS, roleDuParchemin } from './parchemins'
 import PanneauPvp from './PanneauPvp'
 import CombatPvp from './CombatPvp'
@@ -77,6 +84,18 @@ const TAUX_OBJET_BOSS = {
 // Probabilité qu'un bonbon d'IV tombe, par type de boss. Si ça tombe, la stat est tirée au hasard.
 const TAUX_BONBON_IV = { zone: 0.06, arene: 0.08, raid: 0.10 }
 const CLES_BONBON_IV = ['iv_pv', 'iv_attaque', 'iv_vitesse', 'iv_defense']
+
+// Déduit le type d'ambiance de particules à partir du nom du fichier de décor.
+// Renvoie une classe CSS : 'feuilles' | 'neige' | 'cendres' | 'sable' | 'spores' | 'poussiere'.
+function ambianceDeZone(decor) {
+  const d = (decor || '').toLowerCase()
+  if (d.includes('neige') || d.includes('cristal') || d.includes('sommet')) return 'neige'
+  if (d.includes('volcan') || d.includes('feu') || d.includes('forge')) return 'cendres'
+  if (d.includes('desert') || d.includes('sable') || d.includes('plage')) return 'sable'
+  if (d.includes('grotte') || d.includes('abysses') || d.includes('temple') || d.includes('marais')) return 'spores'
+  if (d.includes('foret') || d.includes('prairie') || d.includes('jade') || d.includes('sanctuaire') || d.includes('dragon')) return 'feuilles'
+  return 'poussiere'
+}
 
 // Correspondance type de ball -> icône image (sans toucher à config.js)
 // Icônes = sprites officiels PokeAPI (dérivés de config.js). Look authentique Pokémon.
@@ -336,13 +355,16 @@ async function chargerEquipeRaid(raid) {
         })
       )
       return equipe.map((p, i) => {
+        // Niveau progressif selon la vague : +0, puis paliers, boss = +20.
+        // Fonctionne pour un nombre de vagues quelconque (3, 4, 5...).
+        const dernier = raid.vagues.length - 1
         let niveau = raid.niveau
-        if (indexVague === 1) niveau = raid.niveau + 8
+        if (!estVagueBoss && indexVague > 0) niveau = raid.niveau + indexVague * 6
         if (estVagueBoss) niveau = raid.niveau + 20
         niveau = Math.max(1, niveau + Math.floor(Math.random() * 5) - 2)
         const avecNiveau = {
           ...p, niveau,
-          rarete: estVagueBoss ? 'legendaire' : (indexVague === 1 ? 'tresRare' : 'commun'),
+          rarete: estVagueBoss ? 'legendaire' : (indexVague >= dernier - 1 ? 'tresRare' : 'commun'),
           shiny: false, sprite: p.spriteNormal,
           estBoss: estVagueBoss,
         }
@@ -456,6 +478,7 @@ function App() {
     legendaire: 'auto',
     nouveau: 'auto',
     doublon: 'auto',
+    limiteBalls: 5,
   })
   const [routeActive, setRouteActive] = useState('tutoriel')
   const [victoiresParRoute, setVictoiresParRoute] = useState({})
@@ -493,7 +516,14 @@ function App() {
   const capturesRef = useRef([])
   const equipeIdsRef = useRef([])
   const pokedexShinyRef = useRef([])
-  const reglesCaptureRef = useRef({ shiny: 'auto', legendaire: 'auto', nouveau: 'auto', doublon: 'auto' })
+  const reglesCaptureRef = useRef({ shiny: 'auto', legendaire: 'auto', nouveau: 'auto', doublon: 'auto', limiteBalls: 5 })
+  // Cibles Master Ball : clés "id" (ex "143") ou "id-shiny" (ex "143-shiny") cliquées par le joueur.
+  // Persiste jusqu'à capture réussie de l'espèce (dans le bon statut shiny).
+  const [ciblesMasterBall, setCiblesMasterBall] = useState([])
+  const ciblesMasterBallRef = useRef([])
+  useEffect(() => { ciblesMasterBallRef.current = ciblesMasterBall }, [ciblesMasterBall])
+  // Compteur de tentatives de capture par espèce, remis à zéro à chaque nouveau combat.
+  const tentativesParEspeceRef = useRef({})
   const routeActiveRef = useRef('tutoriel')
   const combatBossRef = useRef(false)
   const autoZoneRef = useRef(false)
@@ -1008,6 +1038,39 @@ function App() {
     return null
   }
 
+  // Clé d'identification d'une cible Master Ball : espèce + statut shiny.
+  function cleCible(ennemi) {
+    return `${ennemi.id}${ennemi.shiny ? '-shiny' : ''}`
+  }
+
+  // Le joueur (dé)marque un ennemi cliqué en combat pour la Master Ball.
+  // Cible l'espèce + le statut shiny ; persiste jusqu'à capture réussie.
+  // On stocke un objet {cle, id, nom, sprite, shiny} pour pouvoir afficher le sprite dans le panneau.
+  function basculerCibleMasterBall(ennemi) {
+    if (!ennemi || ennemi.estBoss || ennemi.estEvolution) return
+    const cle = cleCible(ennemi)
+    const dejaCiblee = ciblesMasterBallRef.current.some((c) => c.cle === cle)
+    setCiblesMasterBall((liste) => {
+      const maj = dejaCiblee
+        ? liste.filter((c) => c.cle !== cle)
+        : [...liste, {
+            cle,
+            id: ennemi.id,
+            nom: ennemi.nom,
+            shiny: ennemi.shiny ?? false,
+            sprite: (ennemi.shiny && ennemi.spriteShiny) ? ennemi.spriteShiny : (ennemi.spriteNormal ?? ennemi.sprite),
+          }]
+      ciblesMasterBallRef.current = maj
+      return maj
+    })
+    ajouterAuJournal(
+      !dejaCiblee
+        ? `⚫ ${ennemi.nom}${ennemi.shiny ? ' ✨' : ''} ciblé pour la Master Ball.`
+        : `${ennemi.nom} n'est plus ciblé Master Ball.`,
+      'info'
+    )
+  }
+
   function categorieEnnemi(ennemi) {
     if (ennemi.shiny === true) return 'shiny'
     if ((ennemi.rarete || 'commun') === 'legendaire') return 'legendaire'
@@ -1037,11 +1100,39 @@ function App() {
     const aDejaShiny = pokedexShinyRef.current.includes(ennemi.id)
     if (estShiny && aDejaShiny) return
 
-    const ball = choisirBall(ennemi)
+    // Cette espèce est-elle ciblée pour la Master Ball (clic du joueur) ?
+    const cle = cleCible(ennemi)
+    const estCibleeMasterBall = ciblesMasterBallRef.current.some((c) => c.cle === cle)
+
+    // --- Anti-spam : limite de tentatives par espèce et par combat ---
+    // (ne s'applique PAS si l'espèce est ciblée Master Ball : on veut la capturer à coup sûr)
+    const limite = reglesCaptureRef.current.limiteBalls ?? 5
+    if (!estCibleeMasterBall && limite !== 'infini' && Number.isFinite(limite)) {
+      const dejaTente = tentativesParEspeceRef.current[ennemi.id] || 0
+      if (dejaTente >= limite) return // on a assez essayé sur cette espèce ce combat
+    }
+
+    // Choix de la ball : Master Ball forcée si l'espèce est ciblée, sinon règles normales.
+    let ball
+    if (estCibleeMasterBall) {
+      if ((ballsRef.current.master || 0) > 0) {
+        ball = 'master'
+      } else {
+        // Plus de Master Ball : on retombe sur les règles normales (et on prévient).
+        ball = choisirBall(ennemi)
+      }
+    } else {
+      ball = choisirBall(ennemi)
+    }
     if (ball === 'rien') return
     if (!ball) {
       journalFuite()
       return
+    }
+
+    // Incrémente le compteur de tentatives pour cette espèce (sauf cible Master Ball).
+    if (!estCibleeMasterBall) {
+      tentativesParEspeceRef.current[ennemi.id] = (tentativesParEspeceRef.current[ennemi.id] || 0) + 1
     }
 
     const rarete = ennemi.rarete || 'commun'
@@ -1056,6 +1147,15 @@ function App() {
     if (!reussite) {
       ajouterAuJournal(`${ennemi.nom} s'est échappé ! 💨 (${BALLS[ball].emoji})`, 'echec')
       return
+    }
+
+    // Capture réussie : si l'espèce était ciblée Master Ball, on retire le marquage.
+    if (estCibleeMasterBall) {
+      setCiblesMasterBall((liste) => {
+        const maj = liste.filter((c) => c.cle !== cle)
+        ciblesMasterBallRef.current = maj
+        return maj
+      })
     }
 
     const familleCible = ennemi.familleId ?? null
@@ -1197,6 +1297,7 @@ function App() {
 
       setEquipeEnnemie(nouveaux)
       equipeEnnemieRef.current = nouveaux
+      tentativesParEspeceRef.current = {} // reset anti-spam à chaque nouveau combat
       debutCombatRef.current = Date.now()
       ultimeLanceRef.current = [false, false, false, false, false, false]
       ultimeLanceEnnemiRef.current = [false, false, false, false, false, false, false]
@@ -1327,7 +1428,24 @@ function App() {
           ameliorationsRef.current = data.ameliorations || {}
           bonusShinyGlobal = multiplicateur(data.ameliorations || {}, 'chroma')
           if (data.vitesse) setVitesse(data.vitesse)
-          if (data.reglesCapture) { setReglesCapture(data.reglesCapture); reglesCaptureRef.current = data.reglesCapture }
+          if (data.reglesCapture) {
+            const rc = { limiteBalls: 5, ...data.reglesCapture }
+            setReglesCapture(rc); reglesCaptureRef.current = rc
+          }
+          if (data.ciblesMasterBall) {
+            // Migration : anciennes saves stockaient des chaînes ("143-shiny") ; on passe aux objets.
+            const cibles = data.ciblesMasterBall
+              .map((c) => {
+                if (typeof c === 'string') {
+                  const shiny = c.endsWith('-shiny')
+                  const id = parseInt(c, 10)
+                  return { cle: c, id, nom: `#${id}`, shiny, sprite: null }
+                }
+                return c
+              })
+              .filter((c) => c && c.cle)
+            setCiblesMasterBall(cibles); ciblesMasterBallRef.current = cibles
+          }
           if (histoireDejaReset && data.routeActive) {
             setRouteActive(data.routeActive); routeActiveRef.current = data.routeActive
           } else {
@@ -1369,10 +1487,10 @@ function App() {
   const donneesSauvegardeRef = useRef(null)
   useEffect(() => {
     if (!partieChargee || captures.length === 0) return
-    const data = { resetHistoire: VERSION_RESET_HISTOIRE, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds }
+    const data = { resetHistoire: VERSION_RESET_HISTOIRE, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, ciblesMasterBall, tutoVu, raidsCooldowns, equipeRaidIds }
     donneesSauvegardeRef.current = data
     localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify(data))
-  }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, tutoVu, raidsCooldowns, equipeRaidIds])
+  }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, ciblesMasterBall, tutoVu, raidsCooldowns, equipeRaidIds])
 
   // Détection de nouvelle version déployée : recharge automatiquement la page.
   // Lit public/version.json toutes les 5 min ; si le numéro a changé, sauvegarde puis reload.
@@ -2365,27 +2483,50 @@ function App() {
 
         const boss = raidActif.boss
         const dejaPossede = pokedexSpeciaux.includes(boss.id)
-        const ordreBall = ['master', 'hyper', 'super', 'poke']
-        const ballDispo = ordreBall.find((b) => (balls[b] || 0) > 0)
-        if (!ballDispo) {
-          ajouterAuJournal(`💥 ${boss.nomFr} s'est enfui : aucune Ball pour le capturer !`, 'echec')
+
+        if (dejaPossede) {
+          // REFARM : le boss est déjà dans le Pokédex spécial → récompense en bonbons IV
+          // (répartis aléatoirement sur les 4 stats), au lieu d'une nouvelle capture.
+          const nb = bonbonsIvRefarm(raidActif)
+          const clesIv = ['iv_pv', 'iv_attaque', 'iv_vitesse', 'iv_defense']
+          const gagnes = {}
+          for (let k = 0; k < nb; k++) {
+            const cle = clesIv[Math.floor(Math.random() * clesIv.length)]
+            gagnes[cle] = (gagnes[cle] || 0) + 1
+          }
+          setObjetsBoss((b) => {
+            const maj = { ...b }
+            for (const cle of Object.keys(gagnes)) maj[cle] = (maj[cle] || 0) + gagnes[cle]
+            return maj
+          })
+          const detail = Object.entries(gagnes)
+            .map(([cle, n]) => `${n}× ${BONBONS_IV[cle] ? BONBONS_IV[cle].nom : cle}`)
+            .join(', ')
+          ajouterAuJournal(`🍬 Refarm de ${boss.nomFr} : ${detail} !`, 'capture')
         } else {
-          setBalls((bb) => ({ ...bb, [ballDispo]: (bb[ballDispo] || 0) - 1 }))
-          const taux = TAUX_CAPTURE_BOSS_RAID[ballDispo] ?? 0.02
-          if (Math.random() < taux) {
-            try {
-              const pkmn = await chargerPokemon(boss.nom, false)
-              const avecNiv = { ...pkmn, niveau: raidActif.niveau, xp: 0, rarete: 'special', estSpecial: true }
-              const finales = statsFinales(avecNiv, BONUS_STAT_NIVEAU)
-              const nouveau = { ...avecNiv, ...finales, uid: `special-${boss.id}-${Date.now()}` }
-              setCaptures((c) => [...c, nouveau])
-              if (!dejaPossede) setPokedexSpeciaux((s) => s.includes(boss.id) ? s : [...s, boss.id])
-              ajouterAuJournal(`🌟 CAPTURE ! ${boss.nomFr} (niv ${raidActif.niveau}) rejoint ta collection !`, 'capture')
-            } catch (err) {
-              console.warn('Échec chargement boss raid', boss.nom, err)
-            }
+          // PREMIÈRE FOIS : tentative de capture du boss (rejoint la collection + Pokédex spécial).
+          const ordreBall = ['master', 'hyper', 'super', 'poke']
+          const ballDispo = ordreBall.find((b) => (balls[b] || 0) > 0)
+          if (!ballDispo) {
+            ajouterAuJournal(`💥 ${boss.nomFr} s'est enfui : aucune Ball pour le capturer !`, 'echec')
           } else {
-            ajouterAuJournal(`💢 ${boss.nomFr} s'est libéré de la ${BALLS[ballDispo].nom} ! Reviens après le cooldown.`, 'echec')
+            setBalls((bb) => ({ ...bb, [ballDispo]: (bb[ballDispo] || 0) - 1 }))
+            const taux = TAUX_CAPTURE_BOSS_RAID[ballDispo] ?? 0.02
+            if (Math.random() < taux) {
+              try {
+                const pkmn = await chargerPokemon(boss.nom, false)
+                const avecNiv = { ...pkmn, niveau: raidActif.niveau, xp: 0, rarete: 'special', estSpecial: true }
+                const finales = statsFinales(avecNiv, BONUS_STAT_NIVEAU)
+                const nouveau = { ...avecNiv, ...finales, uid: `special-${boss.id}-${Date.now()}` }
+                setCaptures((c) => [...c, nouveau])
+                setPokedexSpeciaux((s) => s.includes(boss.id) ? s : [...s, boss.id])
+                ajouterAuJournal(`🌟 CAPTURE ! ${boss.nomFr} (niv ${raidActif.niveau}) rejoint ta collection !`, 'capture')
+              } catch (err) {
+                console.warn('Échec chargement boss raid', boss.nom, err)
+              }
+            } else {
+              ajouterAuJournal(`💢 ${boss.nomFr} s'est libéré de la ${BALLS[ballDispo].nom} ! Reviens après le cooldown.`, 'echec')
+            }
           }
         }
 
@@ -2619,91 +2760,88 @@ function App() {
   return (
     <div className="app app-layout">
 
-      <header className="topbar">
-        <div className="topbar-titre">
+      <header className="topbar-moderne">
+        <div className="tbm-marque">
+          <img
+            src="https://play.pokemonshowdown.com/sprites/ani/mew.gif"
+            alt=""
+            className="tbm-mascotte tbm-mascotte-gauche"
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
+          />
           <img
             src="/logo-titre.png"
             alt="Pokédle"
-            className="topbar-logo"
+            className="tbm-logo"
             onError={(e) => { e.currentTarget.style.display = 'none'; const t = e.currentTarget.nextElementSibling; if (t) t.style.display = 'inline' }}
           />
-          <span className="topbar-titre-texte" style={{ display: 'none' }}>Pokédle</span>
+          <span className="tbm-marque-texte" style={{ display: 'none' }}>Pokédle</span>
+          <img
+            src="https://play.pokemonshowdown.com/sprites/ani/mewtwo.gif"
+            alt=""
+            className="tbm-mascotte tbm-mascotte-droite"
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
+          />
         </div>
 
-        <div className="hud">
-          <button className="hud-icone hud-icone-relative" onClick={() => setVueOuverte('pokedex')} title="Pokédex">
-            {nbRecompensesDispo > 0 && <span className="hud-pastille">{nbRecompensesDispo}</span>}
-            <img src="/icons/pokedex.png" alt="Pokédex" />
-            <span className="hud-label">Pokédex</span>
+        <nav className="tbm-menu">
+          <button className="tbm-item" onClick={() => setVueOuverte('pokedex')} title="Pokédex">
+            {nbRecompensesDispo > 0 && <span className="tbm-pastille">{nbRecompensesDispo}</span>}
+            <BookOpen size={17} /><span>Pokédex</span>
           </button>
-          <button className="hud-icone" data-tuto="equipe" onClick={() => setVueOuverte('equipe')} title="Mon équipe">
-            <img src="/icons/equipe.png" alt="Équipe" />
-            <span className="hud-label">Équipe</span>
+          <button className="tbm-item" data-tuto="equipe" onClick={() => setVueOuverte('equipe')} title="Mon équipe">
+            <Users size={17} /><span>Équipe</span>
           </button>
-          <button className="hud-icone" data-tuto="routes" onClick={() => setVueOuverte('routes')} title="Routes">
-            <img src="/icons/routes.png" alt="Routes" />
-            <span className="hud-label">Routes</span>
+          <button className="tbm-item" data-tuto="routes" onClick={() => setVueOuverte('routes')} title="Routes">
+            <MapIcon size={17} /><span>Routes</span>
           </button>
-          <button className="hud-icone" onClick={() => setVueOuverte('stats')} title="Statistiques">
-            <img src="/icons/stats.png" alt="Stats" />
-            <span className="hud-label">Stats</span>
+          <button className="tbm-item" onClick={() => setVueOuverte('stats')} title="Statistiques">
+            <BarChart3 size={17} /><span>Stats</span>
           </button>
-          <button className="hud-icone" onClick={() => setVueOuverte('boutique')} title="Boutique">
-            <img src="/icons/boutique.png" alt="Boutique" />
-            <span className="hud-label">Shop</span>
+          <button className="tbm-item" onClick={() => setVueOuverte('boutique')} title="Boutique">
+            <ShoppingBag size={17} /><span>Shop</span>
           </button>
-          <button className="hud-icone" onClick={() => setVueOuverte('sac')} title="Sac">
-            <img src="/icons/sac.png" alt="Sac" />
-            <span className="hud-label">Sac</span>
+          <button className="tbm-item" onClick={() => setVueOuverte('sac')} title="Sac">
+            <Backpack size={17} /><span>Sac</span>
           </button>
-          <button className="hud-icone" onClick={() => setVueOuverte('succes')} title="Succès">
-            <img src="/icons/succes.png" alt="Succès" />
-            <span className="hud-label">Succès</span>
+          <button className="tbm-item" onClick={() => setVueOuverte('succes')} title="Succès">
+            <Trophy size={17} /><span>Succès</span>
           </button>
-          <button className="hud-icone" onClick={() => setVueOuverte('ameliorations')} title="Améliorations">
-            <img src="/icons/ameliorations.png" alt="Améliorations" />
-            <span className="hud-label">Boost</span>
+          <button className="tbm-item" onClick={() => setVueOuverte('ameliorations')} title="Améliorations">
+            <Zap size={17} /><span>Boost</span>
           </button>
-          <button className="hud-icone hud-icone-relative" onClick={() => setModeJeu('arene')} title="Mode Arène">
-            <span className="hud-emoji-icone">⚔️</span>
-            <span className="hud-label">Arène</span>
+          <button className="tbm-item tbm-item-combat" onClick={() => setModeJeu('arene')} title="Mode Arène">
+            <Swords size={17} /><span>Arène</span>
           </button>
-          <button className="hud-icone hud-icone-relative" onClick={() => setModeJeu('raid')} title="Raids (endgame)">
-            <span className="hud-emoji-icone">🔥</span>
-            <span className="hud-label">Raids</span>
+          <button className="tbm-item tbm-item-combat" onClick={() => setModeJeu('raid')} title="Raids (endgame)">
+            <Flame size={17} /><span>Raids</span>
           </button>
-          <button className="hud-icone hud-icone-relative" data-tuto="pvp" onClick={() => setModeJeu('pvp')} title="Arène PvP en ligne">
-            <span className="hud-emoji-icone">🥊</span>
-            <span className="hud-label">PvP</span>
+          <button className="tbm-item tbm-item-combat" data-tuto="pvp" onClick={() => setModeJeu('pvp')} title="Arène PvP en ligne">
+            <Crosshair size={17} /><span>PvP</span>
           </button>
-          <button className="hud-icone hud-icone-relative" onClick={() => setVueOuverte('classement')} title="Classement en ligne">
-            <span className="hud-emoji-icone">🏆</span>
-            <span className="hud-label">Classement</span>
+          <button className="tbm-item" onClick={() => setVueOuverte('classement')} title="Classement en ligne">
+            <Medal size={17} /><span>Rang</span>
           </button>
-          {/* PRESTIGE MASQUÉ
-          <button className="hud-icone hud-icone-relative" onClick={() => setVueOuverte('prestige')} title="Rang de Dresseur (Prestige)">
-            {medailles > 0 && <span className="hud-pastille">{medailles}</span>}
-            <span className="hud-emoji-icone">🏅</span>
-            <span className="hud-label">Prestige</span>
+          {/* PRESTIGE MASQUÉ */}
+          <button className="tbm-item" onClick={() => setVueOuverte('sauvegarde')} title="Sauvegarde (transfert tel/PC)">
+            <Save size={17} /><span>Save</span>
           </button>
-          */}
-          <button className="hud-icone hud-icone-relative" onClick={() => setVueOuverte('sauvegarde')} title="Sauvegarde (transfert tel/PC)">
-            <span className="hud-emoji-icone">💾</span>
-            <span className="hud-label">Save</span>
+          <button className="tbm-item" onClick={() => setTutoMode('guide')} title="Aide / Guide du jeu">
+            <HelpCircle size={17} /><span>Aide</span>
           </button>
-          <button className="hud-icone hud-icone-relative" onClick={() => setTutoMode('guide')} title="Aide / Guide du jeu">
-            <span className="hud-emoji-icone">❓</span>
-            <span className="hud-label">Aide</span>
+          <button className="tbm-item tbm-item-danger" onClick={reinitialiser} title="Réinitialiser">
+            <Trash2 size={17} /><span>Reset</span>
           </button>
-          <button className="hud-icone hud-reset" onClick={reinitialiser} title="Réinitialiser">
-            <img src="/icons/reset.png" alt="Reset" />
-            <span className="hud-label">Reset</span>
-          </button>
-        </div>
+        </nav>
 
-        <div className="topbar-infos">
-          <span className="topbar-argent"><img src={ICONE_ARGENT} alt="" className="icone-inline" /> {pokeDollars}</span>
-          <span className="topbar-dex">📖 {pctPokedex}%</span>
+        <div className="tbm-ressources">
+          <span className="tbm-stat tbm-stat-argent" title="Poké Dollars">
+            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/nugget.png" alt="" className="tbm-stat-sprite" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+            {Number(pokeDollars).toLocaleString('fr-FR')}
+          </span>
+          <span className="tbm-stat tbm-stat-dex" title="Complétion du Pokédex">
+            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="" className="tbm-stat-sprite" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+            {pctPokedex}%
+          </span>
         </div>
       </header>
 
@@ -2829,49 +2967,62 @@ function App() {
             </div>
           )}
 
-          <div className={`arene ${combatBoss ? 'arene-boss' : ''}`} style={{
+          <div className={`arene arene-terrain ${combatBoss ? 'arene-boss' : ''}`} style={{
             backgroundImage: `url(${routeParId(routeActive).decor})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}>
-            <div className="equipe-joueur">
-              {equipeJoueur.map((poke, i) => (
-                <div className="carte-slot" key={poke.uid}>
-                  <CartePokemon
+            {/* Particules d'ambiance (varie selon la zone : feuilles, neige, cendres...) */}
+            <div className={`terrain-particules ambiance-${ambianceDeZone(routeParId(routeActive).decor)}`} aria-hidden="true">
+              {Array.from({ length: 14 }).map((_, i) => (
+                <span key={i} className={`particule particule-${i % 7}`}></span>
+              ))}
+            </div>
+
+            <div className="terrain-rangee terrain-ennemis">
+              {equipeEnnemie.map((poke, i) => {
+                const marqueeMaster = ciblesMasterBall.some((c) => c.cle === `${poke.id}${poke.shiny ? '-shiny' : ''}`)
+                const ciblable = !poke.estBoss && !poke.estEvolution
+                return (
+                <div className="terrain-slot" key={i}>
+                  <SpriteCombattant
                     pokemon={poke}
-                    pvActuels={pvJoueur[i]}
-                    jauge={jaugeJoueur[i]}
-                    niveau={poke.niveau}
-                    compact
-                    ultimeLance={ultimeLanceJoueur[i] || false}
+                    pvActuels={pvEnnemis[i]}
+                    jauge={jaugeEnnemis[i]}
+                    camp="ennemi"
+                    ultimeLance={ultimeLanceEnnemiAff[i] || false}
+                    ultimeEnnemi
+                    marqueeMaster={marqueeMaster}
+                    ciblableMaster={ciblable}
+                    onCiblerMaster={() => basculerCibleMasterBall(poke)}
                   />
                   <div className="chiffres-couche">
-                    {chiffresFlottants.filter((c) => c.camp === 'joueur' && c.index === i).map((c) => (
+                    {chiffresFlottants.filter((c) => c.camp === 'ennemi' && c.index === i).map((c) => (
                       <span key={c.id} className={`chiffre-flottant ${c.type}`} style={{ left: `calc(50% + ${c.dx}px)` }}>
                         {c.type === 'crit' ? `${c.montant} !` : c.type === 'soin' ? `+${c.montant}` : c.montant}
                       </span>
                     ))}
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
 
-            <div className="vs"><img src={ICONE_COMBAT} alt="VS" className="vs-img" /></div>
+            <div className="terrain-vs"><img src={ICONE_COMBAT} alt="VS" className="vs-img" /></div>
 
-            <div className="equipe-ennemie">
-              {equipeEnnemie.map((poke, i) => (
-                <div className="carte-slot" key={i}>
-                  <CartePokemon
+            {/* Équipe du joueur (en bas, de dos) */}
+            <div className="terrain-rangee terrain-joueur">
+              {equipeJoueur.map((poke, i) => (
+                <div className="terrain-slot" key={poke.uid}>
+                  <SpriteCombattant
                     pokemon={poke}
-                    pvActuels={pvEnnemis[i]}
-                    jauge={jaugeEnnemis[i]}
-                    niveau={poke.niveau}
-                    compact
-                    ultimeLance={ultimeLanceEnnemiAff[i] || false}
-                    ultimeEnnemi
+                    pvActuels={pvJoueur[i]}
+                    jauge={jaugeJoueur[i]}
+                    camp="joueur"
+                    ultimeLance={ultimeLanceJoueur[i] || false}
                   />
                   <div className="chiffres-couche">
-                    {chiffresFlottants.filter((c) => c.camp === 'ennemi' && c.index === i).map((c) => (
+                    {chiffresFlottants.filter((c) => c.camp === 'joueur' && c.index === i).map((c) => (
                       <span key={c.id} className={`chiffre-flottant ${c.type}`} style={{ left: `calc(50% + ${c.dx}px)` }}>
                         {c.type === 'crit' ? `${c.montant} !` : c.type === 'soin' ? `+${c.montant}` : c.montant}
                       </span>
@@ -2894,24 +3045,28 @@ function App() {
         </main>
 
         <aside className="colonne colonne-droite" data-tuto="capture">
-          <div className="panneau">
-            <div className="panneau-titre">
-              <img src="/icons/capture.png" alt="" className="panneau-icone" /> Capture
+          <div className="panneau panneau-capture-v2">
+            <div className="panneau-titre panneau-titre-capture">
+              <span><img src="/icons/capture.png" alt="" className="panneau-icone" /> Capture</span>
+              <span className="capture-limite-badge" title="Balls max dépensées par espèce et par combat">
+                max {reglesCapture.limiteBalls === 'infini' ? '∞' : (reglesCapture.limiteBalls ?? 5)}
+              </span>
             </div>
+
             <button className="bouton-regles-capture" onClick={() => setVueOuverte('regles')}>
-              ⚙️ Règles de capture
+              <Settings size={14} style={{ verticalAlign: '-2px', marginRight: '5px' }} /> Règles de capture
             </button>
+
             {(() => {
               const labelBall = {
                 auto: 'Auto', poke: 'Poké', super: 'Super',
-                hyper: 'Hyper', master: 'Master', rien: '✕ Aucune',
+                hyper: 'Hyper', master: 'Master', rien: '✕',
               }
-              const SPR = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/'
               const categories = [
-                { cle: 'shiny', nom: 'Shiny', sprite: SPR + 'shiny-charm.png', emoji: '✨' },
-                { cle: 'legendaire', nom: 'Légend.', sprite: SPR + 'comet-shard.png', emoji: '⭐' },
-                { cle: 'nouveau', nom: 'Nouveau', sprite: SPR + 'lucky-egg.png', emoji: '🆕' },
-                { cle: 'doublon', nom: 'Doublon', sprite: SPR + 'big-pearl.png', emoji: '♻️' },
+                { cle: 'shiny', Icone: Sparkles, couleur: 'var(--m-or)', nom: 'Shiny' },
+                { cle: 'legendaire', Icone: Crown, couleur: 'var(--m-violet-clair)', nom: 'Légendaire' },
+                { cle: 'nouveau', Icone: Plus, couleur: 'var(--m-vert)', nom: 'Nouveau' },
+                { cle: 'doublon', Icone: Repeat, couleur: 'var(--m-texte-3)', nom: 'Doublon' },
               ]
               const ballsResume = [
                 { cle: 'poke', nom: 'Poké Ball' },
@@ -2919,35 +3074,67 @@ function App() {
                 { cle: 'hyper', nom: 'Hyper Ball' },
                 { cle: 'master', nom: 'Master Ball' },
               ]
+              const classeBall = (c) => c === 'rien' ? 'rien' : (c === 'master' ? 'master' : (c === 'hyper' ? 'hyper' : 'auto'))
               return (
-                <div className="capture-resume">
-                  {categories.map((c) => (
-                    <div key={c.cle} className="capture-resume-ligne">
-                      <span className="capture-resume-cat">
-                        <img
-                          src={c.sprite}
-                          alt=""
-                          className="capture-resume-icone"
-                          onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(c.emoji)) }}
-                        />
-                        {c.nom}
-                      </span>
-                      <span className={`capture-resume-ball ${reglesCapture[c.cle] === 'rien' ? 'aucune' : ''}`}>
-                        {labelBall[reglesCapture[c.cle]] || 'Auto'}
-                      </span>
-                    </div>
-                  ))}
-                  <div className="capture-resume-stock">
-                    {ballsResume.map((b) => (
-                      <span key={b.cle} className="capture-stock-item" title={b.nom}>
-                        {ICONES_BALLS[b.cle]
-                          ? <img src={ICONES_BALLS[b.cle]} alt="" className="capture-resume-icone" />
-                          : null}
-                        {balls[b.cle] ?? 0}
-                      </span>
-                    ))}
+                <>
+                  {/* Règles actives : grille 2×2, icône + ball choisie */}
+                  <div className="capture-regles-grille">
+                    {categories.map((c) => {
+                      const Ic = c.Icone
+                      return (
+                      <div key={c.cle} className="capture-regle-case" title={c.nom}>
+                        <span className="capture-regle-emoji" style={{ color: c.couleur }}><Ic size={14} /></span>
+                        <span className={`capture-regle-ball ball-${classeBall(reglesCapture[c.cle] || 'auto')}`}>
+                          {labelBall[reglesCapture[c.cle]] || 'Auto'}
+                        </span>
+                      </div>
+                      )
+                    })}
                   </div>
-                </div>
+
+                  {/* Cibles Master Ball : sprites cliquables (× pour retirer). Caché si vide. */}
+                  {ciblesMasterBall.length > 0 && (
+                    <div className="capture-cibles">
+                      <img
+                        src={ICONES_BALLS.master}
+                        alt="Master Ball"
+                        className="capture-cibles-icone"
+                      />
+                      <div className="capture-cibles-liste">
+                        {ciblesMasterBall.map((c) => (
+                          <button
+                            key={c.cle}
+                            className={`capture-cible-pastille ${c.shiny ? 'shiny' : ''}`}
+                            title={`${c.nom}${c.shiny ? ' ✨' : ''} — clic pour retirer`}
+                            onClick={() => {
+                              const maj = ciblesMasterBall.filter((x) => x.cle !== c.cle)
+                              ciblesMasterBallRef.current = maj
+                              setCiblesMasterBall(maj)
+                            }}
+                          >
+                            {c.sprite
+                              ? <img src={c.sprite} alt={c.nom} className="capture-cible-sprite" />
+                              : <span className="capture-cible-nom">{c.nom}</span>}
+                            <span className="capture-cible-x">×</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stock de balls : grille 4 colonnes, alerte rouge à 0 */}
+                  <div className="capture-balls-grille">
+                    {ballsResume.map((b) => {
+                      const n = balls[b.cle] ?? 0
+                      return (
+                        <div key={b.cle} className={`capture-ball-case ${n === 0 ? 'vide' : ''}`} title={b.nom}>
+                          {ICONES_BALLS[b.cle] && <img src={ICONES_BALLS[b.cle]} alt="" className="capture-ball-img" />}
+                          <span className="capture-ball-nb">{n}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
               )
             })()}
           </div>
@@ -3166,6 +3353,31 @@ function App() {
           bossVaincus={bossVaincus}
           nomsVus={captures.map((p) => p.nom)}
           tableNoms={tableNoms}
+          ciblesMasterBall={ciblesMasterBall}
+          onCiblerMasterBall={(numero, nom) => {
+            // Cible une ESPÈCE (version normale) pour la Master Ball depuis le menu Routes.
+            const cle = `${numero}`
+            const dejaCiblee = ciblesMasterBallRef.current.some((c) => c.cle === cle)
+            setCiblesMasterBall((liste) => {
+              const maj = dejaCiblee
+                ? liste.filter((c) => c.cle !== cle)
+                : [...liste, {
+                    cle,
+                    id: numero,
+                    nom,
+                    shiny: false,
+                    sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${numero}.png`,
+                  }]
+              ciblesMasterBallRef.current = maj
+              return maj
+            })
+            ajouterAuJournal(
+              !dejaCiblee
+                ? `⚫ ${nom} ciblé pour la Master Ball.`
+                : `${nom} n'est plus ciblé Master Ball.`,
+              'info'
+            )
+          }}
           onChoisir={(id) => {
             setRouteActive(id)
             routeActiveRef.current = id
@@ -3194,6 +3406,13 @@ function App() {
           onChanger={(categorie, choix) => {
             setReglesCapture((r) => {
               const nouvelles = { ...r, [categorie]: choix }
+              reglesCaptureRef.current = nouvelles
+              return nouvelles
+            })
+          }}
+          onChangerLimite={(val) => {
+            setReglesCapture((r) => {
+              const nouvelles = { ...r, limiteBalls: val }
               reglesCaptureRef.current = nouvelles
               return nouvelles
             })

@@ -10,6 +10,8 @@ function CartePokemon({
   // Props d'ultime (optionnelles : seule l'équipe joueur les passe).
   // Ultime : système temporel (auto à 7s). ultimeLance = true une fois déclenché ce combat.
   ultimeLance = false, ultimeEnnemi = false,
+  // Props Master Ball (ennemis uniquement) : marquage par clic pour capture garantie.
+  marqueeMaster = false, ciblableMaster = false, onCiblerMaster = null,
 }) {
   const pourcentageVie = (pvActuels / pokemon.pvMax) * 100
   const ko = pvActuels <= 0
@@ -70,12 +72,30 @@ function CartePokemon({
   const afficheUltime = !!ultime && !ko
 
   return (
-    <div className={`carte-pokemon ${compact ? 'compact' : ''} ${ko ? 'ko' : ''} ${pokemon.shiny ? 'est-shiny' : ''} ${prendCoup ? 'prend-coup' : ''} ${haloRole ? `halo-role halo-${roleCourant}` : ''}`}>
+    <div className={`carte-pokemon ${compact ? 'compact' : ''} ${ko ? 'ko' : ''} ${pokemon.shiny ? 'est-shiny' : ''} ${prendCoup ? 'prend-coup' : ''} ${haloRole ? `halo-role halo-${roleCourant}` : ''} ${marqueeMaster ? 'cible-master' : ''}`}>
       {evolueBientot && (
         <span className="badge-evolution" title={`Évolue niveau ${pokemon.evolueNiveau}`}>⏫</span>
       )}
       {pokemon.shiny && (
         <span className="badge-shiny" title="Shiny !">✨</span>
+      )}
+
+      {/* Bouton de ciblage Master Ball (ennemis ciblables uniquement).
+          Clic = marque/démarque l'espèce pour une capture garantie à la Master Ball. */}
+      {ciblableMaster && onCiblerMaster && (
+        <button
+          type="button"
+          className={`bouton-cible-master ${marqueeMaster ? 'actif' : ''}`}
+          title={marqueeMaster ? 'Master Ball ciblée (clic pour annuler)' : 'Cibler pour une Master Ball'}
+          onClick={(e) => { e.stopPropagation(); onCiblerMaster() }}
+        >
+          <img
+            src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/master-ball.png"
+            alt="Master Ball"
+            className="bouton-cible-master-img"
+            onError={(e) => { e.currentTarget.replaceWith(document.createTextNode('⚫')) }}
+          />
+        </button>
       )}
 
       {/* Badge d'ultime : pastille du rôle. Grisée tant que l'ultime n'est pas lancé,

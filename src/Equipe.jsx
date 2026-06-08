@@ -5,8 +5,80 @@ import { ROLES, determinerRole, passifDe, passifEffectif, passifsDuRole, passifP
 import { OBJETS } from './objets'
 import { PARCHEMINS } from './parchemins'
 
-// Affiche le sprite officiel d'un objet (fallback emoji si l'image échoue).
-function IconeObjet({ id, classe = 'icone-objet' }) {
+// Sprite de Pokémon avec cascade : animé Showdown -> artwork HD -> sprite normal.
+// Gère la variante shiny (URLs dédiées). poke.nom = nom anglais PokeAPI, poke.id = numéro.
+function SpritePoke({ poke, classe = 'eqm-sprite', anime = true }) {
+  const nom = (poke.nom || '').toLowerCase().replace(/[^a-z0-9-]/g, '')
+  const shiny = !!poke.shiny
+  const dossierAnime = shiny ? 'ani-shiny' : 'ani'
+  const urlAnime = `https://play.pokemonshowdown.com/sprites/${dossierAnime}/${nom}.gif`
+  const dossierHd = shiny ? 'official-artwork/shiny' : 'official-artwork'
+  const urlHd = poke.id ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/${dossierHd}/${poke.id}.png` : null
+  // Dernier recours : le sprite déjà stocké (déjà shiny si le poke est shiny, cf. App.jsx).
+  const fallback = poke.sprite
+  const onError = (e) => {
+    const img = e.currentTarget
+    const etape = parseInt(img.dataset.etape || '0', 10)
+    if (etape === 0 && urlHd) { img.dataset.etape = '1'; img.src = urlHd }
+    else if (etape <= 1 && fallback) { img.dataset.etape = '2'; img.src = fallback }
+  }
+  return (
+    <img
+      src={anime ? urlAnime : (fallback || urlHd)}
+      alt={poke.nom}
+      className={classe}
+      data-etape="0"
+      loading="lazy"
+      onError={onError}
+    />
+  )
+}
+
+function BadgeRole({ pokemon }) {
+  const role = pokemon.role || determinerRole(pokemon)
+  const info = ROLES[role]
+  if (!info) return null
+  return <span className="eqm-badge-role" title={info.nom}>{info.emoji}</span>
+}
+
+function IndicateurCompo({ equipe }) {
+  const compte = compterRoles(equipe)
+  const valide = compositionValide(equipe)
+  const nbSpeciaux = compterSpeciaux(equipe)
+  const ordre = ['tank', 'eclaireur', 'soutien', 'dps']
+  return (
+    <div className={`eqm-compo ${valide ? 'eqm-compo-ok' : 'eqm-compo-ko'}`}>
+      <div className="eqm-compo-titre">
+        {valide
+          ? '✓ Composition valide — prête au combat'
+          : `Compo : 1 à 2 par rôle (chaque rôle présent) · ${MAX_SPECIAL} spécial max`}
+      </div>
+      <div className="eqm-compo-roles">
+        {ordre.map((role) => {
+          const info = ROLES[role]
+          const actuel = compte[role]
+          const ok = actuel >= MIN_PAR_ROLE && actuel <= MAX_PAR_ROLE
+          return (
+            <span key={role} className={`eqm-compo-role ${ok ? 'eqm-role-ok' : 'eqm-role-ko'}`} style={{ '--c-role': info.couleur }}>
+              <span className="eqm-compo-role-emoji">{info.emoji}</span>
+              <span className="eqm-compo-role-txt">{info.nom}</span>
+              <span className="eqm-compo-role-compte">{actuel}/{MAX_PAR_ROLE}</span>
+            </span>
+          )
+        })}
+        {nbSpeciaux > 0 && (
+          <span className={`eqm-compo-role ${nbSpeciaux <= MAX_SPECIAL ? 'eqm-role-ok' : 'eqm-role-ko'}`} style={{ '--c-role': '#d986ff' }}>
+            <span className="eqm-compo-role-emoji">🌟</span>
+            <span className="eqm-compo-role-txt">Spécial</span>
+            <span className="eqm-compo-role-compte">{nbSpeciaux}/{MAX_SPECIAL}</span>
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function IconeObjet({ id, classe = 'eqm-icone-objet' }) {
   const o = OBJETS[id]
   if (!o) return null
   if (o.sprite) {
@@ -15,67 +87,14 @@ function IconeObjet({ id, classe = 'icone-objet' }) {
   return <span>{o.emoji}</span>
 }
 
-// Petit badge de rôle (emoji) à afficher dans un coin d'une carte.
-function BadgeRole({ pokemon }) {
-  const role = pokemon.role || determinerRole(pokemon)
-  const info = ROLES[role]
-  if (!info) return null
-  return <span className="badge-role" title={info.nom}>{info.emoji}</span>
-}
-
-// Indicateur de composition d'équipe : montre combien de chaque rôle, et si c'est valide.
-// Règle souple : 1 à 2 par rôle (chaque rôle présent), + 1 spécial max.
-function IndicateurCompo({ equipe }) {
-  const compte = compterRoles(equipe)
-  const valide = compositionValide(equipe)
-  const nbSpeciaux = compterSpeciaux(equipe)
-  const ordre = ['tank', 'eclaireur', 'soutien', 'dps']
-  return (
-    <div className={`compo-indicateur ${valide ? 'compo-ok' : 'compo-ko'}`}>
-      <div className="compo-titre">
-        {valide
-          ? '✓ Composition valide — prête au combat'
-          : `Compo : 1 à 2 par rôle (chaque rôle présent) · ${MAX_SPECIAL} spécial max`}
-      </div>
-      <div className="compo-roles">
-        {ordre.map((role) => {
-          const info = ROLES[role]
-          const actuel = compte[role]
-          const ok = actuel >= MIN_PAR_ROLE && actuel <= MAX_PAR_ROLE
-          return (
-            <span key={role} className={`compo-role ${ok ? 'role-ok' : 'role-ko'}`} style={{ borderColor: info.couleur }}>
-              <span className="compo-role-emoji">{info.emoji}</span>
-              <span className="compo-role-txt">{info.nom}</span>
-              <span className="compo-role-compte">{actuel}/{MAX_PAR_ROLE}</span>
-            </span>
-          )
-        })}
-        {nbSpeciaux > 0 && (
-          <span className={`compo-role ${nbSpeciaux <= MAX_SPECIAL ? 'role-ok' : 'role-ko'}`} style={{ borderColor: '#d986ff' }}>
-            <span className="compo-role-emoji">🌟</span>
-            <span className="compo-role-txt">Spécial</span>
-            <span className="compo-role-compte">{nbSpeciaux}/{MAX_SPECIAL}</span>
-          </span>
-        )}
-      </div>
-    </div>
-  )
-}
-
 const ICONES_PIERRES = {
-  'fire-stone': '/icons/fire-stone.png',
-  'water-stone': '/icons/water-stone.png',
-  'thunder-stone': '/icons/thunder-stone.png',
-  'leaf-stone': '/icons/leaf-stone.png',
-  'moon-stone': '/icons/moon-stone.png',
-  'sun-stone': '/icons/sun-stone.png',
-  'shiny-stone': '/icons/shiny-stone.png',
-  'dusk-stone': '/icons/dusk-stone.png',
-  'dawn-stone': '/icons/dawn-stone.png',
-  'ice-stone': '/icons/ice-stone.png',
+  'fire-stone': '/icons/fire-stone.png', 'water-stone': '/icons/water-stone.png',
+  'thunder-stone': '/icons/thunder-stone.png', 'leaf-stone': '/icons/leaf-stone.png',
+  'moon-stone': '/icons/moon-stone.png', 'sun-stone': '/icons/sun-stone.png',
+  'shiny-stone': '/icons/shiny-stone.png', 'dusk-stone': '/icons/dusk-stone.png',
+  'dawn-stone': '/icons/dawn-stone.png', 'ice-stone': '/icons/ice-stone.png',
 }
 
-// Couleurs par type Pokémon (pour les badges).
 const COULEURS_TYPE = {
   normal: '#9099a1', fire: '#ff9d55', water: '#4d90d5', electric: '#f4d23c',
   grass: '#63bb5b', ice: '#73cec0', fighting: '#ce4069', poison: '#ab6ac8',
@@ -84,36 +103,26 @@ const COULEURS_TYPE = {
   steel: '#5a8ea1', fairy: '#ec8fe6',
 }
 
-// Une barre de stat visuelle.
 function BarreStat({ label, valeur, pctMax, couleur }) {
   const pct = Math.max(8, Math.min(100, pctMax))
   return (
-    <div className="stat-barre-ligne">
-      <span className="stat-barre-label">{label}</span>
-      <div className="stat-barre-piste">
-        <div className="stat-barre-fill" style={{ width: `${pct}%`, background: couleur }}></div>
-      </div>
-      <span className="stat-barre-val">{valeur}</span>
+    <div className="eqm-stat-ligne">
+      <span className="eqm-stat-label">{label}</span>
+      <div className="eqm-stat-piste"><div className="eqm-stat-fill" style={{ width: `${pct}%`, background: couleur }}></div></div>
+      <span className="eqm-stat-val">{valeur}</span>
     </div>
   )
 }
 
-// Une barre d'IV (sur STAT_MAX_IV = 31). Couleur selon la qualité de l'IV.
 function BarreIV({ label, valeur }) {
   const v = Math.max(0, Math.min(STAT_MAX_IV, valeur || 0))
   const pct = (v / STAT_MAX_IV) * 100
-  const couleur =
-    v >= 28 ? '#5fbf60' :
-    v >= 20 ? '#a4d24a' :
-    v >= 12 ? '#f0c040' :
-    v >= 6 ? '#f0a020' : '#e06060'
+  const couleur = v >= 28 ? '#34d399' : v >= 20 ? '#a3e635' : v >= 12 ? '#fcd34d' : v >= 6 ? '#fb923c' : '#ef6868'
   return (
-    <div className="iv-barre-ligne">
-      <span className="iv-barre-label">{label}</span>
-      <div className="iv-barre-piste">
-        <div className="iv-barre-fill" style={{ width: `${Math.max(4, pct)}%`, background: couleur }}></div>
-      </div>
-      <span className="iv-barre-val">{v}/{STAT_MAX_IV}</span>
+    <div className="eqm-iv-ligne">
+      <span className="eqm-iv-label">{label}</span>
+      <div className="eqm-iv-piste"><div className="eqm-iv-fill" style={{ width: `${Math.max(4, pct)}%`, background: couleur }}></div></div>
+      <span className="eqm-iv-val">{v}/{STAT_MAX_IV}</span>
     </div>
   )
 }
@@ -126,18 +135,13 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet,
   const xp = pokemon.xp || 0
   const pourcentageXP = Math.min(100, (xp / requise) * 100)
 
-  // Rôle + passif.
   const role = pokemon.role || determinerRole(pokemon)
   const infoRole = ROLES[role]
   const types = pokemon.types || []
 
-  // Joker : peut choisir sa CASE (le rôle qu'il occupe en combat).
   const joker = estJoker(pokemon)
-  const caseActuelle = roleEffectif(pokemon) // la case occupée (tank/eclaireur/soutien/dps)
-
-  // Choix de passif : les passifs proposés (3 du rôle, ou les 9 pour un Joker).
+  const caseActuelle = roleEffectif(pokemon)
   const passifsChoix = passifsDuRole(role)
-  // Passif effectif PAR MODE (Principal / Arène / PvP). On lit le champ dédié de chaque mode.
   const passifParModeActuel = {
     principal: passifPourMode(pokemon, 'principal'),
     arene: passifPourMode(pokemon, 'arene'),
@@ -152,64 +156,52 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet,
 
   const objetEquipe = pokemon.objetEquipe && OBJETS[pokemon.objetEquipe] ? OBJETS[pokemon.objetEquipe] : null
   const objetsDispo = Object.entries(objets).filter(([id, n]) => n > 0 && id !== pokemon.objetEquipe && OBJETS[id])
-
-  const evosPierre = (pokemon.evolutionsPierre || []).filter(
-    (e) => (pierres[e.pierre] || 0) > 0
-  )
+  const evosPierre = (pokemon.evolutionsPierre || []).filter((e) => (pierres[e.pierre] || 0) > 0)
 
   return (
-    <div className="fiche-v2">
-      <button className="bouton-retour" onClick={onRetour}>← Retour</button>
+    <div className="eqm-fiche">
+      <button className="eqm-retour" onClick={onRetour}>← Retour</button>
 
-      <div className="fiche-entete">
-        <div className="fiche-sprite-cadre">
-          <img src={pokemon.sprite} alt={pokemon.nom} className="fiche-sprite-v2" />
-          {pokemon.shiny && <span className="fiche-shiny-badge">✨</span>}
+      <div className="eqm-fiche-entete">
+        <div className="eqm-fiche-sprite-cadre">
+          <SpritePoke poke={pokemon} classe="eqm-fiche-sprite" />
+          {pokemon.shiny && <span className="eqm-fiche-shiny">✨</span>}
         </div>
-        <div className="fiche-identite">
-          <div className="fiche-nom-ligne">
-            <span className="fiche-nom-v2">{pokemon.nom}</span>
-            <span className="fiche-niv-badge">N.{niv}</span>
+        <div className="eqm-fiche-identite">
+          <div className="eqm-fiche-nom-ligne">
+            <span className="eqm-fiche-nom">{pokemon.nom}</span>
+            <span className="eqm-fiche-niv">N.{niv}</span>
           </div>
-          <span className="fiche-num-v2">N°{String(pokemon.id).padStart(3, '0')}</span>
-          <div className="fiche-types">
+          <span className="eqm-fiche-num">N°{String(pokemon.id).padStart(3, '0')}</span>
+          <div className="eqm-fiche-types">
             {types.map((t) => (
-              <span key={t} className="fiche-type-badge" style={{ background: COULEURS_TYPE[t] || '#777' }}>
-                {t}
-              </span>
+              <span key={t} className="eqm-type-badge" style={{ background: COULEURS_TYPE[t] || '#777' }}>{t}</span>
             ))}
           </div>
           {infoRole && (
-            <span className="fiche-role-v2" style={{ color: infoRole.couleur }}>
-              {infoRole.emoji} {infoRole.nom}
-            </span>
+            <span className="eqm-fiche-role" style={{ color: infoRole.couleur }}>{infoRole.emoji} {infoRole.nom}</span>
           )}
         </div>
       </div>
 
-      {/* Changer le rôle via un PARCHEMIN (objet endgame). N'affiche que les parchemins possédés. */}
       {(() => {
         const possedes = Object.entries(PARCHEMINS).filter(([cle]) => (parchemins[cle] || 0) > 0)
         if (possedes.length === 0) return null
         const roleActuel = pokemon.roleForce || pokemon.role
         return (
-          <div className="fiche-parchemins">
-            <div className="fiche-objet-titre-v2">📜 Changer le rôle (parchemin)</div>
-            <div className="fiche-parchemins-grille">
+          <div className="eqm-section">
+            <div className="eqm-section-titre">📜 Changer le rôle (parchemin)</div>
+            <div className="eqm-parchemins-grille">
               {possedes.map(([cle, info]) => {
                 const dejaCeRole = roleActuel === info.role
                 return (
-                  <button
-                    key={cle}
-                    className="fiche-parchemin-btn"
-                    disabled={dejaCeRole}
+                  <button key={cle} className="eqm-parchemin-btn" disabled={dejaCeRole}
                     title={dejaCeRole ? `Déjà ${ROLES[info.role]?.nom}` : info.description}
                     onClick={() => { if (onAppliquerParchemin) onAppliquerParchemin(pokemon.uid, cle) }}
-                    style={{ borderColor: ROLES[info.role]?.couleur || '#888' }}
-                  >
-                    <span className="fiche-parchemin-emoji">{info.emoji}</span>
-                    <span className="fiche-parchemin-nom">{ROLES[info.role]?.nom || info.role}</span>
-                    <span className="fiche-parchemin-stock">×{parchemins[cle]}</span>
+                    style={{ '--c-role': ROLES[info.role]?.couleur || '#888' }}>
+                    <span className="eqm-parchemin-emoji">{info.emoji}</span>
+                    <span className="eqm-parchemin-nom">{ROLES[info.role]?.nom || info.role}</span>
+                    <span className="eqm-parchemin-stock">×{parchemins[cle]}</span>
                   </button>
                 )
               })}
@@ -218,24 +210,20 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet,
         )
       })()}
 
-      {/* Choix de la CASE du Joker (uniquement pour les Jokers) : 4 boutons de rôle */}
       {joker && (
-        <div className="fiche-joker-case">
-          <div className="fiche-objet-titre-v2">🃏 Case du Joker (rôle joué en combat)</div>
-          <div className="joker-case-grille">
+        <div className="eqm-section">
+          <div className="eqm-section-titre">🃏 Case du Joker (rôle joué en combat)</div>
+          <div className="eqm-joker-grille">
             {CASES_JOKER.map((cle) => {
               const info = ROLES[cle]
               const actif = cle === caseActuelle
               return (
-                <button
-                  key={cle}
-                  className={`joker-case-btn ${actif ? 'actif' : ''}`}
+                <button key={cle} className={`eqm-joker-btn ${actif ? 'actif' : ''}`}
                   onClick={() => { if (!actif && onChoisirCaseJoker) onChoisirCaseJoker(pokemon.uid, cle) }}
                   title={`Faire jouer ce Joker comme ${info.nom}`}
-                  style={{ borderColor: actif ? info.couleur : 'transparent' }}
-                >
-                  <span className="joker-case-emoji">{info.emoji}</span>
-                  <span className="joker-case-nom">{info.nom}</span>
+                  style={{ '--c-role': info.couleur }}>
+                  <span className="eqm-joker-emoji">{info.emoji}</span>
+                  <span className="eqm-joker-nom">{info.nom}</span>
                 </button>
               )
             })}
@@ -243,36 +231,31 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet,
         </div>
       )}
 
-      {/* Choix du passif PAR MODE : 3 colonnes (Principal / Arène / PvP).
-          Chaque mode garde son propre passif → on peut optimiser différemment selon le contexte. */}
       {passifsChoix.length > 0 && (
-        <div className="fiche-passif-choix fiche-passif-modes">
-          <div className="fiche-objet-titre-v2">
+        <div className="eqm-section">
+          <div className="eqm-section-titre">
             ✨ Passifs {infoRole ? `— ${infoRole.nom}` : ''}
-            {joker && <span className="passif-joker-note"> (Joker : tous les passifs disponibles)</span>}
+            {joker && <span className="eqm-passif-note"> (Joker : tous les passifs)</span>}
           </div>
-          <p className="passif-modes-aide">Choisis un passif par mode de jeu :</p>
-          <div className="passif-modes-grille">
+          <p className="eqm-passif-aide">Choisis un passif par mode de jeu :</p>
+          <div className="eqm-passif-modes">
             {[
               { mode: 'principal', label: '🗺️ Principal' },
               { mode: 'arene', label: '⚔️ Arène' },
               { mode: 'pvp', label: '🥊 PvP' },
             ].map(({ mode, label }) => (
-              <div key={mode} className="passif-mode-colonne">
-                <div className="passif-mode-titre">{label}</div>
-                <div className="passif-mode-liste">
+              <div key={mode} className="eqm-passif-col">
+                <div className="eqm-passif-col-titre">{label}</div>
+                <div className="eqm-passif-liste">
                   {passifsChoix.map((p) => {
                     const actif = p.cle === passifParModeActuel[mode]
                     return (
-                      <button
-                        key={p.cle}
-                        className={`passif-mode-carte ${actif ? 'actif' : ''}`}
+                      <button key={p.cle} className={`eqm-passif-carte ${actif ? 'actif' : ''}`}
                         onClick={() => { if (!actif && onChoisirPassif) onChoisirPassif(pokemon.uid, p.cle, mode) }}
                         title={p.description}
-                        style={infoRole ? { borderColor: actif ? infoRole.couleur : 'transparent' } : undefined}
-                      >
-                        <span className="passif-mode-nom">{p.emoji} {p.nom}</span>
-                        {actif && <span className="passif-mode-check">✓</span>}
+                        style={infoRole ? { '--c-role': infoRole.couleur } : undefined}>
+                        <span className="eqm-passif-nom">{p.emoji} {p.nom}</span>
+                        {actif && <span className="eqm-passif-check">✓</span>}
                       </button>
                     )
                   })}
@@ -280,47 +263,38 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet,
               </div>
             ))}
           </div>
-          {/* Légende : descriptions des passifs proposés (une fois, sous les colonnes). */}
-          <div className="passif-modes-legende">
+          <div className="eqm-passif-legende">
             {passifsChoix.map((p) => (
-              <div key={p.cle} className="passif-legende-ligne">
-                <span className="passif-legende-nom">{p.emoji} {p.nom}</span>
-                <span className="passif-legende-desc">{p.description}</span>
+              <div key={p.cle} className="eqm-passif-legende-ligne">
+                <span className="eqm-passif-legende-nom">{p.emoji} {p.nom}</span>
+                <span className="eqm-passif-legende-desc">{p.description}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="fiche-xp-v2">
-        <div className="fiche-xp-label-v2">XP {xp} / {requise}</div>
-        <div className="barre-xp grande">
-          <div className="barre-xp-remplissage" style={{ width: `${pourcentageXP}%` }}></div>
-        </div>
+      <div className="eqm-section eqm-xp">
+        <div className="eqm-xp-label">XP {xp} / {requise}</div>
+        <div className="eqm-xp-piste"><div className="eqm-xp-fill" style={{ width: `${pourcentageXP}%` }}></div></div>
       </div>
 
-      <div className="fiche-stats-v2">
-        <BarreStat label="PV" valeur={pvMax} pctMax={(pvMax / statMax) * 100} couleur="#5fbf60" />
-        <BarreStat label="ATT" valeur={attaque} pctMax={(attaque / statMax) * 100} couleur="#f0a020" />
-        <BarreStat label="VIT" valeur={vitesse} pctMax={(vitesse / statMax) * 100} couleur="#50a0e0" />
-        <BarreStat label="DÉF" valeur={defense} pctMax={(defense / statMax) * 100} couleur="#c060c0" />
+      <div className="eqm-section eqm-stats">
+        <BarreStat label="PV" valeur={pvMax} pctMax={(pvMax / statMax) * 100} couleur="#34d399" />
+        <BarreStat label="ATT" valeur={attaque} pctMax={(attaque / statMax) * 100} couleur="#fb923c" />
+        <BarreStat label="VIT" valeur={vitesse} pctMax={(vitesse / statMax) * 100} couleur="#60a5fa" />
+        <BarreStat label="DÉF" valeur={defense} pctMax={(defense / statMax) * 100} couleur="#a78bfa" />
       </div>
 
-      {/* 4 barres d'IV distinctes (PV / ATT / VIT / DÉF), chacune sur 31. */}
       {(() => {
         const total = (iv.pv || 0) + (iv.attaque || 0) + (iv.vitesse || 0) + (iv.defense || 0)
         const pctQualite = Math.round((total / (STAT_MAX_IV * 4)) * 100)
-        const couleurQualite =
-          pctQualite >= 80 ? '#5fbf60' :
-          pctQualite >= 55 ? '#f0c040' :
-          pctQualite >= 30 ? '#f0a020' : '#e06060'
+        const couleurQualite = pctQualite >= 80 ? '#34d399' : pctQualite >= 55 ? '#fcd34d' : pctQualite >= 30 ? '#fb923c' : '#ef6868'
         return (
-          <div className="fiche-iv-detail">
-            <div className="fiche-iv-detail-haut">
-              <span className="fiche-iv-detail-titre">Potentiel (IV)</span>
-              <span className="fiche-iv-detail-total" style={{ color: couleurQualite }}>
-                {total}/{STAT_MAX_IV * 4} · {pctQualite}%
-              </span>
+          <div className="eqm-section eqm-iv">
+            <div className="eqm-iv-haut">
+              <span className="eqm-section-titre">Potentiel (IV)</span>
+              <span className="eqm-iv-total" style={{ color: couleurQualite }}>{total}/{STAT_MAX_IV * 4} · {pctQualite}%</span>
             </div>
             <BarreIV label="PV" valeur={iv.pv} />
             <BarreIV label="ATT" valeur={iv.attaque} />
@@ -330,68 +304,55 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet,
         )
       })()}
 
-      <div className="fiche-objet-v2">
-        <div className="fiche-objet-titre-v2">⚙️ Objet équipé</div>
-        <div className="fiche-objet-slot-zone">
-          <button
-            className={`fiche-objet-slot ${objetEquipe ? 'rempli' : 'vide'}`}
+      <div className="eqm-section eqm-objet">
+        <div className="eqm-section-titre">⚙️ Objet équipé</div>
+        <div className="eqm-objet-zone">
+          <button className={`eqm-objet-slot ${objetEquipe ? 'rempli' : 'vide'}`}
             onClick={() => setGrilleOuverte((v) => !v)}
-            title={objetEquipe ? 'Changer / retirer l\'objet' : 'Équiper un objet'}
-          >
-            {objetEquipe
-              ? <IconeObjet id={pokemon.objetEquipe} classe="fiche-objet-slot-img" />
-              : <span className="fiche-objet-slot-plus">+</span>}
+            title={objetEquipe ? 'Changer / retirer' : 'Équiper un objet'}>
+            {objetEquipe ? <IconeObjet id={pokemon.objetEquipe} classe="eqm-objet-slot-img" /> : <span className="eqm-objet-plus">+</span>}
           </button>
-          <div className="fiche-objet-slot-txt">
+          <div className="eqm-objet-txt">
             {objetEquipe ? (
               <>
-                <span className="fiche-objet-nom">{objetEquipe.nom}</span>
-                <span className="fiche-objet-effet-v2">{objetEquipe.desc}</span>
-                <button className="bouton-retirer-objet-v2" onClick={() => onEquiperObjet(pokemon.uid, null)}>
-                  Retirer
-                </button>
+                <span className="eqm-objet-nom">{objetEquipe.nom}</span>
+                <span className="eqm-objet-effet">{objetEquipe.desc}</span>
+                <button className="eqm-objet-retirer" onClick={() => onEquiperObjet(pokemon.uid, null)}>Retirer</button>
               </>
             ) : (
-              <span className="fiche-objet-vide-v2">Aucun objet — clique le slot pour en équiper un</span>
+              <span className="eqm-objet-vide-txt">Aucun objet — clique le slot pour en équiper un</span>
             )}
           </div>
         </div>
-
         {grilleOuverte && (
-          <div className="fiche-objets-grille">
+          <div className="eqm-objets-grille">
             {objetsDispo.length > 0 ? (
               objetsDispo.map(([id, n]) => (
-                <button
-                  key={id}
-                  className="fiche-objet-case"
+                <button key={id} className="eqm-objet-case"
                   onClick={() => { onEquiperObjet(pokemon.uid, id); setGrilleOuverte(false) }}
-                  title={`${OBJETS[id].nom} — ${OBJETS[id].desc}`}
-                >
-                  <IconeObjet id={id} classe="fiche-objet-case-img" />
-                  <span className="fiche-objet-case-nom">{OBJETS[id].nom}</span>
-                  <span className="fiche-objet-case-stock">×{n}</span>
+                  title={`${OBJETS[id].nom} — ${OBJETS[id].desc}`}>
+                  <IconeObjet id={id} classe="eqm-objet-case-img" />
+                  <span className="eqm-objet-case-nom">{OBJETS[id].nom}</span>
+                  <span className="eqm-objet-case-stock">×{n}</span>
                 </button>
               ))
             ) : (
-              <p className="fiche-objet-vide-v2">Aucun objet disponible dans ton sac.</p>
+              <p className="eqm-objet-vide-txt">Aucun objet disponible dans ton sac.</p>
             )}
           </div>
         )}
       </div>
 
       {evosPierre.length > 0 && (
-        <div className="fiche-pierres-v2">
-          <div className="fiche-objet-titre-v2">💎 Évolution par pierre</div>
+        <div className="eqm-section eqm-pierres">
+          <div className="eqm-section-titre">💎 Évolution par pierre</div>
           {evosPierre.map((e) => {
             const infoPierre = PIERRES[e.pierre]
             return (
-              <button
-                key={e.pierre}
-                className="bouton-pierre"
+              <button key={e.pierre} className="eqm-pierre-btn"
                 onClick={() => onEvoluerPierre(pokemon.uid, e.evolueEn, e.pierre)}
-                title={`Utiliser une ${infoPierre ? infoPierre.nom : e.pierre}`}
-              >
-                {ICONES_PIERRES[e.pierre] ? <img src={ICONES_PIERRES[e.pierre]} alt="" className="bouton-pierre-img" /> : (infoPierre ? infoPierre.emoji : '💎')} → {e.evolueEn} (x{pierres[e.pierre] || 0})
+                title={`Utiliser une ${infoPierre ? infoPierre.nom : e.pierre}`}>
+                {ICONES_PIERRES[e.pierre] ? <img src={ICONES_PIERRES[e.pierre]} alt="" className="eqm-pierre-img" /> : (infoPierre ? infoPierre.emoji : '💎')} → {e.evolueEn} (x{pierres[e.pierre] || 0})
               </button>
             )
           })}
@@ -414,7 +375,6 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}
   const famillesEquipe = equipe.map((p) => p.familleId).filter((f) => f != null)
   const NB_SLOTS = 6
   const slotsVides = NB_SLOTS - equipe.length
-
   const typesDispo = ['tous', ...Array.from(new Set(collection.flatMap((p) => p.types || []))).sort()]
 
   function trierFiltrer(liste) {
@@ -423,15 +383,9 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}
       const q = recherche.trim().toLowerCase()
       resultat = resultat.filter((p) => (p.nom || '').toLowerCase().includes(q))
     }
-    if (shinyOnly) {
-      resultat = resultat.filter((p) => p.shiny)
-    }
-    if (typeFiltre !== 'tous') {
-      resultat = resultat.filter((p) => (p.types || []).includes(typeFiltre))
-    }
-    if (roleFiltre !== 'tous') {
-      resultat = resultat.filter((p) => (p.role || determinerRole(p)) === roleFiltre)
-    }
+    if (shinyOnly) resultat = resultat.filter((p) => p.shiny)
+    if (typeFiltre !== 'tous') resultat = resultat.filter((p) => (p.types || []).includes(typeFiltre))
+    if (roleFiltre !== 'tous') resultat = resultat.filter((p) => (p.role || determinerRole(p)) === roleFiltre)
     if (tri === 'numero') resultat.sort((a, b) => a.id - b.id)
     else if (tri === 'niveau') resultat.sort((a, b) => (b.niveau || 1) - (a.niveau || 1))
     else if (tri === 'nom') resultat.sort((a, b) => a.nom.localeCompare(b.nom))
@@ -443,75 +397,66 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}
   }
 
   const barreTriFiltre = (
-    <div className="banc-outils" onClick={(e) => e.stopPropagation()}>
-      <input
-        type="text"
-        className="banc-recherche"
-        placeholder="🔍 Rechercher..."
-        value={recherche}
-        onChange={(e) => setRecherche(e.target.value)}
-        onClick={(e) => e.stopPropagation()}
-      />
-      <div className="tri-filtre">
-        <select className="tri-select" value={tri} onChange={(e) => setTri(e.target.value)} onClick={(e) => e.stopPropagation()}>
+    <div className="eqm-outils" onClick={(e) => e.stopPropagation()}>
+      <input type="text" className="eqm-recherche" placeholder="🔍 Rechercher..."
+        value={recherche} onChange={(e) => setRecherche(e.target.value)} onClick={(e) => e.stopPropagation()} />
+      <div className="eqm-filtres">
+        <select className="eqm-select" value={tri} onChange={(e) => setTri(e.target.value)} onClick={(e) => e.stopPropagation()}>
           <option value="numero">Tri : N°</option>
           <option value="niveau">Tri : Niveau</option>
           <option value="nom">Tri : Nom</option>
           <option value="rarete">Tri : Rareté</option>
         </select>
-        <select className="tri-select" value={typeFiltre} onChange={(e) => setTypeFiltre(e.target.value)} onClick={(e) => e.stopPropagation()}>
-          {typesDispo.map((t) => (
-            <option key={t} value={t}>{t === 'tous' ? 'Type : tous' : `Type : ${t}`}</option>
-          ))}
+        <select className="eqm-select" value={typeFiltre} onChange={(e) => setTypeFiltre(e.target.value)} onClick={(e) => e.stopPropagation()}>
+          {typesDispo.map((t) => (<option key={t} value={t}>{t === 'tous' ? 'Type : tous' : `Type : ${t}`}</option>))}
         </select>
-        <select className="tri-select" value={roleFiltre} onChange={(e) => setRoleFiltre(e.target.value)} onClick={(e) => e.stopPropagation()}>
+        <select className="eqm-select" value={roleFiltre} onChange={(e) => setRoleFiltre(e.target.value)} onClick={(e) => e.stopPropagation()}>
           <option value="tous">Rôle : tous</option>
-          {Object.entries(ROLES).map(([cle, info]) => (
-            <option key={cle} value={cle}>{info.emoji} {info.nom}</option>
-          ))}
+          {Object.entries(ROLES).map(([cle, info]) => (<option key={cle} value={cle}>{info.emoji} {info.nom}</option>))}
         </select>
-        <button
-          className={`tri-toggle ${shinyOnly ? 'actif' : ''}`}
-          onClick={(e) => { e.stopPropagation(); setShinyOnly((v) => !v) }}
-          title="Afficher seulement les shinies"
-        >✨ Shiny</button>
+        <button className={`eqm-shiny-toggle ${shinyOnly ? 'actif' : ''}`}
+          onClick={(e) => { e.stopPropagation(); setShinyOnly((v) => !v) }} title="Afficher seulement les shinies">✨ Shiny</button>
       </div>
     </div>
   )
 
-  if (ajoutEnCours) {
-    const dispoBrut = collection.filter(
-      (p) => !uidsEquipe.includes(p.uid) && !famillesEquipe.includes(p.familleId)
+  function CartePoke({ poke, onClick, retirable, indexRetrait }) {
+    const role = poke.role || determinerRole(poke)
+    const infoRole = ROLES[role]
+    return (
+      <div className={`eqm-carte ${poke.shiny ? 'shiny' : ''}`} style={infoRole ? { '--c-role': infoRole.couleur } : undefined}>
+        {poke.shiny && <span className="eqm-carte-shiny">✨</span>}
+        <BadgeRole pokemon={poke} />
+        <button className="eqm-carte-corps" onClick={onClick}>
+          <div className="eqm-carte-sprite-zone"><SpritePoke poke={poke} classe="eqm-sprite" /></div>
+          <span className="eqm-carte-nom">{poke.nom}</span>
+          <span className="eqm-carte-niv">N.{poke.niveau || 1}</span>
+        </button>
+        {retirable && (
+          <button className="eqm-carte-retirer" onClick={() => onRetirerMembre(indexRetrait)}>Retirer</button>
+        )}
+      </div>
     )
+  }
+
+  if (ajoutEnCours) {
+    const dispoBrut = collection.filter((p) => !uidsEquipe.includes(p.uid) && !famillesEquipe.includes(p.familleId))
     const dispo = trierFiltrer(dispoBrut)
     return (
       <div className="overlay" onClick={onFermer}>
-        <div className="panneau-banc panneau-equipe-doree equipe-v2" onClick={(e) => e.stopPropagation()}>
-          <div className="pokedex-entete">
+        <div className="eqm-panneau" onClick={(e) => e.stopPropagation()}>
+          <div className="eqm-entete">
             <h2>Ajouter à l'équipe</h2>
-            <button className="bouton-fermer" onClick={() => setAjoutEnCours(false)}>✕</button>
+            <button className="eqm-fermer" onClick={() => setAjoutEnCours(false)}>✕</button>
           </div>
           <IndicateurCompo equipe={equipe} />
           {barreTriFiltre}
-          <div className="banc-grille">
+          <div className="eqm-grille">
             {dispo.length === 0 ? (
-              <p className="banc-vide">Aucun Pokémon disponible (vérifie les filtres).</p>
+              <p className="eqm-vide">Aucun Pokémon disponible (vérifie les filtres).</p>
             ) : (
               dispo.map((poke) => (
-                <button
-                  key={poke.uid}
-                  className="banc-carte cliquable"
-                  onClick={() => {
-                    onAjouterMembre(poke)
-                    setAjoutEnCours(false)
-                  }}
-                >
-                  {poke.shiny && <span className="banc-shiny-mark">✨</span>}
-                  <BadgeRole pokemon={poke} />
-                  <img src={poke.sprite} alt={poke.nom} className="banc-sprite" loading="lazy" />
-                  <span className="banc-nom">{poke.nom}</span>
-                  <span className="banc-iv">N.{poke.niveau || 1}</span>
-                </button>
+                <CartePoke key={poke.uid} poke={poke} onClick={() => { onAjouterMembre(poke); setAjoutEnCours(false) }} />
               ))
             )}
           </div>
@@ -524,23 +469,15 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}
     const pokemonAJour = collection.find((p) => p.uid === selection.uid) || selection
     return (
       <div className="overlay" onClick={onFermer}>
-        <div className="panneau-banc panneau-equipe-doree equipe-v2" onClick={(e) => e.stopPropagation()}>
-          <div className="pokedex-entete">
+        <div className="eqm-panneau" onClick={(e) => e.stopPropagation()}>
+          <div className="eqm-entete">
             <h2>Détails</h2>
-            <button className="bouton-fermer" onClick={onFermer}>✕</button>
+            <button className="eqm-fermer" onClick={onFermer}>✕</button>
           </div>
-          <Fiche
-            pokemon={pokemonAJour}
-            pierres={pierres}
-            objets={objets}
-            parchemins={parchemins}
-            onEquiperObjet={onEquiperObjet}
-            onEvoluerPierre={onEvoluerPierre}
-            onChoisirPassif={onChoisirPassif}
-            onChoisirCaseJoker={onChoisirCaseJoker}
-            onAppliquerParchemin={onAppliquerParchemin}
-            onRetour={() => setSelection(null)}
-          />
+          <Fiche pokemon={pokemonAJour} pierres={pierres} objets={objets} parchemins={parchemins}
+            onEquiperObjet={onEquiperObjet} onEvoluerPierre={onEvoluerPierre} onChoisirPassif={onChoisirPassif}
+            onChoisirCaseJoker={onChoisirCaseJoker} onAppliquerParchemin={onAppliquerParchemin}
+            onRetour={() => setSelection(null)} />
         </div>
       </div>
     )
@@ -550,60 +487,38 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}
 
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="panneau-banc panneau-equipe-doree equipe-v2" onClick={(e) => e.stopPropagation()}>
-        <div className="pokedex-entete">
+      <div className="eqm-panneau" onClick={(e) => e.stopPropagation()}>
+        <div className="eqm-entete">
           <h2>Mon équipe ({equipe.length}/{NB_SLOTS})</h2>
-          <button className="bouton-fermer" onClick={onFermer}>✕</button>
+          <button className="eqm-fermer" onClick={onFermer}>✕</button>
         </div>
 
         <IndicateurCompo equipe={equipe} />
-        <p className="banc-aide">Les changements s'appliquent au prochain combat.</p>
-        <p className="banc-regle-compo">📋 Règle d'équipe : 1 à 2 Pokémon par rôle, les 4 rôles présents · 1 spécial max.</p>
+        <p className="eqm-aide">Les changements s'appliquent au prochain combat. Règle : 1 à 2 Pokémon par rôle, les 4 rôles présents · 1 spécial max.</p>
         {onAutoEquipe && (
-          <button className="bouton-auto-equipe" onClick={onAutoEquipe}>
-            ⚡ Auto-équipe (compo idéale)
-          </button>
+          <button className="eqm-auto" onClick={onAutoEquipe}>⚡ Auto-équipe (compo idéale)</button>
         )}
-        <div className="banc-grille">
+
+        <div className="eqm-grille eqm-grille-equipe">
           {equipe.map((poke, i) => (
-            <div key={poke.uid} className="banc-carte">
-              {poke.shiny && <span className="banc-shiny-mark">✨</span>}
-              <BadgeRole pokemon={poke} />
-              <img
-                src={poke.sprite}
-                alt={poke.nom}
-                className="banc-sprite cliquable-img"
-                onClick={() => setSelection(poke)}
-              />
-              <span className="banc-nom">{poke.nom}</span>
-              <span className="banc-iv">N.{poke.niveau || 1}</span>
-              {equipe.length > 1 && (
-                <button className="bouton-retirer" onClick={() => onRetirerMembre(i)}>Retirer</button>
-              )}
-            </div>
+            <CartePoke key={poke.uid} poke={poke} onClick={() => setSelection(poke)} retirable={equipe.length > 1} indexRetrait={i} />
           ))}
           {Array.from({ length: slotsVides }).map((_, i) => (
-            <button key={`vide-${i}`} className="banc-carte slot-vide" onClick={() => setAjoutEnCours(true)}>
-              <span className="slot-plus">+</span>
-              <span className="banc-nom">Ajouter</span>
+            <button key={`vide-${i}`} className="eqm-carte eqm-slot-vide" onClick={() => setAjoutEnCours(true)}>
+              <span className="eqm-slot-plus">+</span>
+              <span className="eqm-carte-nom">Ajouter</span>
             </button>
           ))}
         </div>
 
-        <h3 className="banc-titre reserve">📦 Collection ({collectionAffichee.length})</h3>
+        <h3 className="eqm-collection-titre">📦 Collection ({collectionAffichee.length})</h3>
         {barreTriFiltre}
-        <div className="banc-grille">
+        <div className="eqm-grille">
           {collectionAffichee.length === 0 ? (
-            <p className="banc-vide">Aucun Pokémon ne correspond (vérifie les filtres).</p>
+            <p className="eqm-vide">Aucun Pokémon ne correspond (vérifie les filtres).</p>
           ) : (
             collectionAffichee.map((poke) => (
-              <button key={poke.uid} className="banc-carte cliquable" onClick={() => setSelection(poke)}>
-                {poke.shiny && <span className="banc-shiny-mark">✨</span>}
-                <BadgeRole pokemon={poke} />
-                <img src={poke.sprite} alt={poke.nom} className="banc-sprite" loading="lazy" />
-                <span className="banc-nom">{poke.nom}</span>
-                <span className="banc-iv">N.{poke.niveau || 1}</span>
-              </button>
+              <CartePoke key={poke.uid} poke={poke} onClick={() => setSelection(poke)} />
             ))
           )}
         </div>

@@ -1,24 +1,43 @@
+import { nomShowdown } from './pokedexNoms'
+
 const TOTAL_POKEDEX = 1025
+
+// Sprite animé du Pokémon (Showdown + repli artwork/normal).
+function SpritePoke({ poke, classe }) {
+  if (!poke) return null
+  const num = poke.id
+  const nomSd = num ? nomShowdown(num) : (poke.nom || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const shiny = !!poke.shiny
+  const urlAnime = nomSd ? `https://play.pokemonshowdown.com/sprites/${shiny ? 'ani-shiny' : 'ani'}/${nomSd}.gif` : null
+  const urlHd = num ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/${shiny ? 'official-artwork/shiny' : 'official-artwork'}/${num}.png` : null
+  const fallback = poke.sprite
+  const onError = (e) => {
+    const img = e.currentTarget
+    const etape = parseInt(img.dataset.etape || '0', 10)
+    if (etape === 0 && urlHd) { img.dataset.etape = '1'; img.src = urlHd }
+    else if (etape <= 1 && fallback) { img.dataset.etape = '2'; img.src = fallback }
+  }
+  return <img src={urlAnime || fallback || urlHd} alt={poke.nom} className={classe} data-etape="0" onError={onError} />
+}
 
 function LigneStat({ label, valeur, fort }) {
   return (
-    <div className={`stat-ligne-globale stat-ligne-doree ${fort ? 'stat-ligne-fort' : ''}`}>
-      <span className="stat-label-g">{label}</span>
-      <span className="stat-valeur-g">{valeur}</span>
+    <div className={`stm-ligne ${fort ? 'fort' : ''}`}>
+      <span className="stm-label">{label}</span>
+      <span className="stm-valeur">{valeur}</span>
     </div>
   )
 }
 
 function CategorieStats({ titre, emoji, children }) {
   return (
-    <div className="stats-categorie">
-      <div className="stats-categorie-titre">{emoji} {titre}</div>
-      <div className="stats-categorie-corps">{children}</div>
+    <div className="stm-categorie">
+      <div className="stm-categorie-titre">{emoji} {titre}</div>
+      <div className="stm-categorie-corps">{children}</div>
     </div>
   )
 }
 
-// Toutes les props ont une valeur par défaut → robuste si une donnée n'est pas passée.
 function Stats({
   vaincus = 0,
   captures = [],
@@ -44,44 +63,46 @@ function Stats({
   const niveauMax = captures.length > 0 ? Math.max(...captures.map((p) => p.niveau || 1)) : 0
   const shinyPossedes = captures.filter((p) => p.shiny).length
 
-  // --- Stats calculées ---
-  // Niveau moyen de la collection.
   const niveauMoyen = captures.length > 0
     ? Math.round(captures.reduce((s, p) => s + (p.niveau || 1), 0) / captures.length)
     : 0
-  // Pokémon le plus fort (plus haut niveau).
   const plusFort = captures.length > 0
     ? captures.reduce((meilleur, p) => ((p.niveau || 1) > (meilleur.niveau || 1) ? p : meilleur), captures[0])
     : null
-  // Nombre d'évolutions dans la collection.
   const nbEvolutions = captures.filter((p) => p.estEvolution).length
-  // Nombre de légendaires possédés.
   const nbLegendaires = captures.filter((p) => p.rarete === 'legendaire').length
-  // Ratio shiny : 1 shiny tous les X Pokémon vus.
   const ratioShiny = nbShiny > 0 ? Math.round(nbVus / nbShiny) : 0
 
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="panneau-banc panneau-stats-doree stats-v2" onClick={(e) => e.stopPropagation()}>
-        <div className="pokedex-entete">
+      <div className="stm-panneau" onClick={(e) => e.stopPropagation()}>
+        <div className="stm-entete">
           <h2>📊 Statistiques</h2>
-          <button className="bouton-fermer" onClick={onFermer}>✕</button>
+          <button className="stm-fermer" onClick={onFermer}>✕</button>
         </div>
 
-        {onChangerPseudo && (
-          <div className="stats-pseudo">
-            <div className="stats-pseudo-info">
-              <span className="stats-pseudo-label">Pseudo du classement</span>
-              <span className="stats-pseudo-valeur">🏆 {pseudoActuel || '—'}</span>
+        {plusFort && (
+          <div className="stm-vedette">
+            <div className="stm-vedette-sprite"><SpritePoke poke={plusFort} classe="stm-vedette-img" /></div>
+            <div className="stm-vedette-txt">
+              <span className="stm-vedette-label">Champion de ta collection</span>
+              <span className="stm-vedette-nom">{plusFort.nom}{plusFort.shiny ? ' ✨' : ''}</span>
+              <span className="stm-vedette-niv">Niveau {plusFort.niveau || 1}</span>
             </div>
-            <button className="stats-pseudo-bouton" onClick={onChangerPseudo}>
-              ✏️ Changer
-            </button>
           </div>
         )}
 
-        <div className="stats-categories">
+        {onChangerPseudo && (
+          <div className="stm-pseudo">
+            <div className="stm-pseudo-info">
+              <span className="stm-pseudo-label">Pseudo du classement</span>
+              <span className="stm-pseudo-valeur">🏆 {pseudoActuel || '—'}</span>
+            </div>
+            <button className="stm-pseudo-bouton" onClick={onChangerPseudo}>✏️ Changer</button>
+          </div>
+        )}
 
+        <div className="stm-categories">
           <CategorieStats titre="Combat" emoji="⚔️">
             <LigneStat label="Combats gagnés" valeur={vaincus.toLocaleString('fr-FR')} />
             <LigneStat label="Boss de zone vaincus" valeur={nbBoss} />
@@ -103,13 +124,9 @@ function Stats({
           <CategorieStats titre="Progression" emoji="🗺️">
             <LigneStat label="Zones débloquées" valeur={`${nbZones} / ${totalZones}`} fort />
             <LigneStat label="Niveau moyen collection" valeur={`N.${niveauMoyen}`} />
-            <LigneStat
-              label="Pokémon le plus fort"
-              valeur={plusFort ? `${plusFort.nom} (N.${plusFort.niveau})` : '—'}
-            />
+            <LigneStat label="Pokémon le plus fort" valeur={plusFort ? `${plusFort.nom} (N.${plusFort.niveau})` : '—'} />
             <LigneStat label="PokéDollars" valeur={pokeDollars.toLocaleString('fr-FR')} />
           </CategorieStats>
-
         </div>
       </div>
     </div>

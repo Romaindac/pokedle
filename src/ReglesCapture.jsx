@@ -21,7 +21,17 @@ const CHOIX = [
   { cle: 'rien', label: '✕ Aucune' },
 ]
 
-function ReglesCapture({ regles, balls = {}, icones = {}, onChanger, onFermer }) {
+// Choix possibles pour la limite de balls par espèce et par combat (anti-spam).
+const LIMITES = [
+  { val: 1, label: '1' },
+  { val: 3, label: '3' },
+  { val: 5, label: '5' },
+  { val: 10, label: '10' },
+  { val: 'infini', label: '∞' },
+]
+
+function ReglesCapture({ regles, balls = {}, icones = {}, onChanger, onChangerLimite, onFermer }) {
+  const limiteActuelle = regles.limiteBalls ?? 5
   return (
     <div className="overlay" onClick={onFermer}>
       <div className="panneau-pokedex panneau-regles regles-v2" onClick={(e) => e.stopPropagation()}>
@@ -72,6 +82,32 @@ function ReglesCapture({ regles, balls = {}, icones = {}, onChanger, onFermer })
             </div>
           ))}
         </div>
+
+        {/* Anti-spam : nombre maximum de Balls dépensées sur une même espèce par combat. */}
+        <div className="regle-bloc regle-bloc-limite">
+          <div className="regle-entete">
+            <span className="regle-nom">🛑 Limite anti-gaspillage</span>
+            <span className="regle-desc">Balls max par espèce et par combat (évite de vider ton sac sur un Pokémon dur à capturer)</span>
+          </div>
+          <div className="regle-choix">
+            {LIMITES.map((l) => (
+              <button
+                key={String(l.val)}
+                className={`regle-btn ${limiteActuelle === l.val ? 'actif' : ''}`}
+                onClick={() => onChangerLimite(l.val)}
+                title={l.val === 'infini' ? 'Aucune limite' : `${l.label} Balls max`}
+              >
+                <span className="regle-btn-label">{l.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <p className="regles-aide regles-aide-master">
+          ⚫ <strong>Astuce Master Ball</strong> : pendant un combat, clique sur la Master Ball en haut
+          d'un Pokémon ennemi pour le cibler. Il sera capturé à coup sûr (la limite anti-gaspillage
+          ne s'applique pas aux cibles Master Ball). Le marquage reste actif jusqu'à la capture.
+        </p>
       </div>
     </div>
   )
