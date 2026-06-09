@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { recupererClassement, chargerIdentite } from './apiClassement'
 import { classementPvp } from './apiPvp'
+import { formaterTaux } from './tour'
 
 const ONGLETS = [
   { cle: 'pokemon_captures', label: 'Capturés', colonne: 'pokemon_captures', suffixe: '' },
   { cle: 'nb_shiny',         label: 'Shiny',    colonne: 'nb_shiny',         suffixe: '' },
   { cle: 'zones',            label: 'Histoire', colonne: 'zones',            suffixe: ' zones' },
+  { cle: 'carte_rare',       label: 'Cartes',   colonne: 'carte_rare',       carte: true },
+  { cle: 'nb_prestiges',     label: 'Prestige', colonne: 'nb_prestiges',     suffixe: '' },
   { cle: 'pvp',              label: 'PvP',      pvp: true },
 ]
 
@@ -40,6 +43,13 @@ function Classement({ onFermer }) {
     if (i === 1) return '🥈'
     if (i === 2) return '🥉'
     return null
+  }
+
+  // Affichage de la valeur pour les onglets "colonne" (hors pvp).
+  function afficherValeur(l) {
+    const valeur = l[onglet.colonne] ?? 0
+    if (onglet.carte) return valeur > 0 ? formaterTaux(valeur) : '—'
+    return `${valeur}${onglet.suffixe || ''}`
   }
 
   return (
@@ -91,12 +101,11 @@ function Classement({ onFermer }) {
           <div className="clst-liste">
             {lignes.map((l, i) => {
               const estMoi = identite && l.id === identite.id
-              const valeur = l[onglet.colonne] ?? 0
               return (
                 <div key={l.id} className={`clst-ligne ${estMoi ? 'moi' : ''} ${i < 3 ? 'podium podium-' + (i + 1) : ''}`}>
                   <span className="clst-rang">{medaille(i) || (i + 1)}</span>
                   <span className="clst-pseudo">{l.pseudo}{estMoi ? ' (toi)' : ''}</span>
-                  <span className="clst-valeur">{valeur}{onglet.suffixe}</span>
+                  <span className="clst-valeur">{afficherValeur(l)}</span>
                 </div>
               )
             })}

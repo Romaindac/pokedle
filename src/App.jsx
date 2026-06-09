@@ -67,7 +67,7 @@ import PanneauTour from './PanneauTour'
 import CentreFusion from './CentreFusion'
 import AmbianceCombat from './AmbianceCombat'
 import CombatTour from './CombatTour'
-import { dropCarteTour, difficulteNiveau, niveauPokemonTour, tailleEquipeTour, bonusCompletionSet, ORDRE_SETS, typeNiveau, multiplicateurRareTour } from './tour'
+import { dropCarteTour, difficulteNiveau, niveauPokemonTour, tailleEquipeTour, bonusCompletionSet, ORDRE_SETS, typeNiveau, multiplicateurRareTour, estimerTauxCarte } from './tour'
 
 const CLE_SAUVEGARDE_BASE = 'pokedex-idle-save-v11'
 // Slot 1 = ancienne cle (migration auto). Slots 2 et 3 = cles dediees.
@@ -1302,10 +1302,16 @@ function App() {
   function statsClassement() {
     const nbShiny = captures.filter((p) => p.shiny).length
     const nbZones = ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length
-    return { pokemonCaptures: pokedexVus.length, nbShiny, zones: nbZones, scorePvp: 0, rangPvp: 'Non classe' }
+    // Carte la plus rare possedee = plus grand "1 sur X" (taux estime).
+    let carteRare = 0
+    for (const c of collectionCartesTCG) {
+      const taux = estimerTauxCarte(c, { poidsCarte: c._poidsCarte, poidsTotal: c._poidsTotal, nbCartesRarete: c._nbRarete })
+      if (taux && taux > carteRare) carteRare = taux
+    }
+    return { pokemonCaptures: pokedexVus.length, nbShiny, zones: nbZones, scorePvp: 0, rangPvp: 'Non classe', carteRare, nbPrestiges }
   }
   const statsClassementRef = useRef(statsClassement())
-  useEffect(() => { statsClassementRef.current = statsClassement() }, [captures, pokedexVus, bossVaincus])
+  useEffect(() => { statsClassementRef.current = statsClassement() }, [captures, pokedexVus, bossVaincus, collectionCartesTCG, nbPrestiges])
 
   const dernierEnvoiScore = useRef(0)
   function envoyerScoreThrottle(forcer = false) {
