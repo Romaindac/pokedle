@@ -1,4 +1,4 @@
-import { BONUS_PRESTIGE, ORDRE_BONUS_PRESTIGE } from './prestige'
+import { BONUS_PRESTIGE, ORDRE_BONUS_PRESTIGE, coutAmeliorationPrestige } from './prestige'
 
 // Pop-up du système de prestige : médailles, bonus permanents, bouton prestige.
 function PanneauPrestige({
@@ -40,6 +40,9 @@ function PanneauPrestige({
             const multi = multiplicateurs[cat]
             const pct = Math.round((multi - 1) * 100)
             const estPuissance = cat === 'puissance'
+            // Cout du PROCHAIN niveau (linéaire : cout = niveau cible).
+            const cout = coutAmeliorationPrestige(niveau)
+            const peut = medailles >= cout
             return (
               <div key={cat} className={`prestige-bonus ${estPuissance ? 'prestige-bonus-cle' : ''}`}>
                 <div className="prestige-bonus-info">
@@ -52,9 +55,10 @@ function PanneauPrestige({
                 <button
                   className="bouton-investir"
                   onClick={() => onInvestir(cat)}
-                  disabled={medailles <= 0}
+                  disabled={!peut}
+                  title={peut ? `Passer au niveau ${niveau + 1}` : `Il te faut ${cout} médailles`}
                 >
-                  🏅 +1
+                  🏅 {cout}
                 </button>
               </div>
             )
