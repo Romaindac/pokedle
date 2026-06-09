@@ -1034,7 +1034,7 @@ function App() {
       setUltimeLanceEnnemiAff([false, false, false, false, false, false, false])
       bouclierTicsRef.current = 0; bouclierTicsEnnemiRef.current = 0
       const pvE = nouveaux.map((p) => p.pvMax); const jE = nouveaux.map(() => 0)
-      const eq = equipeIds.map((uid) => capturesRef.current.find((p) => p.uid === uid)).filter(Boolean)
+      const eq = equipeIdsRef.current.map((uid) => capturesRef.current.find((p) => p.uid === uid)).filter(Boolean)
       const pvJ = eq.map((p) => p.pvMax); const jJ = eq.map(() => 0)
       setPvJoueur(pvJ); setJaugeJoueur(jJ); etat.current = { pvJ, jJ, pvE, jE }; setPvEnnemis(pvE); setJaugeEnnemis(jE)
     } catch (err) { console.error('Erreur lancerCombatSuivant :', err) }
