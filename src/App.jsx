@@ -884,10 +884,23 @@ function App() {
       if ((pkm.niveau || 1) > capNiveau) { pkm.niveau = capNiveau; pkm.xp = 0 }
       if (niveauxGagnes > 0) {
         messages.push(`${pkm.nom} monte niveau ${pkm.niveau} !`)
-        if (pkm.evolueEn && pkm.evolueNiveau && pkm.niveau >= pkm.evolueNiveau && pkm.formeEvoluee) {
-          const ancienNom = pkm.nom; pkm = appliquerEvolution(pkm); messages.push(`${ancienNom} evolue en ${pkm.nom} !`)
+        // Evolution par niveau : UN SEUL cran par montee (jamais de saut de stade).
+        // On verifie que la forme evoluee chargee correspond bien a evolueEn (coherence),
+        // pour eviter qu'un Pokemon saute directement au stade final.
+        if (pkm.evolueEn && pkm.evolueNiveau && pkm.niveau >= pkm.evolueNiveau
+            && pkm.formeEvoluee && pkm.formeEvoluee.nom === pkm.evolueEn) {
+          const ancienNom = pkm.nom
+          const niveauEvoAvant = pkm.evolueNiveau
+          pkm = appliquerEvolution(pkm)
+          messages.push(`${ancienNom} evolue en ${pkm.nom} !`)
           const nouvelId = pkm.id; const estShiny = pkm.shiny
           setTimeout(() => { marquerVu(nouvelId); if (estShiny) marquerShiny(nouvelId) }, 0)
+          // Securite : si la forme suivante evoluerait au MEME niveau (donnees incoherentes),
+          // on neutralise pour empecher une re-evolution immediate au prochain tick.
+          if (pkm.evolueNiveau && pkm.evolueNiveau <= niveauEvoAvant) {
+            pkm.evolueNiveau = niveauEvoAvant + 20
+          }
+          // Recharge la forme suivante (Dracaufeu) en async, pour la prochaine evolution.
           if (pkm.evolueEn) { const uidEvo = pkm.uid; const prochaineEvo = pkm.evolueEn; setTimeout(() => completerEvolution(uidEvo, prochaineEvo), 0) }
         }
       }
