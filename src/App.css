@@ -23074,3 +23074,987 @@ a img,
 .cbt-part-gel::before    { width: 9px  !important; height: 9px  !important; }
 .cbt-part-poison::before { width: 10px !important; height: 10px !important; }
 .cbt-part-elec::before   { width: 5px  !important; height: 15px !important; }
+/* =====================================================================
+   TUTO — style refondu : GROS texte lisible + look Pokemon (dialogue)
+   A coller a la FIN de App.css. Ctrl+Z pour annuler.
+   Surcharge les bulles contextuelles (.tuto-encart) pour les rendre
+   beaucoup plus grandes et lisibles, facon boite de dialogue Pokemon.
+   ===================================================================== */
+
+/* La boite de dialogue : plus large, bord epais facon GBA */
+.tuto-encart {
+  width: min(94vw, 540px) !important;
+  padding: 34px 30px 28px !important;
+  border: 3px solid var(--m-or, #fcd34d) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 18px 54px rgba(0,0,0,0.65), inset 0 0 0 2px rgba(0,0,0,0.35), 0 0 0 4px rgba(252,211,77,0.12) !important;
+}
+
+/* Badge "Astuce" plus gros et lisible */
+.tuto-badge {
+  font-size: 14px !important;
+  padding: 6px 18px !important;
+  top: -15px !important;
+}
+
+/* Titre : bien plus gros */
+.tuto-titre {
+  font-size: 26px !important;
+  margin: 10px 0 20px !important;
+  letter-spacing: 0.3px;
+}
+
+/* Les lignes d'explication : GROS texte, bien espace */
+.tuto-lignes {
+  gap: 16px !important;
+  margin: 0 0 26px !important;
+}
+.tuto-lignes li {
+  font-size: 18px !important;
+  line-height: 1.55 !important;
+  padding-left: 30px !important;
+  color: var(--m-texte, #f0f4fc) !important;
+}
+.tuto-lignes li::before {
+  content: '▸' !important;
+  font-size: 20px !important;
+  left: 6px !important;
+}
+
+/* Bouton "Compris" : grand et engageant */
+.tuto-bouton {
+  font-size: 19px !important;
+  padding: 16px !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 0 #1d4ed8, 0 6px 14px rgba(0,0,0,0.35) !important;
+  transition: transform 0.1s ease, filter 0.14s ease !important;
+}
+.tuto-bouton:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 1px 0 #1d4ed8, 0 2px 6px rgba(0,0,0,0.3) !important;
+}
+
+/* =====================================================================
+   PROF CHEN : petit avatar narrateur en haut de la bulle de dialogue
+   (sprite charge via ::before sur le badge ; pas de modif JSX requise)
+   On ajoute une "tete" stylisee facon PNJ. Optionnel/decoratif.
+   ===================================================================== */
+.tuto-encart::before {
+  content: '👨‍🔬';
+  position: absolute;
+  top: -34px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 40px;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,0.5));
+  pointer-events: none;
+}
+/* On decale un peu le badge pour laisser la place au Prof Chen */
+.tuto-encart .tuto-badge {
+  top: 24px !important;
+}
+.tuto-encart {
+  padding-top: 48px !important;
+}
+
+/* =====================================================================
+   VISITE GUIDEE : agrandir aussi le texte de la bulle de visite
+   ===================================================================== */
+.tuto-bulle-texte {
+  font-size: 1.32rem !important;
+  line-height: 1.5 !important;
+}
+.tuto-bulle-titre {
+  font-size: 1.45rem !important;
+}
+.tuto-bulle-etape {
+  font-size: 1.05rem !important;
+}
+.tuto-bouton-or, .tuto-bouton-secondaire {
+  font-size: 1.1rem !important;
+  padding: 14px 20px !important;
+}
+/* =====================================================================
+   TUTO VISITE — spotlight reel + fleche animee
+   A coller a la FIN de App.css. Ctrl+Z pour annuler.
+   ===================================================================== */
+
+.tuto-visite-couche {
+  position: fixed; inset: 0; z-index: 3000;
+  pointer-events: none;
+}
+/* Les boutons de la bulle restent cliquables */
+.tuto-visite-couche .tuto-bulle { pointer-events: auto; }
+
+/* Voile plein (quand pas de cible) */
+.tuto-voile {
+  position: fixed; inset: 0;
+  background: rgba(8, 11, 17, 0.78);
+}
+
+/* Les 4 panneaux sombres autour de l'element (= spotlight) */
+.tuto-spot-panneau {
+  position: fixed;
+  background: rgba(8, 11, 17, 0.78);
+  transition: all 0.25s ease;
+}
+
+/* Cadre lumineux pulsant autour de l'element surligne */
+.tuto-spot-cadre {
+  position: fixed;
+  border: 3px solid #fcd34d;
+  border-radius: 12px;
+  box-shadow: 0 0 0 3px rgba(252,211,77,0.35), 0 0 22px 4px rgba(252,211,77,0.6), inset 0 0 14px rgba(252,211,77,0.25);
+  animation: tuto-cadre-puls 1.4s ease-in-out infinite;
+  transition: all 0.25s ease;
+}
+@keyframes tuto-cadre-puls {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(252,211,77,0.35), 0 0 18px 3px rgba(252,211,77,0.5), inset 0 0 12px rgba(252,211,77,0.2); }
+  50%      { box-shadow: 0 0 0 4px rgba(252,211,77,0.5), 0 0 30px 8px rgba(252,211,77,0.8), inset 0 0 18px rgba(252,211,77,0.35); }
+}
+
+/* Fleche animee qui pointe vers l'element */
+.tuto-fleche {
+  position: fixed;
+  transform: translateX(-50%);
+  font-size: 38px;
+  color: #fcd34d;
+  text-shadow: 0 0 8px rgba(252,211,77,0.9), 0 2px 4px rgba(0,0,0,0.6);
+  z-index: 3001;
+  pointer-events: none;
+}
+.tuto-fleche-bas  { animation: tuto-fleche-bond-bas 0.9s ease-in-out infinite; }
+.tuto-fleche-haut { animation: tuto-fleche-bond-haut 0.9s ease-in-out infinite; transform: translate(-50%, -100%); }
+@keyframes tuto-fleche-bond-bas {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(8px); }
+}
+@keyframes tuto-fleche-bond-haut {
+  0%, 100% { transform: translate(-50%, -100%) translateY(0); }
+  50%      { transform: translate(-50%, -100%) translateY(-8px); }
+}
+
+/* Bouton "Passer" discret */
+.tuto-bouton-passer {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 10px;
+  color: var(--m-texte-3, #8a93a3);
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 0.95rem;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+.tuto-bouton-passer:hover {
+  color: #fff;
+  border-color: rgba(255,255,255,0.5);
+}
+/* =====================================================================
+   CHOIX STARTER — encart explicatif des roles + badge role sur cartes
+   A coller a la FIN de App.css. Ctrl+Z pour annuler.
+   ===================================================================== */
+
+/* Encart d'intro qui explique les 4 roles */
+.strt-intro-roles {
+  background: linear-gradient(165deg, rgba(40,48,70,0.6), rgba(28,34,50,0.6));
+  border: 2px solid var(--m-or, #fcd34d);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin: 0 auto 18px;
+  max-width: 760px;
+}
+.strt-intro-txt {
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--m-texte, #f0f4fc);
+  margin: 0 0 14px;
+  text-align: center;
+}
+.strt-roles-legende {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.strt-role-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0,0,0,0.25);
+  border-left: 4px solid var(--c-role, #888);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.strt-role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  font-size: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+}
+.strt-role-txt { display: flex; flex-direction: column; min-width: 0; }
+.strt-role-nom { font-size: 14px; font-weight: 700; color: var(--m-texte, #f0f4fc); }
+.strt-role-desc { font-size: 12.5px; color: var(--m-texte-2, #c4ccd8); line-height: 1.35; }
+
+.strt-conseil {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px;
+  border-radius: 8px;
+}
+.strt-conseil.ok { color: #5bc47f; background: rgba(91,196,127,0.12); }
+.strt-conseil.attention { color: #ffcd75; background: rgba(255,205,117,0.12); }
+
+/* Badge de role sur chaque carte de starter */
+.strt-carte { position: relative; }
+.strt-role-tag {
+  position: absolute;
+  top: 6px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #1a1205;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.35);
+  z-index: 2;
+}
+
+@media (max-width: 600px) {
+  .strt-roles-legende { grid-template-columns: 1fr; }
+}
+/* =====================================================================
+   MENU TITRE — ecran d'accueil anime facon jeu Pokemon
+   A coller a la FIN de App.css. Ctrl+Z pour annuler.
+   ===================================================================== */
+
+.mt-ecran {
+  position: fixed; inset: 0; z-index: 1000;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: #0c1018;
+}
+
+/* Fond video plein ecran */
+.mt-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+/* Voile sombre degrade pour lisibilite */
+.mt-voile {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(180deg, rgba(8,11,17,0.35) 0%, rgba(8,11,17,0.15) 40%, rgba(8,11,17,0.6) 100%);
+}
+
+/* ---------- Particules lumineuses ---------- */
+.mt-particules { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.mt-part {
+  position: absolute;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,247,200,0.9);
+  box-shadow: 0 0 8px 2px rgba(255,240,170,0.7);
+  opacity: 0;
+  animation: mt-flotte ease-in-out infinite;
+}
+@keyframes mt-flotte {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(0.6); }
+  50%      { opacity: 0.9; transform: translateY(-22px) scale(1.1); }
+}
+.mt-part-0  { left: 6%;  top: 30%; animation-duration: 5s;   animation-delay: 0s; }
+.mt-part-1  { left: 14%; top: 55%; animation-duration: 6.5s; animation-delay: 1.2s; }
+.mt-part-2  { left: 22%; top: 20%; animation-duration: 4.8s; animation-delay: 2.4s; }
+.mt-part-3  { left: 30%; top: 65%; animation-duration: 7s;   animation-delay: 0.6s; }
+.mt-part-4  { left: 38%; top: 35%; animation-duration: 5.5s; animation-delay: 3s; }
+.mt-part-5  { left: 46%; top: 50%; animation-duration: 6s;   animation-delay: 1.8s; }
+.mt-part-6  { left: 54%; top: 25%; animation-duration: 4.5s; animation-delay: 2.2s; }
+.mt-part-7  { left: 62%; top: 60%; animation-duration: 6.8s; animation-delay: 0.9s; }
+.mt-part-8  { left: 70%; top: 40%; animation-duration: 5.2s; animation-delay: 3.4s; }
+.mt-part-9  { left: 78%; top: 55%; animation-duration: 6.2s; animation-delay: 1.5s; }
+.mt-part-10 { left: 86%; top: 28%; animation-duration: 4.9s; animation-delay: 2.8s; }
+.mt-part-11 { left: 92%; top: 62%; animation-duration: 5.8s; animation-delay: 0.4s; }
+.mt-part-12 { left: 10%; top: 75%; animation-duration: 7.2s; animation-delay: 3.6s; }
+.mt-part-13 { left: 34%; top: 80%; animation-duration: 5.4s; animation-delay: 1s; }
+.mt-part-14 { left: 58%; top: 78%; animation-duration: 6.6s; animation-delay: 2.6s; }
+.mt-part-15 { left: 74%; top: 82%; animation-duration: 4.7s; animation-delay: 0.7s; }
+.mt-part-16 { left: 18%; top: 42%; animation-duration: 6.1s; animation-delay: 3.2s; }
+.mt-part-17 { left: 82%; top: 45%; animation-duration: 5.6s; animation-delay: 1.4s; }
+
+/* ---------- Pokemon animes qui se baladent ---------- */
+.mt-pokemon-deco { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.mt-poke {
+  position: absolute;
+  width: 64px; height: 64px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));
+}
+/* Oiseaux qui traversent le ciel */
+.mt-poke-vol-0 { top: 12%; animation: mt-vol-droite 26s linear infinite; }
+.mt-poke-vol-1 { top: 20%; width: 48px; height: 48px; animation: mt-vol-gauche 32s linear infinite; animation-delay: 8s; }
+@keyframes mt-vol-droite {
+  0% { left: -10%; transform: scaleX(1); }
+  100% { left: 110%; transform: scaleX(1); }
+}
+@keyframes mt-vol-gauche {
+  0% { left: 110%; transform: scaleX(-1); }
+  100% { left: -10%; transform: scaleX(-1); }
+}
+/* Pokemon au sol qui sautillent */
+.mt-poke-sol-0 { bottom: 8%; left: 12%; animation: mt-saute 2.2s ease-in-out infinite; }
+.mt-poke-sol-1 { bottom: 6%; right: 14%; animation: mt-saute 2.6s ease-in-out infinite 0.5s; }
+@keyframes mt-saute {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+/* ---------- Contenu (logo + slots) ---------- */
+.mt-contenu {
+  position: relative; z-index: 3;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 28px; padding: 30px 20px;
+  width: min(94vw, 900px);
+  opacity: 0; transform: translateY(16px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.mt-contenu.mt-pret { opacity: 1; transform: translateY(0); }
+
+.mt-logo-zone { text-align: center; }
+.mt-logo {
+  max-width: min(70vw, 420px);
+  filter: drop-shadow(0 4px 16px rgba(0,0,0,0.6));
+  animation: mt-logo-puls 3s ease-in-out infinite;
+}
+.mt-logo-txt {
+  font-family: 'Chakra Petch', sans-serif; font-size: 54px; font-weight: 800;
+  color: #fcd34d; text-shadow: 0 4px 14px rgba(0,0,0,0.7); margin: 0;
+  animation: mt-logo-puls 3s ease-in-out infinite;
+}
+@keyframes mt-logo-puls {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 4px 16px rgba(0,0,0,0.6)); }
+  50%      { transform: scale(1.03); filter: drop-shadow(0 4px 24px rgba(252,211,77,0.5)); }
+}
+.mt-slogan {
+  font-family: 'Chakra Petch', sans-serif; font-size: 17px;
+  color: #f0f4fc; text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+  margin: 8px 0 0; opacity: 0.95;
+}
+
+/* ---------- Les 3 slots ---------- */
+.mt-slots {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; width: 100%;
+}
+.mt-slot {
+  background: rgba(16, 21, 32, 0.82);
+  backdrop-filter: blur(4px);
+  border: 2px solid rgba(252,211,77,0.5);
+  border-radius: 16px;
+  padding: 16px 14px;
+  display: flex; flex-direction: column; gap: 12px;
+  min-height: 180px;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.mt-slot:hover {
+  transform: translateY(-4px);
+  border-color: #fcd34d;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 18px rgba(252,211,77,0.3);
+}
+.mt-slot-numero {
+  font-family: 'Chakra Petch', sans-serif; font-size: 14px; font-weight: 700;
+  color: #fcd34d; text-align: center; letter-spacing: 0.5px;
+}
+
+/* Slot occupe */
+.mt-slot-resume { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.mt-slot-stat {
+  display: flex; justify-content: space-between; align-items: baseline;
+  border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 4px;
+}
+.mt-slot-stat-val { font-size: 16px; font-weight: 700; color: #f0f4fc; }
+.mt-slot-stat-lbl { font-size: 11px; color: #8a93a3; text-transform: uppercase; letter-spacing: 0.5px; }
+.mt-slot-actions { display: flex; gap: 8px; }
+.mt-bouton-continuer {
+  flex: 1;
+  background: linear-gradient(135deg, #5bc47f, #3a9d5e);
+  border: none; border-radius: 10px; color: #fff;
+  font-family: 'Chakra Petch', sans-serif; font-size: 15px; font-weight: 700;
+  padding: 11px; cursor: pointer;
+  box-shadow: 0 3px 0 #2d7a48; transition: transform 0.1s ease, filter 0.14s ease;
+}
+.mt-bouton-continuer:hover { filter: brightness(1.08); }
+.mt-bouton-continuer:active { transform: translateY(3px); box-shadow: 0 0 0 #2d7a48; }
+.mt-bouton-corbeille {
+  background: rgba(239,68,68,0.18); border: 1px solid rgba(239,68,68,0.4);
+  border-radius: 10px; font-size: 15px; padding: 0 12px; cursor: pointer;
+  transition: background 0.14s ease;
+}
+.mt-bouton-corbeille:hover { background: rgba(239,68,68,0.35); }
+
+/* Slot vide */
+.mt-bouton-nouvelle {
+  flex: 1;
+  background: rgba(59,130,246,0.12);
+  border: 2px dashed rgba(96,165,250,0.5);
+  border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; cursor: pointer; min-height: 130px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.mt-bouton-nouvelle:hover { background: rgba(59,130,246,0.22); border-color: #60a5fa; }
+.mt-nouvelle-plus { font-size: 40px; color: #60a5fa; line-height: 1; }
+.mt-nouvelle-txt {
+  font-family: 'Chakra Petch', sans-serif; font-size: 15px; font-weight: 700; color: #bcd4f5;
+}
+
+.mt-pied {
+  font-size: 13px; color: rgba(240,244,252,0.7);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 720px) {
+  .mt-slots { grid-template-columns: 1fr; }
+  .mt-logo { max-width: 80vw; }
+  .mt-poke { width: 46px; height: 46px; }
+}
+/* ============================================================
+   TUTO CONTEXTUEL v2 — Style harmonise (sombre + dore) avec
+   sprite Pokemon anime par menu. Place en FIN de App.css :
+   surcharge proprement les anciennes regles .tuto-* (cascade).
+   ============================================================ */
+
+/* Voile de fond */
+.tuto-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  background: radial-gradient(120% 120% at 50% 0%, rgba(20, 26, 38, 0.78), rgba(6, 9, 14, 0.86));
+  backdrop-filter: blur(5px);
+  animation: tuto-fond 0.22s ease;
+}
+@keyframes tuto-fond { from { opacity: 0; } to { opacity: 1; } }
+
+/* Encart principal */
+.tuto-encart {
+  position: relative;
+  width: min(92vw, 440px);
+  margin-top: 34px; /* laisse la place au sprite qui depasse en haut */
+  padding: 46px 26px 24px;
+  background:
+    linear-gradient(168deg, var(--m-surface-2, #1a1f2b) 0%, var(--m-surface, #161b26) 100%);
+  border: 1px solid rgba(252, 211, 77, 0.55);
+  border-radius: 20px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(252, 211, 77, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  animation: tuto-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes tuto-pop {
+  from { opacity: 0; transform: scale(0.92) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+/* Liseré dore en haut facon "ecran" */
+.tuto-encart::before {
+  content: '';
+  position: absolute; left: 22px; right: 22px; top: 0;
+  height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--m-or, #fcd34d), transparent);
+  opacity: 0.5;
+}
+
+/* Disque + halo qui accueille le sprite, chevauche le haut */
+.tuto-sprite-halo {
+  position: absolute; top: -38px; left: 50%; transform: translateX(-50%);
+  width: 84px; height: 84px; border-radius: 50%;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: radial-gradient(circle at 50% 45%, rgba(252, 211, 77, 0.22), rgba(22, 27, 38, 0.95) 70%);
+  border: 1px solid rgba(252, 211, 77, 0.4);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45), inset 0 0 16px rgba(252, 211, 77, 0.1);
+  overflow: hidden;
+}
+.tuto-sprite {
+  width: 72px; height: 72px;
+  object-fit: contain;
+  image-rendering: pixelated; /* sprites pixel nets */
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.5));
+  animation: tuto-sprite-flotte 2.6s ease-in-out infinite;
+}
+@keyframes tuto-sprite-flotte {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Badge "Astuce" (texte seul, sans emoji) */
+.tuto-badge {
+  position: static; transform: none;
+  display: block; width: fit-content; margin: 0 auto 10px;
+  background: linear-gradient(135deg, var(--m-or, #fcd34d), var(--m-or-fonce, #f59e0b));
+  color: #1a1205;
+  font-family: var(--font-titre, 'Press Start 2P'), monospace;
+  font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  padding: 6px 14px; border-radius: 999px; white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* Titre */
+.tuto-titre {
+  font-family: var(--font-titre, 'Press Start 2P'), monospace;
+  font-size: 14px; line-height: 1.5; font-weight: 700;
+  color: var(--m-texte, #f0f4fc);
+  text-align: center; margin: 0 0 18px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Lignes d'aide */
+.tuto-lignes {
+  list-style: none; padding: 0; margin: 0 0 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.tuto-lignes li {
+  position: relative; padding-left: 24px;
+  font-family: 'Rubik', system-ui, sans-serif;
+  font-size: 13.5px; line-height: 1.55; color: var(--m-texte-2, #9ca8bd);
+}
+.tuto-lignes li::before {
+  content: ''; position: absolute; left: 6px; top: 7px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--m-or, #fcd34d);
+  box-shadow: 0 0 6px rgba(252, 211, 77, 0.6);
+}
+
+/* Bouton */
+.tuto-bouton {
+  display: block; width: 100%;
+  background: linear-gradient(135deg, var(--m-or, #fcd34d), var(--m-or-fonce, #f59e0b));
+  border: none; border-radius: 12px; color: #1a1205;
+  font-family: var(--font-titre, 'Press Start 2P'), monospace;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  padding: 14px; cursor: pointer;
+  transition: filter 0.14s ease, transform 0.1s ease;
+  box-shadow: 0 4px 0 var(--m-or-fonce, #b8860b), 0 6px 14px rgba(0, 0, 0, 0.3);
+}
+.tuto-bouton:hover { filter: brightness(1.06); }
+.tuto-bouton:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--m-or-fonce, #b8860b); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tuto-overlay, .tuto-encart, .tuto-sprite { animation: none; }
+}
+
+@media (max-width: 480px) {
+  .tuto-encart { padding: 42px 18px 20px; }
+  .tuto-titre { font-size: 12px; }
+  .tuto-sprite-halo { width: 74px; height: 74px; top: -34px; }
+  .tuto-sprite { width: 64px; height: 64px; }
+}
+/* ============================================================
+   GUIDE INTERACTIF — voile a trou + bulle. A coller en FIN d'App.css.
+   ============================================================ */
+.guide-couche {
+  position: fixed; inset: 0; z-index: 3000;
+  pointer-events: none; /* seuls le trou (clic cible) et la bulle captent */
+}
+/* Les 4 rectangles sombres autour de la cible */
+.guide-voile {
+  position: fixed;
+  background: rgba(6, 9, 14, 0.74);
+  backdrop-filter: blur(1.5px);
+  pointer-events: auto; /* bloque le clic hors-cible */
+  animation: guide-fade 0.2s ease;
+}
+.guide-voile-plein { inset: 0; width: 100vw; height: 100vh; }
+@keyframes guide-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Halo lumineux autour de l'element a cliquer (le trou laisse passer le clic) */
+.guide-halo {
+  position: fixed;
+  border: 2px solid var(--m-or, #fcd34d);
+  border-radius: 12px;
+  box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.25), 0 0 22px 4px rgba(252, 211, 77, 0.45);
+  pointer-events: none;
+  animation: guide-pulse 1.5s ease-in-out infinite;
+}
+@keyframes guide-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(252,211,77,0.22), 0 0 18px 3px rgba(252,211,77,0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(252,211,77,0.32), 0 0 28px 7px rgba(252,211,77,0.6); }
+}
+
+/* Bulle explicative */
+.guide-bulle {
+  position: fixed;
+  width: min(90vw, 380px);
+  padding: 18px 20px 16px;
+  background: linear-gradient(168deg, var(--m-surface-2, #1a1f2b), var(--m-surface, #161b26));
+  border: 1px solid rgba(252, 211, 77, 0.5);
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  animation: guide-bulle-pop 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes guide-bulle-pop {
+  from { opacity: 0; transform: translateX(-50%) scale(0.94); }
+}
+.guide-bulle-num {
+  display: inline-block;
+  font-family: var(--font-titre, 'Press Start 2P'), monospace;
+  font-size: 8px; color: #1a1205;
+  background: linear-gradient(135deg, var(--m-or, #fcd34d), var(--m-or-fonce, #f59e0b));
+  padding: 4px 9px; border-radius: 999px; margin-bottom: 9px;
+}
+.guide-bulle-titre {
+  font-family: var(--font-titre, 'Press Start 2P'), monospace;
+  font-size: 12px; line-height: 1.5; color: var(--m-texte, #f0f4fc);
+  margin: 0 0 9px;
+}
+.guide-bulle-texte {
+  font-family: 'Rubik', system-ui, sans-serif;
+  font-size: 13px; line-height: 1.55; color: var(--m-texte-2, #9ca8bd);
+  margin: 0 0 14px;
+}
+.guide-bulle-actions {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.guide-btn-passer {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Rubik', sans-serif; font-size: 12px;
+  color: var(--m-texte-3, #6b7280); text-decoration: underline; padding: 6px 2px;
+}
+.guide-btn-passer:hover { color: var(--m-texte-2, #9ca8bd); }
+.guide-btn-suivant {
+  background: linear-gradient(135deg, var(--m-or, #fcd34d), var(--m-or-fonce, #f59e0b));
+  border: none; border-radius: 10px; color: #1a1205;
+  font-family: var(--font-titre, 'Press Start 2P'), monospace;
+  font-size: 9px; padding: 10px 16px; cursor: pointer;
+  transition: filter 0.14s ease, transform 0.1s ease;
+  box-shadow: 0 3px 0 var(--m-or-fonce, #b8860b);
+}
+.guide-btn-suivant:hover { filter: brightness(1.06); }
+.guide-btn-suivant:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--m-or-fonce, #b8860b); }
+.guide-attente {
+  font-family: 'Rubik', sans-serif; font-size: 12px; font-weight: 600;
+  color: var(--m-or, #fcd34d);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-halo, .guide-bulle, .guide-voile { animation: none; }
+}
+/* ============================================================
+   ECRAN DE CONNEXION — a coller en FIN d'App.css.
+   ============================================================ */
+.cnx-ecran {
+  position: fixed; inset: 0; z-index: 2500;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  background: var(--m-bg, #0b0e14);
+  overflow: auto;
+}
+.cnx-fond {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 50% 0%, rgba(252, 211, 77, 0.10), transparent 70%),
+    radial-gradient(50% 40% at 50% 100%, rgba(167, 139, 250, 0.10), transparent 70%);
+}
+.cnx-carte {
+  position: relative;
+  width: min(94vw, 400px);
+  padding: 30px 26px 24px;
+  background: linear-gradient(168deg, var(--m-surface-2, #1a1f2b), var(--m-surface, #161b26));
+  border: 1px solid rgba(252, 211, 77, 0.5);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  display: flex; flex-direction: column; align-items: center;
+  animation: cnx-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes cnx-pop { from { opacity: 0; transform: scale(0.94) translateY(12px); } }
+.cnx-logo { width: 150px; max-width: 70%; height: auto; margin-bottom: 6px; image-rendering: pixelated; }
+.cnx-titre {
+  font-family: var(--font-titre, 'Press Start 2P'), monospace;
+  font-size: 16px; color: var(--m-texte, #f0f4fc); margin: 6px 0 8px; text-align: center;
+}
+.cnx-sous {
+  font-family: 'Rubik', system-ui, sans-serif;
+  font-size: 13px; line-height: 1.5; color: var(--m-texte-2, #9ca8bd);
+  text-align: center; margin: 0 0 18px;
+}
+.cnx-form { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.cnx-label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-family: 'Rubik', sans-serif; font-size: 12px; font-weight: 600;
+  color: var(--m-texte-2, #9ca8bd);
+}
+.cnx-input {
+  width: 100%; box-sizing: border-box;
+  background: var(--m-surface, #161b26);
+  border: 1px solid var(--m-bord, #232a38);
+  border-radius: 10px; padding: 11px 12px;
+  font-family: 'Rubik', sans-serif; font-size: 14px; color: var(--m-texte, #f0f4fc);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.cnx-input:focus {
+  outline: none; border-color: var(--m-or, #fcd34d);
+  box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.15);
+}
+.cnx-input:disabled { opacity: 0.6; }
+.cnx-message {
+  font-family: 'Rubik', sans-serif; font-size: 12.5px; line-height: 1.45;
+  border-radius: 10px; padding: 10px 12px;
+}
+.cnx-message-erreur { background: rgba(239, 104, 104, 0.12); border: 1px solid rgba(239, 104, 104, 0.4); color: #fca5a5; }
+.cnx-message-info { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.4); color: #6ee7b7; }
+.cnx-bouton {
+  width: 100%; margin-top: 2px;
+  background: linear-gradient(135deg, var(--m-or, #fcd34d), var(--m-or-fonce, #f59e0b));
+  border: none; border-radius: 12px; color: #1a1205;
+  font-family: var(--font-titre, 'Press Start 2P'), monospace;
+  font-size: 11px; padding: 14px; cursor: pointer;
+  transition: filter 0.14s ease, transform 0.1s ease;
+  box-shadow: 0 4px 0 var(--m-or-fonce, #b8860b), 0 6px 14px rgba(0, 0, 0, 0.3);
+}
+.cnx-bouton:hover:not(:disabled) { filter: brightness(1.06); }
+.cnx-bouton:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--m-or-fonce, #b8860b); }
+.cnx-bouton:disabled { opacity: 0.6; cursor: default; }
+.cnx-lien {
+  background: none; border: none; cursor: pointer; margin-top: 12px;
+  font-family: 'Rubik', sans-serif; font-size: 12px;
+  color: var(--m-texte-3, #6b7280); text-decoration: underline;
+}
+.cnx-lien:hover { color: var(--m-texte-2, #9ca8bd); }
+.cnx-bascule {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--m-bord, #232a38);
+  width: 100%; text-align: center;
+  font-family: 'Rubik', sans-serif; font-size: 12.5px; color: var(--m-texte-2, #9ca8bd);
+}
+.cnx-lien-fort {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Rubik', sans-serif; font-size: 12.5px; font-weight: 700;
+  color: var(--m-or, #fcd34d); text-decoration: underline;
+}
+.cnx-lien-fort:hover { filter: brightness(1.1); }
+
+@media (prefers-reduced-motion: reduce) { .cnx-carte { animation: none; } }
+/* ============================================================
+   ECRAN DE CONNEXION — a coller en FIN d'App.css.
+   ============================================================ */
+.cnx-ecran {
+  position: fixed; inset: 0; z-index: 2500;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  background: var(--m-bg, #0b0e14);
+  overflow: auto;
+}
+.cnx-fond {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 50% 0%, rgba(252, 211, 77, 0.10), transparent 70%),
+    radial-gradient(50% 40% at 50% 100%, rgba(167, 139, 250, 0.10), transparent 70%);
+}
+.cnx-carte {
+  position: relative;
+  width: min(94vw, 400px);
+  padding: 30px 26px 24px;
+  background: linear-gradient(168deg, var(--m-surface-2, #1a1f2b), var(--m-surface, #161b26));
+  border: 1px solid rgba(252, 211, 77, 0.5);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  display: flex; flex-direction: column; align-items: center;
+  animation: cnx-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes cnx-pop { from { opacity: 0; transform: scale(0.94) translateY(12px); } }
+.cnx-logo { width: 150px; max-width: 70%; height: auto; margin-bottom: 6px; image-rendering: pixelated; }
+.cnx-titre {
+  font-family: var(--font-titre, 'Press Start 2P'), monospace;
+  font-size: 16px; color: var(--m-texte, #f0f4fc); margin: 6px 0 8px; text-align: center;
+}
+.cnx-sous {
+  font-family: 'Rubik', system-ui, sans-serif;
+  font-size: 13px; line-height: 1.5; color: var(--m-texte-2, #9ca8bd);
+  text-align: center; margin: 0 0 18px;
+}
+.cnx-form { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.cnx-label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-family: 'Rubik', sans-serif; font-size: 12px; font-weight: 600;
+  color: var(--m-texte-2, #9ca8bd);
+}
+.cnx-input {
+  width: 100%; box-sizing: border-box;
+  background: var(--m-surface, #161b26);
+  border: 1px solid var(--m-bord, #232a38);
+  border-radius: 10px; padding: 11px 12px;
+  font-family: 'Rubik', sans-serif; font-size: 14px; color: var(--m-texte, #f0f4fc);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.cnx-input:focus {
+  outline: none; border-color: var(--m-or, #fcd34d);
+  box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.15);
+}
+.cnx-input:disabled { opacity: 0.6; }
+.cnx-message {
+  font-family: 'Rubik', sans-serif; font-size: 12.5px; line-height: 1.45;
+  border-radius: 10px; padding: 10px 12px;
+}
+.cnx-message-erreur { background: rgba(239, 104, 104, 0.12); border: 1px solid rgba(239, 104, 104, 0.4); color: #fca5a5; }
+.cnx-message-info { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.4); color: #6ee7b7; }
+.cnx-bouton {
+  width: 100%; margin-top: 2px;
+  background: linear-gradient(135deg, var(--m-or, #fcd34d), var(--m-or-fonce, #f59e0b));
+  border: none; border-radius: 12px; color: #1a1205;
+  font-family: var(--font-titre, 'Press Start 2P'), monospace;
+  font-size: 11px; padding: 14px; cursor: pointer;
+  transition: filter 0.14s ease, transform 0.1s ease;
+  box-shadow: 0 4px 0 var(--m-or-fonce, #b8860b), 0 6px 14px rgba(0, 0, 0, 0.3);
+}
+.cnx-bouton:hover:not(:disabled) { filter: brightness(1.06); }
+.cnx-bouton:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--m-or-fonce, #b8860b); }
+.cnx-bouton:disabled { opacity: 0.6; cursor: default; }
+.cnx-lien {
+  background: none; border: none; cursor: pointer; margin-top: 12px;
+  font-family: 'Rubik', sans-serif; font-size: 12px;
+  color: var(--m-texte-3, #6b7280); text-decoration: underline;
+}
+.cnx-lien:hover { color: var(--m-texte-2, #9ca8bd); }
+.cnx-bascule {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--m-bord, #232a38);
+  width: 100%; text-align: center;
+  font-family: 'Rubik', sans-serif; font-size: 12.5px; color: var(--m-texte-2, #9ca8bd);
+}
+.cnx-lien-fort {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Rubik', sans-serif; font-size: 12.5px; font-weight: 700;
+  color: var(--m-or, #fcd34d); text-decoration: underline;
+}
+.cnx-lien-fort:hover { filter: brightness(1.1); }
+
+@media (prefers-reduced-motion: reduce) { .cnx-carte { animation: none; } }
+
+/* --- Anti-deformation : empeche toute regle :hover externe de scaler la carte --- */
+/* On neutralise UNIQUEMENT au survol (preserve l'animation d'apparition cnx-pop). */
+.cnx-ecran:hover .cnx-carte,
+.cnx-carte:hover,
+.cnx-fond:hover,
+.cnx-logo:hover,
+.cnx-form:hover,
+.cnx-label:hover,
+.cnx-sous:hover,
+.cnx-titre:hover,
+.cnx-bascule:hover,
+.cnx-message:hover {
+  transform: none !important;
+}
+/* On garde les micro-interactions voulues sur les boutons uniquement. */
+.cnx-bouton:hover:not(:disabled) { transform: none !important; filter: brightness(1.06); }
+.cnx-bouton:active:not(:disabled) { transform: translateY(3px) !important; }
+/* ============================================================
+   ECRAN DE CONNEXION — a coller en FIN d'App.css.
+   ============================================================ */
+.cnx-ecran {
+  position: fixed; inset: 0; z-index: 2500;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  background: var(--m-bg, #0b0e14);
+  overflow: auto;
+}
+.cnx-fond {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 50% 0%, rgba(252, 211, 77, 0.10), transparent 70%),
+    radial-gradient(50% 40% at 50% 100%, rgba(167, 139, 250, 0.10), transparent 70%);
+}
+.cnx-carte {
+  position: relative;
+  width: min(94vw, 400px);
+  padding: 30px 26px 24px;
+  background: linear-gradient(168deg, var(--m-surface-2, #1a1f2b), var(--m-surface, #161b26));
+  border: 1px solid rgba(252, 211, 77, 0.5);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  display: flex; flex-direction: column; align-items: center;
+  animation: cnx-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes cnx-pop { from { opacity: 0; transform: scale(0.94) translateY(12px); } }
+.cnx-logo { width: 150px; max-width: 70%; height: auto; margin-bottom: 6px; image-rendering: pixelated; }
+.cnx-titre {
+  font-family: var(--font-titre, 'Press Start 2P'), monospace;
+  font-size: 16px; color: var(--m-texte, #f0f4fc); margin: 6px 0 8px; text-align: center;
+}
+.cnx-sous {
+  font-family: 'Rubik', system-ui, sans-serif;
+  font-size: 13px; line-height: 1.5; color: var(--m-texte-2, #9ca8bd);
+  text-align: center; margin: 0 0 18px;
+}
+.cnx-form { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.cnx-label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-family: 'Rubik', sans-serif; font-size: 12px; font-weight: 600;
+  color: var(--m-texte-2, #9ca8bd);
+}
+.cnx-input {
+  width: 100%; box-sizing: border-box;
+  background: var(--m-surface, #161b26);
+  border: 1px solid var(--m-bord, #232a38);
+  border-radius: 10px; padding: 11px 12px;
+  font-family: 'Rubik', sans-serif; font-size: 14px; color: var(--m-texte, #f0f4fc);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.cnx-input:focus {
+  outline: none; border-color: var(--m-or, #fcd34d);
+  box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.15);
+}
+.cnx-input:disabled { opacity: 0.6; }
+.cnx-message {
+  font-family: 'Rubik', sans-serif; font-size: 12.5px; line-height: 1.45;
+  border-radius: 10px; padding: 10px 12px;
+}
+.cnx-message-erreur { background: rgba(239, 104, 104, 0.12); border: 1px solid rgba(239, 104, 104, 0.4); color: #fca5a5; }
+.cnx-message-info { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.4); color: #6ee7b7; }
+.cnx-bouton {
+  width: 100%; margin-top: 2px;
+  background: linear-gradient(135deg, var(--m-or, #fcd34d), var(--m-or-fonce, #f59e0b));
+  border: none; border-radius: 12px; color: #1a1205;
+  font-family: var(--font-titre, 'Press Start 2P'), monospace;
+  font-size: 11px; padding: 14px; cursor: pointer;
+  transition: filter 0.14s ease, transform 0.1s ease;
+  box-shadow: 0 4px 0 var(--m-or-fonce, #b8860b), 0 6px 14px rgba(0, 0, 0, 0.3);
+}
+.cnx-bouton:hover:not(:disabled) { filter: brightness(1.06); }
+.cnx-bouton:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--m-or-fonce, #b8860b); }
+.cnx-bouton:disabled { opacity: 0.6; cursor: default; }
+.cnx-lien {
+  background: none; border: none; cursor: pointer; margin-top: 12px;
+  font-family: 'Rubik', sans-serif; font-size: 12px;
+  color: var(--m-texte-3, #6b7280); text-decoration: underline;
+}
+.cnx-lien:hover { color: var(--m-texte-2, #9ca8bd); }
+.cnx-bascule {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--m-bord, #232a38);
+  width: 100%; text-align: center;
+  font-family: 'Rubik', sans-serif; font-size: 12.5px; color: var(--m-texte-2, #9ca8bd);
+}
+.cnx-lien-fort {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Rubik', sans-serif; font-size: 12.5px; font-weight: 700;
+  color: var(--m-or, #fcd34d); text-decoration: underline;
+}
+.cnx-lien-fort:hover { filter: brightness(1.1); }
+
+@media (prefers-reduced-motion: reduce) { .cnx-carte { animation: none; } }
+
+/* --- Anti-deformation : empeche toute regle :hover externe de scaler la carte --- */
+/* On neutralise UNIQUEMENT au survol (preserve l'animation d'apparition cnx-pop). */
+.cnx-ecran:hover .cnx-carte,
+.cnx-carte:hover,
+.cnx-fond:hover,
+.cnx-logo:hover,
+.cnx-form:hover,
+.cnx-label:hover,
+.cnx-sous:hover,
+.cnx-titre:hover,
+.cnx-bascule:hover,
+.cnx-message:hover {
+  transform: none !important;
+}
+/* On garde les micro-interactions voulues sur les boutons uniquement. */
+.cnx-bouton:hover:not(:disabled) { transform: none !important; filter: brightness(1.06); }
+.cnx-bouton:active:not(:disabled) { transform: translateY(3px) !important; }

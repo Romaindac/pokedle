@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { nomShowdown } from './pokedexNoms'
+import { determinerRole, ROLES } from './roles'
 
 const STARTERS_PAR_GEN = [
   { gen: 'Gen 1', liste: [
@@ -52,7 +53,15 @@ const STARTERS_PAR_GEN = [
 const SPRITE_STATIQUE = (num) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${num}.png`
 const NB_CHOIX = 3
 
-// Sprite animé Showdown avec repli statique.
+// Description courte de chaque role (pour l'encart d'intro).
+const ROLE_DESC = {
+  tank:      "Encaisse les coups et protege l'equipe.",
+  dps:       "Inflige de gros degats aux ennemis.",
+  eclaireur: "Tres rapide, attaque souvent.",
+  soutien:   "Soigne et renforce toute l'equipe.",
+}
+
+// Sprite anime Showdown avec repli statique.
 function SpriteStarter({ num, nom, fr }) {
   const nomSd = nomShowdown(num) || nom
   const urlAnime = `https://play.pokemonshowdown.com/sprites/ani/${nomSd}.gif`
@@ -63,6 +72,12 @@ function SpriteStarter({ num, nom, fr }) {
     img.src = SPRITE_STATIQUE(num)
   }
   return <img src={urlAnime} alt={fr} className="strt-sprite" data-failed="0" loading="lazy" onError={onError} />
+}
+
+// Calcule le role d'un starter depuis son numero (logique du jeu).
+function roleDuStarter(num) {
+  const role = determinerRole({ id: num })
+  return ROLES[role] ? role : 'dps'
 }
 
 function ChoixStarter({ onChoisir }) {
@@ -78,15 +93,52 @@ function ChoixStarter({ onChoisir }) {
 
   const pret = choisis.length === NB_CHOIX
 
+  // Compte les roles deja choisis (pour le conseil de variete).
+  const rolesChoisis = {}
+  for (const g of STARTERS_PAR_GEN) {
+    for (const s of g.liste) {
+      if (choisis.includes(s.nom)) {
+        const r = roleDuStarter(s.num)
+        rolesChoisis[r] = (rolesChoisis[r] || 0) + 1
+      }
+    }
+  }
+  const nbRolesDifferents = Object.keys(rolesChoisis).length
+
   return (
     <div className="overlay strt-overlay">
       <div className="strt-panneau" onClick={(e) => e.stopPropagation()}>
         <div className="strt-entete">
-          <h2>🌟 Choisis ton équipe de départ</h2>
+          <h2>🌟 Choisis ton equipe de depart</h2>
           <p className="strt-sous-titre">
-            Sélectionne <strong>{NB_CHOIX} starters</strong> parmi toutes les générations.
+            Selectionne <strong>{NB_CHOIX} starters</strong> parmi toutes les generations.
             <span className="strt-compteur"> {choisis.length}/{NB_CHOIX} choisis</span>
           </p>
+        </div>
+
+        {/* Encart d'explication des roles */}
+        <div className="strt-intro-roles">
+          <p className="strt-intro-txt">
+            👋 Chaque Pokemon a un <strong>ROLE</strong> selon ses points forts. Une bonne equipe melange les roles !
+          </p>
+          <div className="strt-roles-legende">
+            {['tank', 'eclaireur', 'soutien', 'dps'].map((r) => (
+              <div key={r} className="strt-role-item" style={{ '--c-role': ROLES[r].couleur }}>
+                <span className="strt-role-badge" style={{ background: ROLES[r].couleur }}>{ROLES[r].emoji}</span>
+                <div className="strt-role-txt">
+                  <span className="strt-role-nom">{ROLES[r].nom}</span>
+                  <span className="strt-role-desc">{ROLE_DESC[r]}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {choisis.length > 0 && (
+            <p className={`strt-conseil ${nbRolesDifferents >= choisis.length ? 'ok' : 'attention'}`}>
+              {nbRolesDifferents >= choisis.length
+                ? "👍 Bien joue, tes roles sont varies !"
+                : "💡 Astuce : essaie de varier les roles pour une equipe plus solide."}
+            </p>
+          )}
         </div>
 
         <div className="strt-gens">
@@ -97,12 +149,17 @@ function ChoixStarter({ onChoisir }) {
                 {g.liste.map((s) => {
                   const actif = choisis.includes(s.nom)
                   const bloque = !actif && choisis.length >= NB_CHOIX
+                  const role = roleDuStarter(s.num)
+                  const infoRole = ROLES[role]
                   return (
                     <button
                       key={s.nom}
                       className={`strt-carte ${actif ? 'choisi' : ''} ${bloque ? 'bloque' : ''}`}
                       onClick={() => basculer(s.nom)}
-                      title={s.fr}>
+                      title={`${s.fr} — ${infoRole.nom}`}>
+                      <span className="strt-role-tag" style={{ background: infoRole.couleur }}>
+                        {infoRole.emoji} {infoRole.nom}
+                      </span>
                       <div className="strt-sprite-zone"><SpriteStarter num={s.num} nom={s.nom} fr={s.fr} /></div>
                       <span className="strt-nom">{s.fr}</span>
                       {actif && <span className="strt-check">✓</span>}
@@ -119,7 +176,7 @@ function ChoixStarter({ onChoisir }) {
             className={`strt-valider ${pret ? '' : 'desactive'}`}
             disabled={!pret}
             onClick={() => pret && onChoisir(choisis)}>
-            {pret ? `C'est parti ! (${NB_CHOIX} Pokémon)` : `Choisis encore ${NB_CHOIX - choisis.length} Pokémon`}
+            {pret ? `C'est parti ! (${NB_CHOIX} Pokemon)` : `Choisis encore ${NB_CHOIX - choisis.length} Pokemon`}
           </button>
         </div>
       </div>

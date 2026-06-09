@@ -76,7 +76,7 @@ function Boutique({ pokeDollars, balls, pierres, bonbons = {}, objets = {}, parc
 
         <div className="btq-argent">
           <img src={ICONE_ARGENT} alt="" className="btq-argent-icone" />
-          <span className="btq-argent-val">{pokeDollars.toLocaleString('fr-FR')}</span>
+          <span className="btq-argent-val">{(pokeDollars || 0).toLocaleString('fr-FR')}</span>
           <span className="btq-argent-label">PokéDollars</span>
         </div>
 
