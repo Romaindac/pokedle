@@ -17586,7 +17586,6 @@ body { letter-spacing: 0.1px; }
    ============================================================ */
 
 /* --- RAIDS : spécifique boss + cooldown --- */
-.arn-raid.est-boss, .arn-raid { }
 .arn-raid-boss {
   background: radial-gradient(circle at 50% 40%, rgba(124,58,237,0.25), var(--m-surface)) !important;
   border-color: var(--m-violet, #7c3aed) !important;
@@ -17601,7 +17600,7 @@ body { letter-spacing: 0.1px; }
 /* ============================================================
    PvP
    ============================================================ */
-.pvp-ecran { }
+
 .pvp-bandeau {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   background: linear-gradient(135deg, var(--m-surface-3), var(--m-surface-2));
@@ -17633,7 +17632,7 @@ body { letter-spacing: 0.1px; }
 .pvp-onglet:hover { border-color: var(--m-bleu); color: var(--m-texte); }
 .pvp-onglet.actif { background: linear-gradient(135deg, var(--m-bleu), #2563eb); border-color: transparent; color: #fff; }
 
-.pvp-section { }
+
 
 /* En-tête adversaires (titre + rafraîchir) */
 .pvp-adversaires-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -20642,3 +20641,2436 @@ a img,
 @media (prefers-reduced-motion: reduce) {
   .incub-eau, .incub-oeuf, .incub-bulle, .incub-pret .incub-capsule, .incub-oeuf.secoue { animation: none; }
 }
+/* ============================================================
+   ŒUFS / ÉLEVAGE — incubateurs façon capsules à eau
+   À coller à la TOUTE FIN de App.css.
+   ============================================================ */
+.oeufs-panneau {
+  background: var(--m-surface, #161b26); border: 1px solid var(--m-bord-clair, #2c3445);
+  border-radius: 18px; box-shadow: 0 16px 48px rgba(0,0,0,0.55); color: var(--m-texte, #f0f4fc);
+  width: min(94vw, 720px); max-height: 90vh; overflow-y: auto; padding: 20px 22px;
+  font-family: 'Rubik', sans-serif;
+}
+.oeufs-entete { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--m-bord, #232a38); padding-bottom: 12px; margin-bottom: 14px; }
+.oeufs-entete h2 { font-family: 'Chakra Petch', sans-serif; font-size: 19px; font-weight: 700; margin: 0; margin-right: auto; }
+.oeufs-jetons { font-family: 'Chakra Petch', sans-serif; font-size: 13px; font-weight: 700; color: var(--m-or, #fcd34d); background: rgba(252,211,77,0.1); border: 1px solid rgba(252,211,77,0.3); border-radius: 20px; padding: 5px 12px; white-space: nowrap; }
+.oeufs-aide-jetons { font-size: 11.5px; color: var(--m-texte-3, #8a93a3); margin: 8px 0 0; font-style: italic; }
+.oeufs-fermer { width: 34px; height: 34px; background: var(--m-surface-2, #1a1f2b); border: 1px solid var(--m-bord-clair, #2c3445); border-radius: 10px; color: var(--m-texte-2, #c4ccd8); cursor: pointer; font-size: 15px; }
+.oeufs-fermer:hover { background: rgba(239,68,68,0.15); border-color: var(--m-rouge, #ef4444); }
+.oeufs-intro { font-size: 13px; color: var(--m-texte-2, #c4ccd8); line-height: 1.5; background: var(--m-surface-2, #1a1f2b); border: 1px solid var(--m-bord, #232a38); border-radius: 12px; padding: 11px 15px; margin: 0 0 18px; }
+.oeufs-intro strong { color: var(--m-or, #fcd34d); }
+.oeufs-section-titre { font-family: 'Chakra Petch', sans-serif; font-size: 14px; font-weight: 700; margin: 20px 0 12px; padding-bottom: 7px; border-bottom: 1px solid var(--m-bord, #232a38); }
+.oeufs-vide { font-size: 13px; color: var(--m-texte-3, #8a93a3); padding: 8px 0; }
+
+/* ---- Rangée d'incubateurs ---- */
+.incub-rangee { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 600px) { .incub-rangee { grid-template-columns: 1fr; } }
+
+.incub { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+/* Capsule en verre avec eau */
+.incub-capsule {
+  position: relative; width: 100%; max-width: 130px; height: 150px;
+  border-radius: 50% 50% 46% 46% / 32% 32% 68% 68%;
+  background: linear-gradient(180deg, rgba(150,200,230,0.12) 0%, rgba(90,150,200,0.2) 100%);
+  border: 2px solid rgba(140, 190, 230, 0.35);
+  box-shadow: inset 0 4px 14px rgba(255,255,255,0.12), inset 0 -10px 22px rgba(0,60,90,0.35), 0 6px 16px rgba(0,0,0,0.4);
+  overflow: hidden; display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(1px);
+}
+/* Reflet de verre */
+.incub-capsule::before {
+  content: ''; position: absolute; top: 10px; left: 16px; width: 22px; height: 50px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent);
+  border-radius: 50%; transform: rotate(-8deg); pointer-events: none;
+}
+/* Niveau d'eau animé */
+.incub-eau {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 72%;
+  background: linear-gradient(180deg, rgba(90,170,220,0.45), rgba(40,110,170,0.6));
+  border-top: 2px solid rgba(170,220,255,0.4);
+  animation: incub-vague 4s ease-in-out infinite;
+}
+@keyframes incub-vague {
+  0%,100% { height: 70%; }
+  50% { height: 74%; }
+}
+
+/* Œuf qui flotte dans la capsule */
+.incub-oeuf { position: relative; z-index: 2; animation: incub-flotte 3.5s ease-in-out infinite; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); }
+@keyframes incub-flotte {
+  0%,100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-8px) rotate(3deg); }
+}
+.incub-oeuf.secoue { animation: incub-secoue 0.6s ease-in-out infinite; }
+@keyframes incub-secoue {
+  0%,100% { transform: rotate(-8deg); }
+  25% { transform: rotate(8deg); }
+  50% { transform: rotate(-6deg) translateY(-3px); }
+  75% { transform: rotate(6deg); }
+}
+
+/* Bulles qui montent */
+.incub-bulle {
+  position: absolute; bottom: 8%; width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(200, 235, 255, 0.5); box-shadow: 0 0 4px rgba(200,235,255,0.4);
+  z-index: 1; animation: incub-bulle-monte linear infinite;
+}
+.incub-bulle.b1 { left: 26%; width: 5px; height: 5px; animation-duration: 3.2s; animation-delay: 0s; }
+.incub-bulle.b2 { left: 48%; width: 8px; height: 8px; animation-duration: 4s; animation-delay: 1s; }
+.incub-bulle.b3 { left: 64%; width: 4px; height: 4px; animation-duration: 2.8s; animation-delay: 0.5s; }
+.incub-bulle.b4 { left: 38%; width: 6px; height: 6px; animation-duration: 3.6s; animation-delay: 1.8s; }
+@keyframes incub-bulle-monte {
+  0% { transform: translateY(0); opacity: 0; }
+  15% { opacity: 0.8; }
+  100% { transform: translateY(-120px); opacity: 0; }
+}
+
+/* Capsule vide / prête */
+.incub-vide .incub-capsule { opacity: 0.45; }
+.incub-vide-txt { position: relative; z-index: 2; font-size: 12px; color: var(--m-texte-3, #8a93a3); }
+.incub-pret .incub-capsule {
+  border-color: var(--a-oeuf, #fcd34d);
+  box-shadow: inset 0 4px 14px rgba(255,255,255,0.15), 0 0 18px var(--c-oeuf, #fcd34d), 0 6px 16px rgba(0,0,0,0.4);
+  animation: incub-pret-glow 1.2s ease-in-out infinite;
+}
+@keyframes incub-pret-glow {
+  0%,100% { box-shadow: inset 0 4px 14px rgba(255,255,255,0.15), 0 0 14px var(--c-oeuf, #fcd34d), 0 6px 16px rgba(0,0,0,0.4); }
+  50% { box-shadow: inset 0 4px 14px rgba(255,255,255,0.15), 0 0 26px var(--c-oeuf, #fcd34d), 0 6px 16px rgba(0,0,0,0.4); }
+}
+
+/* Socle de l'incubateur */
+.incub-socle {
+  width: 80%; height: 12px; margin-top: -4px;
+  background: linear-gradient(180deg, #2a3344, #1a2130);
+  border: 1px solid var(--m-bord-clair, #2c3445); border-radius: 0 0 10px 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+}
+.incub-label { font-family: 'Chakra Petch', sans-serif; font-size: 12px; font-weight: 600; margin-top: 4px; }
+
+/* Barre de progression */
+.incub-barre { width: 100%; max-width: 130px; height: 7px; background: rgba(0,0,0,0.4); border-radius: 4px; overflow: hidden; }
+.incub-barre-fill { height: 100%; background: linear-gradient(90deg, var(--c-oeuf, #3b82f6), var(--a-oeuf, #93c5fd)); border-radius: 4px; transition: width 0.4s ease; }
+.incub-compteur { font-size: 11px; color: var(--m-texte-2, #c4ccd8); font-family: 'Chakra Petch', sans-serif; }
+.incub-pret .incub-compteur { color: var(--a-oeuf, #fcd34d); font-weight: 700; }
+
+.incub-eclore {
+  margin-top: 4px; background: linear-gradient(135deg, var(--m-or, #fcd34d), #f59e0b);
+  border: none; border-radius: 9px; color: #1a1205; font-family: 'Chakra Petch', sans-serif;
+  font-size: 12px; font-weight: 700; padding: 7px 14px; cursor: pointer;
+}
+.incub-eclore:hover { filter: brightness(1.1); }
+
+/* ---- Réserve d'œufs ---- */
+.oeufs-reserve { display: flex; flex-wrap: wrap; gap: 10px; }
+.oeuf-reserve-item, .oeuf-achat {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: linear-gradient(165deg, var(--m-surface-3, #1e2533), var(--m-surface-2, #1a1f2b));
+  border: 1.5px solid var(--c-oeuf, var(--m-bord-clair, #2c3445)); border-radius: 12px;
+  padding: 10px 12px; cursor: pointer; transition: filter 0.14s ease;
+}
+.oeuf-reserve-item:hover:not(:disabled), .oeuf-achat:hover:not(:disabled) { filter: brightness(1.12); }
+.oeuf-reserve-item:disabled, .oeuf-achat:disabled { opacity: 0.45; cursor: not-allowed; }
+.oeuf-reserve-nom, .oeuf-achat-nom { font-family: 'Chakra Petch', sans-serif; font-size: 11px; font-weight: 600; }
+.oeuf-reserve-action { font-size: 10px; color: var(--m-texte-3, #8a93a3); }
+.oeufs-boutique { display: flex; flex-wrap: wrap; gap: 10px; }
+.oeuf-achat-prix { font-size: 11px; color: var(--m-or, #fcd34d); font-weight: 700; }
+.oeuf-achat { position: relative; }
+.oeuf-achat-tag { position: absolute; top: -7px; right: -4px; font-family: 'Chakra Petch', sans-serif; font-size: 8px; font-weight: 700; color: #fff; padding: 2px 6px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.4); letter-spacing: 0.5px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .incub-eau, .incub-oeuf, .incub-bulle, .incub-pret .incub-capsule, .incub-oeuf.secoue { animation: none; }
+}
+
+/* ---- Onglets du Centre d'Élevage ---- */
+.oeufs-onglets { display: flex; gap: 8px; margin-bottom: 16px; }
+.oeufs-onglet {
+  flex: 1; padding: 9px; border-radius: 10px; cursor: pointer;
+  background: var(--m-surface-2, #1a1f2b); border: 1px solid var(--m-bord-clair, #2c3445);
+  color: var(--m-texte-2, #c4ccd8); font-family: 'Chakra Petch', sans-serif; font-size: 13px; font-weight: 700;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.oeufs-onglet.actif { background: linear-gradient(135deg, var(--m-or, #fcd34d), #f59e0b); color: #1a1205; border-color: var(--m-or, #fcd34d); }
+
+/* ---- Arbre d'améliorations ---- */
+.amel-elevage { display: flex; flex-direction: column; gap: 12px; }
+.amel-bloc-inc {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: linear-gradient(135deg, rgba(252,211,77,0.1), var(--m-surface-2, #1a1f2b));
+  border: 1px solid rgba(252,211,77,0.3); border-radius: 12px; padding: 12px 15px;
+}
+.amel-inc-txt { display: flex; flex-direction: column; gap: 2px; }
+.amel-inc-titre { font-family: 'Chakra Petch', sans-serif; font-size: 14px; font-weight: 700; color: var(--m-texte, #f0f4fc); }
+.amel-inc-sous { font-size: 11.5px; color: var(--m-texte-3, #8a93a3); }
+
+.amel-ligne {
+  background: var(--m-surface-2, #1a1f2b); border: 1px solid var(--m-bord, #232a38);
+  border-left: 3px solid var(--c-amel, #3b82f6); border-radius: 12px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.amel-tete { display: flex; align-items: flex-start; gap: 10px; }
+.amel-pastille {
+  width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Chakra Petch', sans-serif; font-size: 14px; font-weight: 700;
+}
+.amel-info { display: flex; flex-direction: column; gap: 2px; }
+.amel-nom { font-family: 'Chakra Petch', sans-serif; font-size: 13.5px; font-weight: 700; color: var(--m-texte, #f0f4fc); }
+.amel-niv { font-size: 11px; color: var(--m-texte-3, #8a93a3); font-weight: 600; }
+.amel-desc { font-size: 11.5px; color: var(--m-texte-2, #c4ccd8); line-height: 1.4; }
+
+.amel-barre { display: flex; gap: 3px; }
+.amel-cran { flex: 1; height: 6px; border-radius: 3px; background: rgba(0,0,0,0.35); transition: background 0.2s ease; }
+
+.amel-bouton {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--m-bleu, #3b82f6), #2563eb); border: none; border-radius: 9px;
+  color: #fff; font-family: 'Chakra Petch', sans-serif; font-size: 12px; font-weight: 700;
+  padding: 8px 14px; cursor: pointer; transition: filter 0.14s ease;
+}
+.amel-bouton:hover:not(:disabled) { filter: brightness(1.12); }
+.amel-bouton:disabled { opacity: 0.4; cursor: not-allowed; }
+.amel-max {
+  align-self: center; font-family: 'Chakra Petch', sans-serif; font-size: 12px; font-weight: 700;
+  color: var(--m-or, #fcd34d); background: rgba(252,211,77,0.12); border: 1px solid rgba(252,211,77,0.3);
+  border-radius: 8px; padding: 6px 14px;
+}
+/* ============================================================
+   FIX VIBRATION DEFINITIF — cartes eqm-carte (et cases cliquables)
+   A coller en TOUT DERNIER dans App.css.
+   ------------------------------------------------------------
+   On sait que ce n'est PAS un transform (deja neutralise).
+   La vibration vient donc d'un changement de TAILLE au survol :
+   border, padding, width, height, ou outline qui s'agrandit
+   -> le layout bouge -> la souris sort -> clignotement.
+   Ici on FIGE toutes ces proprietes au survol. Seules les
+   couleurs / ombres peuvent changer (aucun impact sur la taille).
+   ============================================================ */
+
+/* La carte : dimensions et bordures verrouillees au survol */
+.eqm-carte,
+.eqm-carte:hover {
+  box-sizing: border-box !important;
+  border-width: 2px !important;   /* largeur de bordure CONSTANTE (couleur libre) */
+  outline-width: 0 !important;
+  margin: 0 !important;
+}
+/* Au survol : on interdit tout ce qui change la taille */
+.eqm-carte:hover {
+  transform: none !important;
+  padding: inherit;               /* garde le meme padding qu'au repos */
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  zoom: 1 !important;
+}
+/* Les images dans la carte ne capturent pas le survol (c'est la carte qui gere) */
+.eqm-carte img {
+  pointer-events: none !important;
+}
+
+/* Securite : transitions douces uniquement sur couleur/ombre (jamais sur la taille) */
+.eqm-carte {
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+/* ============================================================
+   FIX VIBRATION DEFINITIF — cartes eqm-carte (et cases cliquables)
+   A coller en TOUT DERNIER dans App.css.
+   ------------------------------------------------------------
+   On sait que ce n'est PAS un transform (deja neutralise).
+   La vibration vient donc d'un changement de TAILLE au survol :
+   border, padding, width, height, ou outline qui s'agrandit
+   -> le layout bouge -> la souris sort -> clignotement.
+   Ici on FIGE toutes ces proprietes au survol. Seules les
+   couleurs / ombres peuvent changer (aucun impact sur la taille).
+   ============================================================ */
+
+/* La carte : dimensions et bordures verrouillees au survol */
+.eqm-carte,
+.eqm-carte:hover {
+  box-sizing: border-box !important;
+  border-width: 2px !important;   /* largeur de bordure CONSTANTE (couleur libre) */
+  outline-width: 0 !important;
+  margin: 0 !important;
+}
+/* Au survol : on interdit tout ce qui change la taille */
+.eqm-carte:hover {
+  transform: none !important;
+  padding: inherit;               /* garde le meme padding qu'au repos */
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  zoom: 1 !important;
+}
+/* Les images dans la carte ne capturent pas le survol (c'est la carte qui gere) */
+.eqm-carte img {
+  pointer-events: none !important;
+}
+
+/* Securite : transitions douces uniquement sur couleur/ombre (jamais sur la taille) */
+.eqm-carte {
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+/* ============================================================
+   FIX VIBRATION DEFINITIF v3 — eqm-carte
+   Remplace les blocs précédents (laissés en place, celui-ci
+   gagne car il vient EN DERNIER dans la cascade CSS).
+   Supprime le translateY(-3px) qui fait monter la carte
+   vers la souris → boucle hover ON/OFF = vibration.
+   ============================================================ */
+.eqm-carte:hover {
+  transform: none !important;
+  border-color: var(--c-role, var(--m-bleu)) !important;
+  box-shadow: 0 0 0 2px var(--c-role, var(--m-bleu)), 0 6px 18px rgba(0,0,0,0.4) !important;
+}
+
+/* ============================================================
+   TOUR INFINIE + ALBUM CARTES TCG
+   ============================================================ */
+
+/* ---- Panneau principal ---- */
+.tcg-panneau {
+  position: fixed; inset: 0; margin: auto;
+  width: min(900px, 96vw); max-height: 92vh;
+  background: linear-gradient(160deg, #0f1a2e, #1a1c2c);
+  border: 2px solid #fcd34d; border-radius: 14px;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 0 40px rgba(252,211,77,0.15);
+  z-index: 200;
+}
+.tcg-entete {
+  display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+  border-bottom: 1px solid rgba(252,211,77,0.2); flex-shrink: 0;
+}
+.tcg-entete-titre { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.tcg-titre { font-family: 'Press Start 2P', monospace; font-size: 0.85rem; color: #fcd34d; }
+.tcg-sous-titre { font-size: 10px; color: #8a93a3; font-family: 'Silkscreen', monospace; }
+.tcg-bonus-actif {
+  font-family: 'Press Start 2P', monospace; font-size: 0.55rem;
+  background: rgba(52,211,153,0.15); border: 1px solid #34d399;
+  color: #34d399; padding: 5px 10px; border-radius: 8px;
+}
+.tcg-fermer {
+  background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4);
+  color: #fca5a5; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px;
+}
+.tcg-fermer:hover { background: rgba(239,68,68,0.3); }
+
+/* ---- Onglets ---- */
+.tcg-onglets {
+  display: flex; gap: 0; border-bottom: 1px solid rgba(252,211,77,0.15); flex-shrink: 0;
+}
+.tcg-onglet {
+  flex: 1; padding: 11px; background: transparent; border: none;
+  color: #8a93a3; font-family: 'Silkscreen', monospace; font-size: 12px;
+  cursor: pointer; transition: background 0.15s, color 0.15s; border-bottom: 2px solid transparent;
+}
+.tcg-onglet.actif { color: #fcd34d; border-bottom-color: #fcd34d; background: rgba(252,211,77,0.05); }
+.tcg-onglet:hover:not(.actif) { background: rgba(255,255,255,0.04); color: #c4ccd8; }
+
+/* ============================================================
+   ONGLET TOUR
+   ============================================================ */
+.tcg-tour { padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px; }
+.tcg-tour-header { display: flex; flex-direction: column; gap: 10px; }
+.tcg-tour-record {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(252,211,77,0.08); border: 1px solid rgba(252,211,77,0.25);
+  border-radius: 10px; padding: 12px 16px;
+}
+.tcg-tour-record-label { font-family: 'Silkscreen', monospace; font-size: 11px; color: #8a93a3; }
+.tcg-tour-record-val { font-family: 'Press Start 2P', monospace; font-size: 1.2rem; color: #fcd34d; margin-left: auto; }
+.tcg-tour-desc { font-size: 11px; color: #8a93a3; line-height: 1.6; margin: 0; }
+
+/* Étapes de la tour */
+.tcg-tour-etapes { display: flex; flex-direction: column; gap: 6px; }
+.tcg-etape {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  border-radius: 8px; border-left: 3px solid transparent;
+  background: rgba(255,255,255,0.03);
+}
+.tcg-etape-normal  { border-left-color: #9e9e9e; }
+.tcg-etape-miniboss { border-left-color: #1e88e5; background: rgba(30,136,229,0.06); }
+.tcg-etape-boss    { border-left-color: #fcd34d; background: rgba(252,211,77,0.06); }
+.tcg-etape-infini  { border-left-color: #d946ef; background: rgba(217,70,239,0.06); }
+.tcg-etape-num { font-family: 'Press Start 2P', monospace; font-size: 0.6rem; color: #fcd34d; min-width: 55px; }
+.tcg-etape-label { font-family: 'Silkscreen', monospace; font-size: 12px; color: #f0f4fc; flex: 1; }
+.tcg-etape-drop { font-size: 11px; color: #8a93a3; }
+
+.tcg-btn-lancer {
+  font-family: 'Press Start 2P', monospace; font-size: 0.7rem;
+  padding: 16px 24px; border-radius: 12px; cursor: pointer; border: none;
+  background: linear-gradient(135deg, #fcd34d, #f59e0b);
+  color: #1a1205; letter-spacing: 0.5px;
+  box-shadow: 0 4px 20px rgba(252,211,77,0.3); transition: filter 0.15s, transform 0.1s;
+}
+.tcg-btn-lancer:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-2px); }
+.tcg-btn-lancer:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.5); }
+
+/* ============================================================
+   ONGLET ALBUM
+   ============================================================ */
+.tcg-album { padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+.tcg-album-stats { display: flex; gap: 12px; }
+.tcg-stat {
+  font-family: 'Silkscreen', monospace; font-size: 11px; color: #c4ccd8;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  padding: 5px 10px; border-radius: 8px;
+}
+
+/* Bonus sets */
+.tcg-bonus-sets { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+.tcg-bonus-set {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  border-left: 3px solid var(--c-set, #555); border-radius: 8px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.tcg-bonus-set-titre { font-family: 'Silkscreen', monospace; font-size: 11px; color: #f0f4fc; font-weight: 700; }
+.tcg-bonus-set-uniques { font-size: 10px; color: #8a93a3; }
+.tcg-bonus-set-actif { font-size: 10px; color: #34d399; font-weight: 700; }
+.tcg-bonus-set-prochain { font-size: 9px; color: #6b7280; font-style: italic; }
+
+/* Filtres */
+.tcg-filtres { display: flex; gap: 8px; flex-wrap: wrap; }
+.tcg-recherche {
+  flex: 1; min-width: 140px; padding: 8px 12px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; color: #f0f4fc; font-family: 'Silkscreen', monospace; font-size: 11px;
+}
+.tcg-recherche:focus { outline: none; border-color: #fcd34d; }
+.tcg-select {
+  padding: 8px 10px; background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+  color: #f0f4fc; font-family: 'Silkscreen', monospace; font-size: 11px; cursor: pointer;
+}
+.tcg-vide { color: #6b7280; font-size: 12px; text-align: center; padding: 30px; }
+
+/* Grille de cartes */
+.tcg-grille {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px;
+}
+.tcg-grille-slot { position: relative; cursor: pointer; }
+.tcg-compte {
+  position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.75);
+  color: #fcd34d; font-family: 'Silkscreen', monospace; font-size: 9px;
+  padding: 2px 5px; border-radius: 5px;
+}
+
+/* ---- Carte TCG ---- */
+.tcg-carte {
+  border-radius: 8px; overflow: hidden; position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  aspect-ratio: 63/88;
+}
+.tcg-carte:hover { transform: translateY(-4px) scale(1.03); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+.tcg-carte.grande { width: 220px; border-radius: 12px; border-width: 2px; }
+.tcg-carte.holo { border-color: rgba(252,211,77,0.6); box-shadow: 0 0 12px rgba(252,211,77,0.2); }
+.tcg-carte-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tcg-holo-reflet {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.12) 50%, transparent 70%);
+  animation: holo-shimmer 3s ease-in-out infinite;
+}
+@keyframes holo-shimmer {
+  0%, 100% { opacity: 0; transform: translateX(-100%); }
+  50% { opacity: 1; transform: translateX(100%); }
+}
+.tcg-carte-fallback {
+  width: 100%; height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px; padding: 8px;
+  min-height: 120px;
+}
+.tcg-carte-fb-emoji { font-size: 28px; }
+.tcg-carte-fb-nom { font-family: 'Silkscreen', monospace; font-size: 9px; color: #fff; text-align: center; }
+.tcg-carte-fb-rarete { font-size: 8px; color: rgba(255,255,255,0.7); text-align: center; }
+
+/* ---- Aperçu grande carte ---- */
+.tcg-apercu-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  display: flex; align-items: center; justify-content: center; z-index: 300;
+}
+.tcg-apercu-boite {
+  position: relative; display: flex; gap: 24px; align-items: flex-start;
+  background: #1a1c2c; border: 2px solid #fcd34d; border-radius: 16px; padding: 24px;
+  max-width: 500px;
+}
+.tcg-apercu-fermer {
+  position: absolute; top: 10px; right: 10px; background: rgba(239,68,68,0.2);
+  border: 1px solid rgba(239,68,68,0.4); color: #fca5a5;
+  border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 13px;
+}
+.tcg-apercu-infos { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+.tcg-apercu-nom { font-family: 'Press Start 2P', monospace; font-size: 0.75rem; color: #fcd34d; margin: 0; }
+.tcg-apercu-rarete { font-family: 'Silkscreen', monospace; font-size: 12px; margin: 0; }
+.tcg-apercu-set, .tcg-apercu-hp, .tcg-apercu-types {
+  font-size: 11px; color: #8a93a3; margin: 0; font-family: 'Silkscreen', monospace;
+}
+
+/* ============================================================
+   COMBAT TOUR
+   ============================================================ */
+.ct-ecran {
+  position: fixed; inset: 0; background: linear-gradient(160deg, #0d1117, #1a1c2c);
+  display: flex; flex-direction: column; z-index: 200; padding: 20px;
+}
+.ct-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.ct-niveau-label { font-family: 'Press Start 2P', monospace; font-size: 0.75rem; color: #fcd34d; }
+.ct-quitter {
+  font-family: 'Silkscreen', monospace; font-size: 11px; padding: 8px 14px;
+  background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4);
+  color: #fca5a5; border-radius: 8px; cursor: pointer;
+}
+.ct-terrain {
+  flex: 1; display: flex; flex-direction: column; justify-content: space-around;
+  align-items: center; gap: 12px;
+}
+.ct-rangee { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.ct-vs { font-size: 1.5rem; }
+.ct-combattant {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 10px; border-radius: 10px; min-width: 80px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  transition: opacity 0.3s;
+}
+.ct-combattant.ko { opacity: 0.3; filter: grayscale(1); }
+.ct-combattant.ennemi { border-color: rgba(239,68,68,0.3); }
+.ct-combattant.joueur { border-color: rgba(52,211,153,0.3); }
+.ct-sprite { width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; }
+.ct-nom { font-family: 'Silkscreen', monospace; font-size: 9px; color: #f0f4fc; text-transform: capitalize; text-align: center; }
+.ct-niveau { font-size: 9px; color: #8a93a3; }
+.ct-barre-pv {
+  width: 100%; height: 6px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden;
+}
+.ct-barre-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+.ct-journal {
+  background: rgba(0,0,0,0.4); border-radius: 8px; padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,0.08); min-height: 60px;
+}
+.ct-journal-ligne { font-size: 11px; color: #c4ccd8; margin: 2px 0; font-family: 'Silkscreen', monospace; }
+.ct-overlay-fin {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; border-radius: 14px;
+}
+.ct-fin-texte { font-family: 'Press Start 2P', monospace; font-size: 0.7rem; color: #fcd34d; }
+
+/* Drop de carte animé */
+.tcg-drop-encart {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, #1a1205, #2d1f05);
+  border: 2px solid #fcd34d; border-radius: 14px; padding: 16px 20px;
+  display: flex; align-items: center; gap: 14px; z-index: 250;
+  box-shadow: 0 8px 32px rgba(252,211,77,0.3);
+  animation: tcg-drop-entree 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes tcg-drop-entree {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px) scale(0.9); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+.tcg-drop-carte-mini { width: 55px; border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+.tcg-drop-carte-mini img { width: 100%; display: block; }
+.tcg-drop-texte { display: flex; flex-direction: column; gap: 3px; }
+.tcg-drop-titre { font-family: 'Press Start 2P', monospace; font-size: 0.55rem; color: #fcd34d; }
+.tcg-drop-nom { font-family: 'Silkscreen', monospace; font-size: 12px; color: #f0f4fc; }
+.tcg-drop-rarete { font-size: 10px; color: #8a93a3; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tcg-holo-reflet, .tcg-drop-encart { animation: none; }
+}
+/* ============================================================
+   ALBUM TCG v2 — version premium (ecrase les styles album v1)
+   A coller a la fin de App.css.
+   ============================================================ */
+
+/* Onglets de sets */
+.tcg-set-onglets { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.tcg-set-onglet {
+  display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; cursor: pointer;
+  background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 10px; transition: border-color 0.15s, background 0.15s;
+}
+.tcg-set-onglet:hover { background: rgba(255,255,255,0.06); }
+.tcg-set-onglet.actif { border-color: var(--c-set, #fcd34d); background: rgba(255,255,255,0.07); box-shadow: 0 0 12px rgba(0,0,0,0.3); }
+.tcg-set-onglet-nom { font-family: 'Silkscreen', monospace; font-size: 12px; font-weight: 700; color: #f0f4fc; }
+.tcg-set-onglet-pct { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--c-set, #fcd34d); }
+.tcg-set-onglet-barre { height: 4px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; }
+.tcg-set-onglet-fill { display: block; height: 100%; background: var(--c-set, #fcd34d); border-radius: 3px; transition: width 0.4s ease; }
+
+/* Bandeau de progression du set actif */
+.tcg-set-bandeau {
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(0,0,0,0.2));
+  border: 1px solid rgba(255,255,255,0.1); border-left: 4px solid var(--c-set, #fcd34d);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 14px;
+}
+.tcg-set-bandeau-haut { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.tcg-set-bandeau-titre { font-family: 'Press Start 2P', monospace; font-size: 0.7rem; color: #f0f4fc; }
+.tcg-set-bandeau-compteur { font-family: 'Silkscreen', monospace; font-size: 14px; font-weight: 700; color: var(--c-set, #fcd34d); }
+.tcg-set-bandeau-pct { opacity: 0.7; font-size: 12px; }
+.tcg-set-bandeau-barre { height: 8px; background: rgba(0,0,0,0.45); border-radius: 5px; overflow: hidden; }
+.tcg-set-bandeau-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--c-set, #fcd34d), #fff8); border-radius: 5px; transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+.tcg-set-complet { display: block; text-align: center; margin-top: 8px; font-family: 'Press Start 2P', monospace; font-size: 0.6rem; color: #fcd34d; animation: tcg-complet-glow 1.5s ease-in-out infinite; }
+@keyframes tcg-complet-glow { 0%,100% { text-shadow: 0 0 4px rgba(252,211,77,0.5); } 50% { text-shadow: 0 0 14px rgba(252,211,77,0.9); } }
+
+/* Filtres */
+.tcg-toggle {
+  padding: 8px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; color: #8a93a3; font-family: 'Silkscreen', monospace; font-size: 11px; cursor: pointer;
+}
+.tcg-toggle.actif { color: #fcd34d; border-color: rgba(252,211,77,0.4); }
+
+/* Grille classeur */
+.tcg-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; }
+.tcg-grille-slot { position: relative; cursor: pointer; }
+.tcg-compte { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); color: #fcd34d; font-family: 'Silkscreen', monospace; font-size: 9px; padding: 2px 5px; border-radius: 5px; }
+
+/* Carte */
+.tcg-carte { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 63/88; border: 1.5px solid rgba(255,255,255,0.1); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.tcg-carte:hover { transform: translateY(-4px) scale(1.04); box-shadow: 0 10px 26px rgba(0,0,0,0.55); z-index: 2; }
+.tcg-carte.holo { border-color: rgba(150,200,255,0.5); box-shadow: 0 0 10px rgba(120,180,255,0.25); }
+.tcg-carte.holo-ex { border-color: rgba(252,211,77,0.6); box-shadow: 0 0 14px rgba(252,211,77,0.35); }
+.tcg-carte-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Emplacement vide (carte manquante) */
+.tcg-carte-manquante { border: 1.5px dashed rgba(255,255,255,0.15); background: repeating-linear-gradient(45deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02) 6px, rgba(255,255,255,0.04) 6px, rgba(255,255,255,0.04) 12px); }
+.tcg-carte-vide-inner { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.tcg-carte-vide-pt { font-family: 'Press Start 2P', monospace; font-size: 1.3rem; color: rgba(255,255,255,0.15); }
+
+/* Reflet holographique animé */
+.tcg-holo-reflet { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 25%, rgba(255,255,255,0.18) 48%, rgba(180,220,255,0.25) 52%, transparent 78%); background-size: 250% 250%; animation: tcg-holo 3.5s linear infinite; mix-blend-mode: screen; }
+@keyframes tcg-holo { 0% { background-position: 150% 150%; } 100% { background-position: -50% -50%; } }
+
+.tcg-carte-fallback { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px; }
+.tcg-carte-fb-emoji { font-size: 26px; }
+.tcg-carte-fb-nom { font-family: 'Silkscreen', monospace; font-size: 9px; color: #fff; text-align: center; }
+
+/* Apercu grande carte */
+.tcg-apercu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 300; padding: 20px; }
+.tcg-apercu-boite { position: relative; display: flex; gap: 26px; align-items: center; background: #16182a; border: 2px solid #fcd34d; border-radius: 18px; padding: 26px; max-width: 560px; box-shadow: 0 0 50px rgba(252,211,77,0.2); }
+.tcg-apercu-fermer { position: absolute; top: 12px; right: 12px; background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; border-radius: 6px; padding: 4px 9px; cursor: pointer; font-size: 14px; }
+.tcg-apercu-carte { position: relative; width: 230px; flex-shrink: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.6); }
+.tcg-apercu-img { width: 100%; display: block; }
+.tcg-apercu-infos { display: flex; flex-direction: column; gap: 9px; }
+.tcg-apercu-nom { font-family: 'Press Start 2P', monospace; font-size: 0.8rem; color: #fcd34d; margin: 0; }
+.tcg-apercu-rarete { font-family: 'Silkscreen', monospace; font-size: 13px; margin: 0; font-weight: 700; }
+.tcg-apercu-set, .tcg-apercu-meta { font-size: 12px; color: #8a93a3; margin: 0; font-family: 'Silkscreen', monospace; }
+.tcg-apercu-double { color: #fcd34d; }
+
+@media (max-width: 560px) {
+  .tcg-apercu-boite { flex-direction: column; gap: 16px; }
+  .tcg-apercu-carte { width: 180px; }
+}
+@media (prefers-reduced-motion: reduce) { .tcg-holo-reflet { animation: none; } }
+/* ============================================================
+   FINITIONS DE CARTES — brillante / prismatique
+   A coller a la fin de App.css (apres le bloc album v2).
+   ============================================================ */
+
+/* Badge de finition (coin haut-droit de la carte) */
+.tcg-badge-fin { position: absolute; top: 3px; right: 3px; font-size: 11px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8)); z-index: 3; pointer-events: none; }
+
+/* Bordures selon finition */
+.tcg-carte.fin-brillante { border-color: rgba(79,195,247,0.7); box-shadow: 0 0 10px rgba(79,195,247,0.3); }
+.tcg-carte.fin-prismatique { border-color: rgba(255,213,79,0.85); box-shadow: 0 0 16px rgba(255,213,79,0.45); }
+
+/* Effet BRILLANTE : reflet bleute scintillant qui balaie la carte */
+.tcg-fx-brillante {
+  position: absolute; inset: 0; pointer-events: none; z-index: 2; mix-blend-mode: screen;
+  background: linear-gradient(115deg, transparent 30%, rgba(79,195,247,0.35) 47%, rgba(255,255,255,0.45) 50%, rgba(79,195,247,0.35) 53%, transparent 70%);
+  background-size: 250% 250%; animation: fx-brillante 2.8s linear infinite;
+}
+@keyframes fx-brillante { 0% { background-position: 160% 160%; } 100% { background-position: -60% -60%; } }
+
+/* Effet PRISMATIQUE : arc-en-ciel dore mouvant + scintillement */
+.tcg-fx-prismatique {
+  position: absolute; inset: 0; pointer-events: none; z-index: 2; mix-blend-mode: screen;
+  background:
+    linear-gradient(115deg, transparent 28%, rgba(255,255,255,0.5) 50%, transparent 72%),
+    linear-gradient(60deg, rgba(255,0,128,0.25), rgba(255,213,79,0.3), rgba(0,229,255,0.25), rgba(124,77,255,0.25));
+  background-size: 250% 250%, 300% 300%; animation: fx-prisme-balayage 2.4s linear infinite, fx-prisme-couleur 6s ease infinite;
+}
+@keyframes fx-prisme-balayage { 0% { background-position: 160% 160%, 0% 0%; } 100% { background-position: -60% -60%, 0% 0%; } }
+@keyframes fx-prisme-couleur { 0%,100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(60deg); } }
+
+/* Compteurs de finitions dans le bandeau de set */
+.tcg-set-bandeau-fx { display: flex; gap: 12px; margin-top: 8px; }
+.tcg-fx-compteur { font-family: 'Silkscreen', monospace; font-size: 11px; color: #b0b8c8; background: rgba(0,0,0,0.3); padding: 3px 9px; border-radius: 6px; }
+
+/* Ligne finition dans l'apercu */
+.tcg-apercu-finition { font-family: 'Silkscreen', monospace; font-size: 12px; margin: 0; font-weight: 700; }
+
+/* Encart de drop : variantes selon finition */
+.tcg-drop-encart.fin-brillante { border-color: rgba(79,195,247,0.7) !important; box-shadow: 0 0 22px rgba(79,195,247,0.4) !important; }
+.tcg-drop-encart.fin-prismatique { border-color: rgba(255,213,79,0.85) !important; box-shadow: 0 0 28px rgba(255,213,79,0.55) !important; }
+.tcg-drop-carte-mini { position: relative; overflow: hidden; }
+
+/* Bloc finitions dans l'onglet Tour */
+.tcg-tour-finitions { margin: 14px 0; padding: 12px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; }
+.tcg-tour-fin-titre { display: block; font-family: 'Silkscreen', monospace; font-size: 11px; color: #8a93a3; margin-bottom: 8px; }
+.tcg-tour-fin-liste { display: flex; flex-wrap: wrap; gap: 8px; }
+.tcg-tour-fin { font-family: 'Silkscreen', monospace; font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid; }
+.fin-tag-normale { color: #9e9e9e; border-color: rgba(158,158,158,0.4); }
+.fin-tag-brillante { color: #4fc3f7; border-color: rgba(79,195,247,0.5); }
+.fin-tag-prismatique { color: #ffd54f; border-color: rgba(255,213,79,0.6); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tcg-fx-brillante, .tcg-fx-prismatique { animation: none; }
+}
+/* ============================================================
+   FINITIONS DE CARTES — brillante / prismatique
+   A coller a la fin de App.css (apres le bloc album v2).
+   ============================================================ */
+
+/* Badge de finition (coin haut-droit de la carte) */
+.tcg-badge-fin { position: absolute; top: 3px; right: 3px; font-size: 11px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8)); z-index: 3; pointer-events: none; }
+
+/* Bordures selon finition */
+.tcg-carte.fin-brillante { border-color: rgba(79,195,247,0.7); box-shadow: 0 0 10px rgba(79,195,247,0.3); }
+.tcg-carte.fin-prismatique { border-color: rgba(255,213,79,0.85); box-shadow: 0 0 16px rgba(255,213,79,0.45); }
+
+/* Effet BRILLANTE : reflet bleute scintillant qui balaie la carte */
+.tcg-fx-brillante {
+  position: absolute; inset: 0; pointer-events: none; z-index: 2; mix-blend-mode: screen;
+  background: linear-gradient(115deg, transparent 30%, rgba(79,195,247,0.35) 47%, rgba(255,255,255,0.45) 50%, rgba(79,195,247,0.35) 53%, transparent 70%);
+  background-size: 250% 250%; animation: fx-brillante 2.8s linear infinite;
+}
+@keyframes fx-brillante { 0% { background-position: 160% 160%; } 100% { background-position: -60% -60%; } }
+
+/* Effet PRISMATIQUE : arc-en-ciel dore mouvant + scintillement */
+.tcg-fx-prismatique {
+  position: absolute; inset: 0; pointer-events: none; z-index: 2; mix-blend-mode: screen;
+  background:
+    linear-gradient(115deg, transparent 28%, rgba(255,255,255,0.5) 50%, transparent 72%),
+    linear-gradient(60deg, rgba(255,0,128,0.25), rgba(255,213,79,0.3), rgba(0,229,255,0.25), rgba(124,77,255,0.25));
+  background-size: 250% 250%, 300% 300%; animation: fx-prisme-balayage 2.4s linear infinite, fx-prisme-couleur 6s ease infinite;
+}
+@keyframes fx-prisme-balayage { 0% { background-position: 160% 160%, 0% 0%; } 100% { background-position: -60% -60%, 0% 0%; } }
+@keyframes fx-prisme-couleur { 0%,100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(60deg); } }
+
+/* Compteurs de finitions dans le bandeau de set */
+.tcg-set-bandeau-fx { display: flex; gap: 12px; margin-top: 8px; }
+.tcg-fx-compteur { font-family: 'Silkscreen', monospace; font-size: 11px; color: #b0b8c8; background: rgba(0,0,0,0.3); padding: 3px 9px; border-radius: 6px; }
+
+/* Ligne finition dans l'apercu */
+.tcg-apercu-finition { font-family: 'Silkscreen', monospace; font-size: 12px; margin: 0; font-weight: 700; }
+
+/* Encart de drop : variantes selon finition */
+.tcg-drop-encart.fin-brillante { border-color: rgba(79,195,247,0.7) !important; box-shadow: 0 0 22px rgba(79,195,247,0.4) !important; }
+.tcg-drop-encart.fin-prismatique { border-color: rgba(255,213,79,0.85) !important; box-shadow: 0 0 28px rgba(255,213,79,0.55) !important; }
+.tcg-drop-carte-mini { position: relative; overflow: hidden; }
+
+/* Bloc finitions dans l'onglet Tour */
+.tcg-tour-finitions { margin: 14px 0; padding: 12px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; }
+.tcg-tour-fin-titre { display: block; font-family: 'Silkscreen', monospace; font-size: 11px; color: #8a93a3; margin-bottom: 8px; }
+.tcg-tour-fin-liste { display: flex; flex-wrap: wrap; gap: 8px; }
+.tcg-tour-fin { font-family: 'Silkscreen', monospace; font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid; }
+.fin-tag-normale { color: #9e9e9e; border-color: rgba(158,158,158,0.4); }
+.fin-tag-brillante { color: #4fc3f7; border-color: rgba(79,195,247,0.5); }
+.fin-tag-prismatique { color: #ffd54f; border-color: rgba(255,213,79,0.6); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tcg-fx-brillante, .tcg-fx-prismatique { animation: none; }
+}
+
+/* ---- Cartes de grande valeur (cote marche reelle) ---- */
+.tcg-carte.tcg-chere { border-color: rgba(255,167,38,0.75); box-shadow: 0 0 12px rgba(255,167,38,0.35); }
+.tcg-carte.tcg-graal { border-color: rgba(255,82,82,0.9); box-shadow: 0 0 18px rgba(255,82,82,0.5); animation: tcg-graal-pulse 2s ease-in-out infinite; }
+@keyframes tcg-graal-pulse { 0%,100% { box-shadow: 0 0 14px rgba(255,82,82,0.4); } 50% { box-shadow: 0 0 24px rgba(255,82,82,0.7); } }
+.tcg-apercu-cote { font-family: 'Silkscreen', monospace; font-size: 13px; color: #ffa726; margin: 0; font-weight: 700; }
+/* ============================================================
+   FINITIONS DE CARTES — brillante / prismatique
+   A coller a la fin de App.css (apres le bloc album v2).
+   ============================================================ */
+
+/* Badge de finition (coin haut-droit de la carte) */
+.tcg-badge-fin { position: absolute; top: 3px; right: 3px; font-size: 11px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8)); z-index: 3; pointer-events: none; }
+
+/* Bordures selon finition */
+.tcg-carte.fin-brillante { border-color: rgba(79,195,247,0.7); box-shadow: 0 0 10px rgba(79,195,247,0.3); }
+.tcg-carte.fin-prismatique { border-color: rgba(255,213,79,0.85); box-shadow: 0 0 16px rgba(255,213,79,0.45); }
+
+/* Effet BRILLANTE : reflet bleute scintillant qui balaie la carte */
+.tcg-fx-brillante {
+  position: absolute; inset: 0; pointer-events: none; z-index: 2; mix-blend-mode: screen;
+  background: linear-gradient(115deg, transparent 30%, rgba(79,195,247,0.35) 47%, rgba(255,255,255,0.45) 50%, rgba(79,195,247,0.35) 53%, transparent 70%);
+  background-size: 250% 250%; animation: fx-brillante 2.8s linear infinite;
+}
+@keyframes fx-brillante { 0% { background-position: 160% 160%; } 100% { background-position: -60% -60%; } }
+
+/* Effet PRISMATIQUE : arc-en-ciel dore mouvant + scintillement */
+.tcg-fx-prismatique {
+  position: absolute; inset: 0; pointer-events: none; z-index: 2; mix-blend-mode: screen;
+  background:
+    linear-gradient(115deg, transparent 28%, rgba(255,255,255,0.5) 50%, transparent 72%),
+    linear-gradient(60deg, rgba(255,0,128,0.25), rgba(255,213,79,0.3), rgba(0,229,255,0.25), rgba(124,77,255,0.25));
+  background-size: 250% 250%, 300% 300%; animation: fx-prisme-balayage 2.4s linear infinite, fx-prisme-couleur 6s ease infinite;
+}
+@keyframes fx-prisme-balayage { 0% { background-position: 160% 160%, 0% 0%; } 100% { background-position: -60% -60%, 0% 0%; } }
+@keyframes fx-prisme-couleur { 0%,100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(60deg); } }
+
+/* Compteurs de finitions dans le bandeau de set */
+.tcg-set-bandeau-fx { display: flex; gap: 12px; margin-top: 8px; }
+.tcg-fx-compteur { font-family: 'Silkscreen', monospace; font-size: 11px; color: #b0b8c8; background: rgba(0,0,0,0.3); padding: 3px 9px; border-radius: 6px; }
+
+/* Ligne finition dans l'apercu */
+.tcg-apercu-finition { font-family: 'Silkscreen', monospace; font-size: 12px; margin: 0; font-weight: 700; }
+
+/* Encart de drop : variantes selon finition */
+.tcg-drop-encart.fin-brillante { border-color: rgba(79,195,247,0.7) !important; box-shadow: 0 0 22px rgba(79,195,247,0.4) !important; }
+.tcg-drop-encart.fin-prismatique { border-color: rgba(255,213,79,0.85) !important; box-shadow: 0 0 28px rgba(255,213,79,0.55) !important; }
+.tcg-drop-carte-mini { position: relative; overflow: hidden; }
+
+/* Bloc finitions dans l'onglet Tour */
+.tcg-tour-finitions { margin: 14px 0; padding: 12px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; }
+.tcg-tour-fin-titre { display: block; font-family: 'Silkscreen', monospace; font-size: 11px; color: #8a93a3; margin-bottom: 8px; }
+.tcg-tour-fin-liste { display: flex; flex-wrap: wrap; gap: 8px; }
+.tcg-tour-fin { font-family: 'Silkscreen', monospace; font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid; }
+.fin-tag-normale { color: #9e9e9e; border-color: rgba(158,158,158,0.4); }
+.fin-tag-brillante { color: #4fc3f7; border-color: rgba(79,195,247,0.5); }
+.fin-tag-prismatique { color: #ffd54f; border-color: rgba(255,213,79,0.6); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tcg-fx-brillante, .tcg-fx-prismatique { animation: none; }
+}
+
+/* ---- Cartes de grande valeur (cote marche reelle) ---- */
+.tcg-carte.tcg-chere { border-color: rgba(255,167,38,0.75); box-shadow: 0 0 12px rgba(255,167,38,0.35); }
+.tcg-carte.tcg-graal { border-color: rgba(255,82,82,0.9); box-shadow: 0 0 18px rgba(255,82,82,0.5); animation: tcg-graal-pulse 2s ease-in-out infinite; }
+@keyframes tcg-graal-pulse { 0%,100% { box-shadow: 0 0 14px rgba(255,82,82,0.4); } 50% { box-shadow: 0 0 24px rgba(255,82,82,0.7); } }
+.tcg-apercu-cote { font-family: 'Silkscreen', monospace; font-size: 13px; color: #ffa726; margin: 0; font-weight: 700; }
+
+/* ---- Bouton et popup des taux de drop ---- */
+.tcg-btn-taux { color: #fcd34d; border-color: rgba(252,211,77,0.4); }
+.tcg-apercu-taux { font-family: 'Silkscreen', monospace; font-size: 13px; color: #4fc3f7; margin: 0; font-weight: 700; }
+
+.tcg-taux-boite { position: relative; background: #16182a; border: 2px solid #fcd34d; border-radius: 16px; padding: 22px 24px; max-width: 440px; max-height: 82vh; overflow-y: auto; box-shadow: 0 0 40px rgba(252,211,77,0.18); }
+.tcg-taux-titre { font-family: 'Press Start 2P', monospace; font-size: 0.85rem; color: #fcd34d; margin: 0 0 12px; text-align: center; }
+.tcg-taux-intro { font-size: 12px; color: #b0b8c8; margin: 0 0 16px; line-height: 1.5; }
+.tcg-taux-section { margin-bottom: 14px; }
+.tcg-taux-section-titre { display: block; font-family: 'Silkscreen', monospace; font-size: 12px; color: #f0f4fc; margin-bottom: 6px; font-weight: 700; }
+.tcg-taux-liste { list-style: none; margin: 0; padding: 0; }
+.tcg-taux-liste li { display: flex; justify-content: space-between; padding: 4px 10px; font-family: 'Silkscreen', monospace; font-size: 11px; color: #b0b8c8; border-radius: 5px; }
+.tcg-taux-liste li:nth-child(odd) { background: rgba(255,255,255,0.03); }
+.tcg-taux-liste li span:last-child { color: #fcd34d; font-weight: 700; }
+.tcg-taux-note { font-size: 11.5px; color: #b0b8c8; line-height: 1.55; margin: 16px 0 0; padding: 12px; background: rgba(255,167,38,0.08); border: 1px solid rgba(255,167,38,0.25); border-radius: 8px; }
+.tcg-taux-note strong { color: #ffa726; }
+/* ============================================================
+   STATUTS DE COMBAT — badges sur les combattants + chiffres
+   A coller a la fin de App.css.
+   ============================================================ */
+
+/* Rangee de badges de statut au-dessus du combattant */
+.statuts-badges {
+  position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 3px; z-index: 6; pointer-events: none;
+}
+.statut-badge {
+  font-size: 13px; line-height: 1; padding: 2px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.9));
+  animation: statut-pulse 1.4s ease-in-out infinite;
+}
+.statut-badge.statut-malus { animation: statut-pulse-malus 1.2s ease-in-out infinite; }
+.statut-badge.statut-buff { animation: statut-pulse-buff 1.6s ease-in-out infinite; }
+@keyframes statut-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+@keyframes statut-pulse-malus { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.2); opacity: 1; } }
+@keyframes statut-pulse-buff { 0%,100% { transform: scale(1) translateY(0); } 50% { transform: scale(1.12) translateY(-1px); } }
+
+/* Chiffres flottants de statut (degats sur la duree) */
+.chiffre-flottant.statut {
+  color: #ffb86b; font-weight: 700;
+  text-shadow: 0 0 4px rgba(255,107,53,0.6), 0 1px 2px rgba(0,0,0,0.8);
+}
+/* Apparition d'un statut (icone qui monte) */
+.chiffre-flottant.applique-statut {
+  font-size: 1.1rem;
+  animation: applique-statut-pop 1.1s ease-out forwards;
+}
+@keyframes applique-statut-pop {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  25% { transform: translateY(-8px) scale(1.3); opacity: 1; }
+  100% { transform: translateY(-26px) scale(1); opacity: 0; }
+}
+/* ============================================================
+   STATUTS DE COMBAT v2 — badges bien visibles
+   A coller a la fin de App.css (remplace l'ancien bloc statuts).
+   ============================================================ */
+
+/* Le slot doit pouvoir laisser deborder les badges vers le haut */
+.terrain-slot { overflow: visible; }
+
+/* Rangee de badges, posee EN HAUT et bien degagee du sprite */
+.statuts-badges {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  z-index: 20;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Chaque badge = pastille ronde coloree avec l'icone dessus */
+.statut-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 13px;
+  line-height: 1;
+  background: var(--c-statut, #444);
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6), 0 0 10px var(--c-statut, #444);
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.8));
+}
+.statut-badge.statut-malus { animation: statut-pulse-malus 1.2s ease-in-out infinite; }
+.statut-badge.statut-buff  { animation: statut-pulse-buff 1.6s ease-in-out infinite; }
+@keyframes statut-pulse-malus { 0%,100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+@keyframes statut-pulse-buff  { 0%,100% { transform: scale(1) translateY(0); } 50% { transform: scale(1.12) translateY(-2px); } }
+
+/* Chiffres flottants de statut (degats sur la duree) */
+.chiffre-flottant.statut {
+  color: #ffb86b; font-weight: 700;
+  text-shadow: 0 0 4px rgba(255,107,53,0.7), 0 1px 2px rgba(0,0,0,0.9);
+}
+/* Apparition d'un statut : grosse icone qui pop bien visible */
+.chiffre-flottant.applique-statut {
+  font-size: 1.5rem;
+  z-index: 21;
+  animation: applique-statut-pop 1.1s ease-out forwards;
+}
+@keyframes applique-statut-pop {
+  0%   { transform: translateY(4px) scale(0.4); opacity: 0; }
+  30%  { transform: translateY(-10px) scale(1.5); opacity: 1; }
+  100% { transform: translateY(-34px) scale(1); opacity: 0; }
+}
+/* ============================================================
+   STATUTS DE COMBAT v2 — badges bien visibles
+   A coller a la fin de App.css (remplace l'ancien bloc statuts).
+   ============================================================ */
+
+/* Le slot doit pouvoir laisser deborder les badges vers le haut */
+.terrain-slot { overflow: visible; }
+
+/* Colonne de badges, posee sur le COTE DROIT du sprite (degage le bandeau) */
+.statuts-badges {
+  position: absolute;
+  top: 50%;
+  right: -6px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* Chaque badge = pastille ronde coloree avec l'icone dessus */
+.statut-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 13px;
+  line-height: 1;
+  background: var(--c-statut, #444);
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6), 0 0 10px var(--c-statut, #444);
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.8));
+}
+.statut-badge.statut-malus { animation: statut-pulse-malus 1.2s ease-in-out infinite; }
+.statut-badge.statut-buff  { animation: statut-pulse-buff 1.6s ease-in-out infinite; }
+@keyframes statut-pulse-malus { 0%,100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+@keyframes statut-pulse-buff  { 0%,100% { transform: scale(1) translateY(0); } 50% { transform: scale(1.12) translateY(-2px); } }
+
+/* Chiffres flottants de statut (degats sur la duree) */
+.chiffre-flottant.statut {
+  color: #ffb86b; font-weight: 700;
+  text-shadow: 0 0 4px rgba(255,107,53,0.7), 0 1px 2px rgba(0,0,0,0.9);
+}
+/* Apparition d'un statut : grosse icone qui pop bien visible */
+.chiffre-flottant.applique-statut {
+  font-size: 1.5rem;
+  z-index: 21;
+  animation: applique-statut-pop 1.1s ease-out forwards;
+}
+@keyframes applique-statut-pop {
+  0%   { transform: translateY(4px) scale(0.4); opacity: 0; }
+  30%  { transform: translateY(-10px) scale(1.5); opacity: 1; }
+  100% { transform: translateY(-34px) scale(1); opacity: 0; }
+}
+/* ============================================================
+   STATUTS DE COMBAT v2 — badges bien visibles
+   A coller a la fin de App.css (remplace l'ancien bloc statuts).
+   ============================================================ */
+
+/* Le slot doit pouvoir laisser deborder les badges vers le haut */
+.terrain-slot { overflow: visible; }
+
+/* Colonne de badges, calee a hauteur du SPRITE (bas du slot), cote droit */
+.statuts-badges {
+  position: absolute;
+  bottom: 30px;
+  right: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* Chaque badge = pastille ronde coloree avec l'icone dessus */
+.statut-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 13px;
+  line-height: 1;
+  background: var(--c-statut, #444);
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6), 0 0 10px var(--c-statut, #444);
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.8));
+}
+.statut-badge.statut-malus { animation: statut-pulse-malus 1.2s ease-in-out infinite; }
+.statut-badge.statut-buff  { animation: statut-pulse-buff 1.6s ease-in-out infinite; }
+@keyframes statut-pulse-malus { 0%,100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+@keyframes statut-pulse-buff  { 0%,100% { transform: scale(1) translateY(0); } 50% { transform: scale(1.12) translateY(-2px); } }
+
+/* Chiffres flottants de statut (degats sur la duree) */
+.chiffre-flottant.statut {
+  color: #ffb86b; font-weight: 700;
+  text-shadow: 0 0 4px rgba(255,107,53,0.7), 0 1px 2px rgba(0,0,0,0.9);
+}
+/* Apparition d'un statut : grosse icone qui pop bien visible */
+.chiffre-flottant.applique-statut {
+  font-size: 1.5rem;
+  z-index: 21;
+  animation: applique-statut-pop 1.1s ease-out forwards;
+}
+@keyframes applique-statut-pop {
+  0%   { transform: translateY(4px) scale(0.4); opacity: 0; }
+  30%  { transform: translateY(-10px) scale(1.5); opacity: 1; }
+  100% { transform: translateY(-34px) scale(1); opacity: 0; }
+}
+/* ============================================================
+   SYNERGIES D'EQUIPE — encart dans l'ecran equipe
+   A coller a la fin de App.css.
+   ============================================================ */
+
+.eqm-syn {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 10px 0;
+}
+.eqm-syn-titre {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.62rem;
+  color: #f0f4fc;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.eqm-syn-compteur {
+  font-family: 'Silkscreen', monospace;
+  font-size: 11px;
+  color: #80ed99;
+  background: rgba(128,237,153,0.12);
+  padding: 2px 8px; border-radius: 10px;
+}
+.eqm-syn-liste {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+.eqm-syn-carte {
+  position: relative;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 9px 11px 9px 36px;
+  border-radius: 9px;
+  border: 1.5px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.2);
+  transition: border-color 0.15s, transform 0.15s, opacity 0.15s;
+}
+.eqm-syn-carte.active {
+  border-color: var(--c-syn, #80ed99);
+  background: rgba(255,255,255,0.05);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--c-syn, #80ed99) 30%, transparent);
+}
+.eqm-syn-carte.inactive { opacity: 0.42; }
+.eqm-syn-carte.active:hover { transform: translateY(-2px); }
+.eqm-syn-emoji {
+  position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+  font-size: 20px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+}
+.eqm-syn-nom {
+  font-family: 'Silkscreen', monospace;
+  font-size: 12px; font-weight: 700;
+  color: var(--c-syn, #f0f4fc);
+}
+.eqm-syn-desc {
+  font-size: 10.5px;
+  color: #8a93a3;
+  line-height: 1.3;
+}
+.eqm-syn-check {
+  font-family: 'Silkscreen', monospace;
+  font-size: 9px;
+  color: var(--c-syn, #80ed99);
+  margin-top: 3px;
+  letter-spacing: 0.5px;
+}
+.eqm-syn-aide {
+  font-size: 11px;
+  color: #8a93a3;
+  margin: 8px 0 0;
+  font-style: italic;
+  line-height: 1.4;
+}
+/* ============================================================
+   SYNERGIES D'EQUIPE v2 — encart + popup (plus lisible)
+   A coller a la fin de App.css (remplace l'ancien bloc synergies).
+   ============================================================ */
+
+.eqm-syn {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 10px 0;
+}
+.eqm-syn-titre {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.66rem;
+  color: #f0f4fc;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 10px;
+}
+.eqm-syn-compteur {
+  font-family: 'Silkscreen', monospace;
+  font-size: 12px;
+  color: #80ed99;
+  background: rgba(128,237,153,0.15);
+  padding: 3px 9px; border-radius: 10px;
+}
+/* Bouton d'aide "?" */
+.eqm-syn-aide-btn {
+  margin-left: auto;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.06);
+  color: #f0f4fc;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.eqm-syn-aide-btn:hover { background: rgba(255,255,255,0.15); border-color: #80ed99; }
+
+/* Phrase d'explication en haut */
+.eqm-syn-explication {
+  font-size: 12px;
+  color: #b0b8c8;
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+.eqm-syn-explication strong { color: #80ed99; }
+
+.eqm-syn-liste {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 9px;
+}
+.eqm-syn-carte {
+  position: relative;
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 10px 12px 10px 44px;
+  border-radius: 10px;
+  border: 2px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.25);
+  transition: border-color 0.15s, transform 0.15s, opacity 0.15s;
+}
+.eqm-syn-carte.active {
+  border-color: var(--c-syn, #80ed99);
+  background: color-mix(in srgb, var(--c-syn, #80ed99) 12%, rgba(0,0,0,0.3));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--c-syn, #80ed99) 35%, transparent);
+}
+.eqm-syn-carte.inactive { opacity: 0.55; }
+.eqm-syn-carte.active:hover { transform: translateY(-2px); }
+.eqm-syn-emoji {
+  position: absolute; left: 10px; top: 12px;
+  font-size: 22px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.7));
+}
+.eqm-syn-nom {
+  font-family: 'Silkscreen', monospace;
+  font-size: 13px; font-weight: 700;
+  color: #ffffff;
+}
+.eqm-syn-carte.active .eqm-syn-nom { color: var(--c-syn, #80ed99); }
+.eqm-syn-desc {
+  font-size: 11px;
+  color: #c2cad6;
+  line-height: 1.35;
+}
+.eqm-syn-check {
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: var(--c-syn, #80ed99);
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+.eqm-syn-manque {
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: #ffa726;
+  margin-top: 4px;
+}
+
+/* Popup explicative */
+.eqm-syn-popup {
+  position: relative;
+  background: #16182a;
+  border: 2px solid #80ed99;
+  border-radius: 16px;
+  padding: 22px 24px;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 0 50px rgba(128,237,153,0.2);
+}
+.eqm-syn-popup-titre {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.8rem;
+  color: #80ed99;
+  margin: 0 0 14px;
+}
+.eqm-syn-popup-intro, .eqm-syn-popup-exemple {
+  font-size: 13px;
+  color: #c2cad6;
+  line-height: 1.55;
+  margin: 0 0 12px;
+}
+.eqm-syn-popup-intro strong { color: #80ed99; }
+.eqm-syn-popup-exemple { background: rgba(128,237,153,0.08); border-radius: 8px; padding: 10px 12px; }
+.eqm-syn-popup-exemple strong { color: #ffd60a; }
+.eqm-syn-popup-liste { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+.eqm-syn-popup-ligne {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.25);
+  border-left: 3px solid var(--c-syn, #80ed99);
+}
+.eqm-syn-popup-emoji { font-size: 22px; flex-shrink: 0; }
+.eqm-syn-popup-nom {
+  display: block;
+  font-family: 'Silkscreen', monospace;
+  font-size: 12px; font-weight: 700;
+  color: var(--c-syn, #fff);
+}
+.eqm-syn-popup-desc { display: block; font-size: 11px; color: #b0b8c8; line-height: 1.3; }
+.eqm-syn-popup-astuce {
+  font-size: 12px; color: #b0b8c8; line-height: 1.5;
+  background: rgba(255,214,10,0.08);
+  border: 1px solid rgba(255,214,10,0.25);
+  border-radius: 8px; padding: 10px 12px; margin: 14px 0 0;
+}
+/* ============================================================
+   SYNERGIES D'EQUIPE v2 — encart + popup (plus lisible)
+   A coller a la fin de App.css (remplace l'ancien bloc synergies).
+   ============================================================ */
+
+.eqm-syn {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 10px 0;
+}
+.eqm-syn-titre {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.66rem;
+  color: #f0f4fc;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 10px;
+}
+.eqm-syn-compteur {
+  font-family: 'Silkscreen', monospace;
+  font-size: 12px;
+  color: #80ed99;
+  background: rgba(128,237,153,0.15);
+  padding: 3px 9px; border-radius: 10px;
+}
+/* Bouton d'aide "?" */
+.eqm-syn-aide-btn {
+  margin-left: auto;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.06);
+  color: #f0f4fc;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.eqm-syn-aide-btn:hover { background: rgba(255,255,255,0.15); border-color: #80ed99; }
+
+/* Phrase d'explication en haut */
+.eqm-syn-explication {
+  font-size: 12px;
+  color: #b0b8c8;
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+.eqm-syn-explication strong { color: #80ed99; }
+
+.eqm-syn-liste {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 9px;
+}
+.eqm-syn-carte {
+  position: relative;
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 10px 12px 10px 44px;
+  border-radius: 10px;
+  border: 2px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.25);
+  transition: border-color 0.15s, transform 0.15s, opacity 0.15s;
+}
+.eqm-syn-carte.active {
+  border-color: var(--c-syn, #80ed99);
+  background: color-mix(in srgb, var(--c-syn, #80ed99) 12%, rgba(0,0,0,0.3));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--c-syn, #80ed99) 35%, transparent);
+}
+.eqm-syn-carte.inactive { opacity: 0.55; }
+.eqm-syn-carte.active:hover { transform: translateY(-2px); }
+.eqm-syn-emoji {
+  position: absolute; left: 10px; top: 12px;
+  font-size: 22px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.7));
+}
+.eqm-syn-nom {
+  font-family: 'Silkscreen', monospace;
+  font-size: 13px; font-weight: 700;
+  color: #ffffff;
+}
+.eqm-syn-carte.active .eqm-syn-nom { color: var(--c-syn, #80ed99); }
+.eqm-syn-desc {
+  font-size: 11px;
+  color: #c2cad6;
+  line-height: 1.35;
+}
+.eqm-syn-check {
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: var(--c-syn, #80ed99);
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+.eqm-syn-manque {
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: #ffa726;
+  margin-top: 4px;
+}
+
+/* Popup explicative */
+.eqm-syn-popup {
+  position: relative;
+  background: #16182a;
+  border: 2px solid #80ed99;
+  border-radius: 16px;
+  padding: 22px 24px;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 0 50px rgba(128,237,153,0.2);
+}
+.eqm-syn-popup-titre {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.8rem;
+  color: #80ed99;
+  margin: 0 0 14px;
+}
+.eqm-syn-popup-intro, .eqm-syn-popup-exemple {
+  font-size: 13px;
+  color: #c2cad6;
+  line-height: 1.55;
+  margin: 0 0 12px;
+}
+.eqm-syn-popup-intro strong { color: #80ed99; }
+.eqm-syn-popup-exemple { background: rgba(128,237,153,0.08); border-radius: 8px; padding: 10px 12px; }
+.eqm-syn-popup-exemple strong { color: #ffd60a; }
+.eqm-syn-popup-liste { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+.eqm-syn-popup-ligne {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.25);
+  border-left: 3px solid var(--c-syn, #80ed99);
+}
+.eqm-syn-popup-emoji { font-size: 22px; flex-shrink: 0; }
+.eqm-syn-popup-nom {
+  display: block;
+  font-family: 'Silkscreen', monospace;
+  font-size: 12px; font-weight: 700;
+  color: var(--c-syn, #fff);
+}
+.eqm-syn-popup-desc { display: block; font-size: 11px; color: #b0b8c8; line-height: 1.3; }
+.eqm-syn-popup-astuce {
+  font-size: 12px; color: #b0b8c8; line-height: 1.5;
+  background: rgba(255,214,10,0.08);
+  border: 1px solid rgba(255,214,10,0.25);
+  border-radius: 8px; padding: 10px 12px; margin: 14px 0 0;
+}
+
+/* ---- Version COMPACTE : pastilles actives + toggle ---- */
+.eqm-syn-pastilles {
+  display: flex; flex-wrap: wrap; gap: 7px;
+  margin-bottom: 4px;
+}
+.eqm-syn-pastille {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1.5px solid var(--c-syn, #80ed99);
+  background: color-mix(in srgb, var(--c-syn, #80ed99) 14%, rgba(0,0,0,0.3));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c-syn, #80ed99) 30%, transparent);
+}
+.eqm-syn-pastille-emoji { font-size: 15px; }
+.eqm-syn-pastille-nom {
+  font-family: 'Silkscreen', monospace;
+  font-size: 11px; font-weight: 700;
+  color: var(--c-syn, #80ed99);
+}
+.eqm-syn-compteur-vide { color: #8a93a3; background: rgba(255,255,255,0.05); }
+.eqm-syn-vide-txt {
+  font-size: 11.5px; color: #8a93a3; font-style: italic;
+  margin: 0 0 4px; line-height: 1.4;
+}
+.eqm-syn-toggle {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: #b0b8c8;
+  font-family: 'Silkscreen', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.eqm-syn-toggle:hover { background: rgba(255,255,255,0.09); color: #f0f4fc; }
+.eqm-syn-liste { margin-top: 9px; }
+/* ============================================================
+   ALERTE PLAFOND DE NIVEAU (mur prestige)
+   A coller a la fin de App.css.
+   ============================================================ */
+
+.alerte-plafond {
+  margin: 10px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(214,134,255,0.12), rgba(252,211,77,0.08));
+  border: 2px solid #d986ff;
+  box-shadow: 0 0 18px rgba(214,134,255,0.25);
+  text-align: center;
+}
+.alerte-plafond-titre {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.72rem;
+  color: #fcd34d;
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+.alerte-plafond-sous {
+  font-size: 12.5px;
+  color: #d8c2e8;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+.alerte-plafond-btn {
+  font-family: 'Silkscreen', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1024;
+  background: linear-gradient(135deg, #d986ff, #fcd34d);
+  border: none;
+  border-radius: 9px;
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  box-shadow: 0 3px 10px rgba(214,134,255,0.4);
+}
+.alerte-plafond-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 16px rgba(214,134,255,0.6); }
+/* ============================================================
+   ALERTE PLAFOND DE NIVEAU (mur prestige)
+   A coller a la fin de App.css.
+   ============================================================ */
+
+.alerte-plafond {
+  margin: 10px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(214,134,255,0.12), rgba(252,211,77,0.08));
+  border: 2px solid #d986ff;
+  box-shadow: 0 0 18px rgba(214,134,255,0.25);
+  text-align: center;
+}
+.alerte-plafond-titre {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.72rem;
+  color: #fcd34d;
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+.alerte-plafond-sous {
+  font-size: 12.5px;
+  color: #d8c2e8;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+.alerte-plafond-btn {
+  font-family: 'Silkscreen', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1024;
+  background: linear-gradient(135deg, #d986ff, #fcd34d);
+  border: none;
+  border-radius: 9px;
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  box-shadow: 0 3px 10px rgba(214,134,255,0.4);
+}
+.alerte-plafond-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 16px rgba(214,134,255,0.6); }
+
+/* ---- Pop-up tutoriel Prestige (1ere fois au mur) ---- */
+.tuto-prestige {
+  position: relative;
+  background: linear-gradient(160deg, #1d1430, #16182a);
+  border: 2px solid #d986ff;
+  border-radius: 18px;
+  padding: 26px 28px;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 0 50px rgba(214,134,255,0.3);
+  text-align: center;
+}
+.tuto-prestige-couronne {
+  font-size: 46px;
+  animation: tuto-couronne 2s ease-in-out infinite;
+}
+@keyframes tuto-couronne { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-5px) scale(1.08); } }
+.tuto-prestige-titre {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.95rem;
+  color: #fcd34d;
+  margin: 8px 0 16px;
+  line-height: 1.4;
+}
+.tuto-prestige-txt {
+  font-size: 13px;
+  color: #d8c2e8;
+  line-height: 1.55;
+  margin: 0 0 12px;
+  text-align: left;
+}
+.tuto-prestige-txt strong { color: #fcd34d; }
+.tuto-prestige-final { text-align: center; font-style: italic; color: #c2cad6; margin-top: 14px; }
+.tuto-prestige-liste {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  text-align: left;
+}
+.tuto-prestige-liste li {
+  font-size: 12.5px;
+  color: #d8c2e8;
+  line-height: 1.5;
+  padding: 7px 12px;
+  margin-bottom: 6px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  border-left: 3px solid #d986ff;
+}
+.tuto-prestige-liste strong { color: #fff; }
+.tuto-prestige-boutons {
+  display: flex; gap: 10px; margin-top: 18px;
+}
+.tuto-prestige-btn-principal {
+  flex: 1;
+  font-family: 'Silkscreen', monospace;
+  font-size: 13px; font-weight: 700;
+  color: #1a1024;
+  background: linear-gradient(135deg, #d986ff, #fcd34d);
+  border: none; border-radius: 9px;
+  padding: 11px;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  box-shadow: 0 3px 10px rgba(214,134,255,0.4);
+}
+.tuto-prestige-btn-principal:hover { transform: translateY(-2px); box-shadow: 0 5px 16px rgba(214,134,255,0.6); }
+.tuto-prestige-btn-secondaire {
+  font-family: 'Silkscreen', monospace;
+  font-size: 12px;
+  color: #8a93a3;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 9px;
+  padding: 11px 16px;
+  cursor: pointer;
+}
+.tuto-prestige-btn-secondaire:hover { color: #f0f4fc; background: rgba(255,255,255,0.1); }
+/* ============================================================
+   BARRE D'XP en combat — fine, doree, animee
+   A coller a la fin de App.css.
+   ============================================================ */
+
+.cbt-barre-xp {
+  position: relative;
+  height: 5px;
+  margin-top: 3px;
+  background: rgba(0,0,0,0.45);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+}
+.cbt-barre-xp-fill {
+  position: relative;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #f59e0b, #fcd34d, #fde68a);
+  box-shadow: 0 0 6px rgba(252,211,77,0.6);
+  transition: width 0.45s cubic-bezier(0.34, 1.2, 0.64, 1);
+  overflow: hidden;
+}
+/* Reflet brillant qui balaie la barre */
+.cbt-barre-xp-brillance {
+  position: absolute;
+  top: 0; left: -40%;
+  width: 40%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent);
+  animation: cbt-xp-brillance 2.4s ease-in-out infinite;
+}
+@keyframes cbt-xp-brillance {
+  0% { left: -40%; }
+  60%, 100% { left: 130%; }
+}
+
+/* Barre pleine quand le Pokemon est au niveau MAX (doree pulsante) */
+.cbt-barre-xp-max .cbt-barre-xp-fill {
+  background: linear-gradient(90deg, #fcd34d, #fff8dc, #fcd34d);
+  animation: cbt-xp-max-pulse 1.6s ease-in-out infinite;
+}
+@keyframes cbt-xp-max-pulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(252,211,77,0.5); }
+  50% { box-shadow: 0 0 12px rgba(252,211,77,0.95); }
+}
+
+/* Texte "MAX" sur le niveau */
+.cbt-niv-max {
+  color: #fcd34d !important;
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(252,211,77,0.7);
+  animation: cbt-niv-max-glow 1.6s ease-in-out infinite;
+}
+@keyframes cbt-niv-max-glow {
+  0%, 100% { opacity: 0.92; }
+  50% { opacity: 1; text-shadow: 0 0 10px rgba(252,211,77,1); }
+}
+/* =====================================================================
+   AMBIANCE DE COMBAT — decor vivant par monde (AUCUN filter:blur)
+   A coller a la FIN de App.css. 100% CSS, Ctrl+Z pour annuler.
+   Matche le composant AmbianceCombat.jsx (28 particules, 12 lucioles...)
+   ===================================================================== */
+
+/* --- Le terrain borne toutes les couches (particules ne debordent pas) --- */
+.arene-terrain {
+  position: relative;
+  overflow: hidden;
+}
+
+/* --- Conteneur racine de l'ambiance : remplit le terrain, derriere tout --- */
+.amb {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+/* Les combattants doivent passer AU-DESSUS de l'ambiance */
+.arene-terrain > .terrain-rangee,
+.arene-terrain > .terrain-vs {
+  position: relative;
+  z-index: 2;
+}
+
+/* =====================================================================
+   1. VOILE ATMOSPHERIQUE colore (teinte du monde)
+   ===================================================================== */
+.amb-voile {
+  position: absolute;
+  inset: 0;
+  opacity: 0.55;
+  mix-blend-mode: soft-light;
+  animation: amb-voile-puls 9s ease-in-out infinite;
+}
+@keyframes amb-voile-puls {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.62; }
+}
+
+/* =====================================================================
+   2. GOD RAYS — rayons obliques qui balaient (radial-gradient, pas de blur)
+   ===================================================================== */
+.amb-rays {
+  position: absolute;
+  inset: -20% -10%;
+  transform: rotate(14deg);
+  transform-origin: top center;
+}
+.amb-ray {
+  position: absolute;
+  top: -10%;
+  width: 90px;
+  height: 150%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.06) 45%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  opacity: 0;
+  animation: amb-ray-bal 11s ease-in-out infinite;
+}
+.amb-ray-0 { left: 12%; animation-delay: 0s;   }
+.amb-ray-1 { left: 34%; animation-delay: 2.6s; width: 60px; }
+.amb-ray-2 { left: 58%; animation-delay: 5.1s; width: 110px; }
+.amb-ray-3 { left: 80%; animation-delay: 7.8s; width: 70px; }
+@keyframes amb-ray-bal {
+  0%        { opacity: 0;    transform: translateX(-30px); }
+  25%, 55%  { opacity: 0.85; transform: translateX(0); }
+  100%      { opacity: 0;    transform: translateX(30px); }
+}
+
+/* =====================================================================
+   3. VAGUES DE VENT — bandes douces qui balaient horizontalement
+   ===================================================================== */
+.amb-vent { position: absolute; inset: 0; }
+.amb-vague {
+  position: absolute;
+  left: -40%;
+  width: 50%;
+  height: 60px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.10) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  border-radius: 50%;
+  opacity: 0;
+  animation: amb-vague-pass 8s linear infinite;
+}
+.amb-vague-0 { top: 22%; animation-delay: 0s;   }
+.amb-vague-1 { top: 50%; animation-delay: 3s;   height: 40px; }
+.amb-vague-2 { top: 74%; animation-delay: 5.5s; height: 80px; }
+@keyframes amb-vague-pass {
+  0%   { transform: translateX(0);     opacity: 0; }
+  20%  { opacity: 0.7; }
+  80%  { opacity: 0.7; }
+  100% { transform: translateX(320%);  opacity: 0; }
+}
+
+/* =====================================================================
+   4. PARTICULES PRINCIPALES — 28 elements en diagonale
+   La FORME/COULEUR depend du monde (voir section MONDES plus bas).
+   ===================================================================== */
+.amb-particules { position: absolute; inset: 0; }
+.amb-p {
+  position: absolute;
+  top: -8%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: amb-chute linear infinite;
+}
+@keyframes amb-chute {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg);        opacity: 0; }
+  8%   { opacity: 0.9; }
+  92%  { opacity: 0.9; }
+  100% { transform: translate3d(-60px, 115%, 0) rotate(320deg); opacity: 0; }
+}
+
+/* Positions / vitesses / tailles variees pour les 28 particules */
+.amb-p-0  { left: 3%;  animation-duration: 9s;  animation-delay: 0s;   }
+.amb-p-1  { left: 9%;  animation-duration: 12s; animation-delay: 1.5s; transform: scale(0.7); }
+.amb-p-2  { left: 15%; animation-duration: 7s;  animation-delay: 3s;   transform: scale(1.3); }
+.amb-p-3  { left: 21%; animation-duration: 11s; animation-delay: 0.8s; }
+.amb-p-4  { left: 27%; animation-duration: 8s;  animation-delay: 2.2s; transform: scale(0.6); }
+.amb-p-5  { left: 33%; animation-duration: 13s; animation-delay: 4s;   transform: scale(1.1); }
+.amb-p-6  { left: 39%; animation-duration: 6.5s; animation-delay: 1s;  }
+.amb-p-7  { left: 45%; animation-duration: 10s; animation-delay: 5s;   transform: scale(0.8); }
+.amb-p-8  { left: 51%; animation-duration: 9.5s; animation-delay: 2.8s; transform: scale(1.4); }
+.amb-p-9  { left: 57%; animation-duration: 7.5s; animation-delay: 0.4s; }
+.amb-p-10 { left: 63%; animation-duration: 12.5s; animation-delay: 3.6s; transform: scale(0.7); }
+.amb-p-11 { left: 69%; animation-duration: 8.5s; animation-delay: 1.8s; transform: scale(1.2); }
+.amb-p-12 { left: 75%; animation-duration: 6s;  animation-delay: 4.4s; }
+.amb-p-13 { left: 81%; animation-duration: 11.5s; animation-delay: 0.2s; transform: scale(0.9); }
+.amb-p-14 { left: 87%; animation-duration: 9s;  animation-delay: 2.5s; transform: scale(1.3); }
+.amb-p-15 { left: 93%; animation-duration: 7.8s; animation-delay: 5.5s; }
+.amb-p-16 { left: 6%;  animation-duration: 10.5s; animation-delay: 3.2s; transform: scale(0.8); }
+.amb-p-17 { left: 18%; animation-duration: 8.2s; animation-delay: 6s;  transform: scale(1.1); }
+.amb-p-18 { left: 30%; animation-duration: 12s; animation-delay: 1.2s; }
+.amb-p-19 { left: 42%; animation-duration: 6.8s; animation-delay: 4.8s; transform: scale(0.6); }
+.amb-p-20 { left: 54%; animation-duration: 11s; animation-delay: 2s;   transform: scale(1.4); }
+.amb-p-21 { left: 66%; animation-duration: 9.2s; animation-delay: 5.2s; }
+.amb-p-22 { left: 78%; animation-duration: 7.2s; animation-delay: 0.6s; transform: scale(0.9); }
+.amb-p-23 { left: 90%; animation-duration: 13s; animation-delay: 3.8s; transform: scale(1.2); }
+.amb-p-24 { left: 12%; animation-duration: 8.8s; animation-delay: 6.5s; }
+.amb-p-25 { left: 36%; animation-duration: 10.8s; animation-delay: 1.6s; transform: scale(0.7); }
+.amb-p-26 { left: 60%; animation-duration: 7.4s; animation-delay: 4.2s; transform: scale(1.3); }
+.amb-p-27 { left: 84%; animation-duration: 11.8s; animation-delay: 2.4s; }
+
+/* =====================================================================
+   5. LUCIOLES — 12 points qui scintillent sur place (box-shadow doux)
+   ===================================================================== */
+.amb-lucioles { position: absolute; inset: 0; }
+.amb-luciole {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 247, 200, 0.95);
+  box-shadow: 0 0 6px 2px rgba(255, 240, 170, 0.8);
+  opacity: 0;
+  animation: amb-scintille ease-in-out infinite;
+}
+@keyframes amb-scintille {
+  0%, 100% { opacity: 0;    transform: translateY(0) scale(0.6); }
+  50%      { opacity: 0.95; transform: translateY(-10px) scale(1.1); }
+}
+.amb-luciole-0  { left: 10%; top: 30%; animation-duration: 4s;   animation-delay: 0s;   }
+.amb-luciole-1  { left: 24%; top: 55%; animation-duration: 5.5s; animation-delay: 1.2s; }
+.amb-luciole-2  { left: 38%; top: 25%; animation-duration: 3.8s; animation-delay: 2.5s; }
+.amb-luciole-3  { left: 52%; top: 60%; animation-duration: 6s;   animation-delay: 0.6s; }
+.amb-luciole-4  { left: 66%; top: 35%; animation-duration: 4.5s; animation-delay: 3s;   }
+.amb-luciole-5  { left: 80%; top: 50%; animation-duration: 5s;   animation-delay: 1.8s; }
+.amb-luciole-6  { left: 92%; top: 28%; animation-duration: 4.2s; animation-delay: 2.2s; }
+.amb-luciole-7  { left: 16%; top: 70%; animation-duration: 5.8s; animation-delay: 0.9s; }
+.amb-luciole-8  { left: 44%; top: 45%; animation-duration: 3.5s; animation-delay: 3.6s; }
+.amb-luciole-9  { left: 58%; top: 72%; animation-duration: 6.2s; animation-delay: 1.5s; }
+.amb-luciole-10 { left: 72%; top: 65%; animation-duration: 4.8s; animation-delay: 2.8s; }
+.amb-luciole-11 { left: 86%; top: 68%; animation-duration: 5.2s; animation-delay: 0.3s; }
+
+/* =====================================================================
+   6. BRUME AU SOL — 2 couches douces qui derivent (gradient, pas de blur)
+   ===================================================================== */
+.amb-brume { position: absolute; left: 0; right: 0; bottom: 0; height: 35%; }
+.amb-brume-couche {
+  position: absolute;
+  bottom: 0;
+  left: -20%;
+  width: 140%;
+  height: 100%;
+  background: radial-gradient(
+    120% 80% at 50% 100%,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  opacity: 0.5;
+}
+.amb-brume-0 { animation: amb-brume-derive 16s ease-in-out infinite; }
+.amb-brume-1 { animation: amb-brume-derive 22s ease-in-out infinite reverse; opacity: 0.35; }
+@keyframes amb-brume-derive {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(8%); }
+}
+
+/* =====================================================================
+   7. SILHOUETTES LOINTAINES — oiseaux qui traversent (formes en ::before)
+   ===================================================================== */
+.amb-silhouettes { position: absolute; inset: 0; }
+.amb-oiseau {
+  position: absolute;
+  width: 14px;
+  height: 6px;
+  opacity: 0;
+  animation: amb-oiseau-vol linear infinite;
+}
+.amb-oiseau::before,
+.amb-oiseau::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 4px;
+  border-top: 2px solid rgba(30, 30, 40, 0.55);
+  border-radius: 50% 50% 0 0;
+}
+.amb-oiseau::before { left: 0;   transform: rotate(-18deg); }
+.amb-oiseau::after  { right: 0;  transform: rotate(18deg); }
+.amb-oiseau-0 { top: 14%; animation-duration: 18s; animation-delay: 0s;  }
+.amb-oiseau-1 { top: 20%; animation-duration: 24s; animation-delay: 7s;  transform: scale(0.7); }
+.amb-oiseau-2 { top: 10%; animation-duration: 21s; animation-delay: 13s; transform: scale(1.2); }
+@keyframes amb-oiseau-vol {
+  0%   { transform: translateX(-12%); opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.6; }
+  100% { transform: translateX(115vw); opacity: 0; }
+}
+
+/* =====================================================================
+   8. HALO DE PROFONDEUR — vignette douce qui pulse (relief)
+   ===================================================================== */
+.amb-profondeur {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    120% 90% at 50% 45%,
+    rgba(0, 0, 0, 0) 55%,
+    rgba(0, 0, 0, 0.28) 100%
+  );
+  animation: amb-prof-puls 12s ease-in-out infinite;
+}
+@keyframes amb-prof-puls {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}
+
+/* =====================================================================
+   ===========  VARIANTES PAR MONDE (couleur + forme particule)  =======
+   ===================================================================== */
+
+/* ---------- FEUILLES (foret / prairie / jade / dragon) ---------- */
+.amb-feuilles .amb-voile {
+  background: radial-gradient(100% 100% at 50% 0%, rgba(120, 220, 120, 0.35), rgba(40, 120, 60, 0.15));
+}
+.amb-feuilles .amb-p {
+  width: 12px; height: 9px;
+  border-radius: 0 80% 0 80%;
+  background: linear-gradient(135deg, #7ed957, #3f9142);
+  box-shadow: inset -1px -1px 2px rgba(0,0,0,0.2);
+}
+
+/* ---------- NEIGE (sommet / glace / cristal) ---------- */
+.amb-neige .amb-voile {
+  background: radial-gradient(100% 100% at 50% 0%, rgba(200, 235, 255, 0.45), rgba(120, 170, 220, 0.2));
+}
+.amb-neige .amb-p {
+  width: 7px; height: 7px;
+  background: radial-gradient(circle, #ffffff 0%, #d6ecff 70%, rgba(255,255,255,0) 100%);
+  box-shadow: 0 0 4px 1px rgba(220, 240, 255, 0.7);
+}
+.amb-neige .amb-luciole { background: rgba(220, 245, 255, 0.95); box-shadow: 0 0 6px 2px rgba(190, 225, 255, 0.8); }
+
+/* ---------- CENDRES (volcan / feu / forge / lave) ---------- */
+.amb-cendres .amb-voile {
+  background: radial-gradient(100% 100% at 50% 100%, rgba(255, 120, 40, 0.4), rgba(120, 30, 10, 0.2));
+}
+.amb-cendres .amb-p {
+  width: 6px; height: 6px;
+  background: radial-gradient(circle, #ffd27a 0%, #ff7b2e 50%, #b83410 100%);
+  box-shadow: 0 0 6px 2px rgba(255, 120, 40, 0.8);
+}
+/* Les braises montent au lieu de tomber */
+.amb-cendres .amb-p { animation-name: amb-monte; }
+@keyframes amb-monte {
+  0%   { transform: translate3d(0, 0, 0) scale(1);        opacity: 0; top: 100%; }
+  10%  { opacity: 0.95; }
+  90%  { opacity: 0.9; }
+  100% { transform: translate3d(40px, -115%, 0) scale(0.4); opacity: 0; top: 100%; }
+}
+.amb-cendres .amb-luciole { background: rgba(255, 200, 120, 0.95); box-shadow: 0 0 7px 2px rgba(255, 130, 50, 0.85); }
+
+/* ---------- SABLE (desert / plage / dune) ---------- */
+.amb-sable .amb-voile {
+  background: radial-gradient(100% 100% at 50% 0%, rgba(245, 220, 150, 0.4), rgba(200, 160, 80, 0.18));
+}
+.amb-sable .amb-p {
+  width: 4px; height: 4px;
+  background: #e8cf8f;
+  box-shadow: 0 0 2px rgba(180, 140, 70, 0.5);
+}
+/* Le sable file plutot a l'horizontale */
+.amb-sable .amb-p { animation-name: amb-souffle; }
+@keyframes amb-souffle {
+  0%   { transform: translate3d(-20px, 0, 0);    opacity: 0; }
+  10%  { opacity: 0.8; }
+  90%  { opacity: 0.8; }
+  100% { transform: translate3d(120%, 40%, 0);   opacity: 0; }
+}
+
+/* ---------- SPORES (grotte / abysses / temple / marais) ---------- */
+.amb-spores .amb-voile {
+  background: radial-gradient(100% 100% at 50% 50%, rgba(170, 110, 220, 0.4), rgba(70, 30, 110, 0.22));
+}
+.amb-spores .amb-p {
+  width: 7px; height: 7px;
+  background: radial-gradient(circle, #e0b3ff 0%, #a259e6 60%, rgba(120,60,180,0) 100%);
+  box-shadow: 0 0 7px 2px rgba(170, 100, 230, 0.8);
+}
+/* Les spores flottent doucement (derive lente) */
+.amb-spores .amb-p { animation-name: amb-flotte-spore; }
+@keyframes amb-flotte-spore {
+  0%   { transform: translate3d(0, 0, 0);       opacity: 0; }
+  10%  { opacity: 0.85; }
+  50%  { transform: translate3d(25px, 55%, 0); }
+  90%  { opacity: 0.8; }
+  100% { transform: translate3d(-15px, 115%, 0); opacity: 0; }
+}
+.amb-spores .amb-luciole { background: rgba(220, 170, 255, 0.95); box-shadow: 0 0 7px 2px rgba(170, 100, 230, 0.85); }
+
+/* ---------- POUSSIERE (defaut / autres mondes) ---------- */
+.amb-poussiere .amb-voile {
+  background: radial-gradient(100% 100% at 50% 0%, rgba(220, 220, 230, 0.3), rgba(140, 140, 160, 0.15));
+}
+.amb-poussiere .amb-p {
+  width: 5px; height: 5px;
+  background: rgba(230, 230, 240, 0.7);
+  box-shadow: 0 0 3px rgba(200, 200, 220, 0.5);
+}
+
+/* =====================================================================
+   ===================  EFFET SPECIAL BOSS  ============================
+   Plus intense, rougeoyant, dramatique. Pulsation menacante.
+   ===================================================================== */
+.amb-boss .amb-voile {
+  background: radial-gradient(100% 100% at 50% 50%, rgba(255, 40, 40, 0.4), rgba(90, 0, 0, 0.35)) !important;
+  opacity: 0.7;
+  animation: amb-boss-puls 3.5s ease-in-out infinite;
+}
+@keyframes amb-boss-puls {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 0.85; }
+}
+.amb-boss .amb-profondeur {
+  background: radial-gradient(120% 90% at 50% 45%, rgba(0,0,0,0) 40%, rgba(60, 0, 0, 0.5) 100%);
+}
+.amb-boss .amb-ray {
+  background: linear-gradient(to bottom, rgba(255, 90, 90, 0.3) 0%, rgba(255, 60, 60, 0.08) 45%, rgba(255,0,0,0) 100%);
+}
+.amb-boss .amb-luciole {
+  background: rgba(255, 120, 120, 0.95);
+  box-shadow: 0 0 8px 3px rgba(255, 50, 50, 0.9);
+}
+/* Une legere aura rouge supplementaire qui bat sur les bords */
+.amb-boss::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 60px 10px rgba(255, 30, 30, 0.35);
+  animation: amb-boss-bord 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes amb-boss-bord {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.9; }
+}
+
+/* =====================================================================
+   PLATEFORMES EN PERSPECTIVE — v5 : descendues pile sous les pieds
+   A coller a la FIN de App.css (apres Ctrl+Z de l'ancien bloc plateforme).
+   Ctrl+Z pour annuler.
+   ===================================================================== */
+
+.terrain-ennemis::before,
+.terrain-joueur::before,
+.terrain-rangee::after {
+  content: none !important;
+  display: none !important;
+}
+
+.cbt-sprite-zone::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -16px;               /* descendue pile sous les pieds */
+  transform: translateX(-50%);
+  width: 130px;
+  height: 32px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center,
+    rgba(115,150,85,0.55) 0%, rgba(72,98,56,0.4) 55%, transparent 80%);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.cbt-ennemi .cbt-sprite-zone::before {
+  width: 112px;
+  height: 26px;
+  bottom: -14px;
+}
+
+.cbt-ombre-sol { z-index: 1 !important; }
+
+/* COULEUR adaptee au monde */
+.arene-terrain:has(.amb-neige) .cbt-sprite-zone::before {
+  background: radial-gradient(ellipse at center, rgba(180,215,250,0.5) 0%, rgba(135,180,225,0.36) 55%, transparent 80%);
+}
+.arene-terrain:has(.amb-cendres) .cbt-sprite-zone::before {
+  background: radial-gradient(ellipse at center, rgba(190,95,55,0.5) 0%, rgba(130,55,30,0.36) 55%, transparent 80%);
+}
+.arene-terrain:has(.amb-sable) .cbt-sprite-zone::before {
+  background: radial-gradient(ellipse at center, rgba(205,175,100,0.52) 0%, rgba(160,130,70,0.38) 55%, transparent 80%);
+}
+.arene-terrain:has(.amb-spores) .cbt-sprite-zone::before {
+  background: radial-gradient(ellipse at center, rgba(140,85,190,0.5) 0%, rgba(95,55,140,0.36) 55%, transparent 80%);
+}
+.arene-boss .cbt-sprite-zone::before {
+  background: radial-gradient(ellipse at center, rgba(155,75,65,0.55) 0%, rgba(95,45,38,0.4) 55%, transparent 80%);
+}
+/* =====================================================================
+   EFFETS DE STATUT SUR LE SPRITE — halo colore pulsant + emojis affines
+   A coller a la FIN de App.css. Ctrl+Z pour annuler. 100% CSS.
+   Detection via :has() de la particule presente dans le sprite-bond.
+   Garde les badges et les emojis flottants (juste embellis).
+   ===================================================================== */
+
+/* --------- 1) HALO COLORE autour du sprite selon le statut --------- */
+/* On pose le halo sur .cbt-sprite-bond (conteneur du sprite + particules).
+   Il apparait seulement si une particule de statut est presente (:has). */
+.cbt-sprite-bond {
+  position: relative;
+}
+
+/* Halo de base (pseudo-element), invisible par defaut */
+.cbt-sprite-bond::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 90%;
+  height: 90%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;            /* derriere le sprite */
+  transition: opacity 0.3s ease;
+}
+
+/* BRULURE : halo rouge-orange qui pulse */
+.cbt-sprite-bond:has(.cbt-part-feu)::before {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(255,107,53,0.55) 0%, rgba(255,80,20,0.25) 45%, transparent 72%);
+  animation: stat-halo-pulse 1s ease-in-out infinite;
+}
+/* GEL : halo bleu froid */
+.cbt-sprite-bond:has(.cbt-part-gel)::before {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(76,201,240,0.55) 0%, rgba(120,210,255,0.25) 45%, transparent 72%);
+  animation: stat-halo-pulse 1.8s ease-in-out infinite;
+}
+/* POISON : halo violet */
+.cbt-sprite-bond:has(.cbt-part-poison)::before {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(155,93,229,0.55) 0%, rgba(120,60,190,0.25) 45%, transparent 72%);
+  animation: stat-halo-pulse 1.4s ease-in-out infinite;
+}
+/* PARALYSIE : halo jaune electrique (clignote vite) */
+.cbt-sprite-bond:has(.cbt-part-elec)::before {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(255,214,10,0.55) 0%, rgba(255,230,80,0.22) 45%, transparent 72%);
+  animation: stat-halo-flash 0.5s steps(2) infinite;
+}
+/* RAGE (buff) : halo rouge vif */
+.cbt-sprite-bond:has(.cbt-part-rage)::before {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(230,57,70,0.5) 0%, rgba(200,40,50,0.22) 45%, transparent 72%);
+  animation: stat-halo-pulse 1.2s ease-in-out infinite;
+}
+/* GARDE (buff) : halo bleu clair */
+.cbt-sprite-bond:has(.cbt-part-garde)::before {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(72,202,228,0.5) 0%, rgba(100,210,235,0.22) 45%, transparent 72%);
+  animation: stat-halo-pulse 1.8s ease-in-out infinite;
+}
+/* HATE (buff) : halo vert mente */
+.cbt-sprite-bond:has(.cbt-part-hate)::before {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(128,237,153,0.5) 0%, rgba(110,230,140,0.22) 45%, transparent 72%);
+  animation: stat-halo-pulse 1s ease-in-out infinite;
+}
+
+@keyframes stat-halo-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.65; }
+  50%      { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+}
+@keyframes stat-halo-flash {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+
+/* --------- 2) EMOJIS FLOTTANTS affines (plus lisibles) --------- */
+/* On garde les animations existantes, on ameliore juste l'apparence. */
+.cbt-part {
+  font-size: 15px;                                   /* un poil plus gros */
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.85))    /* contour net */
+          drop-shadow(0 0 3px rgba(255,255,255,0.4)); /* leger glow blanc */
+}
+
+/* Le conteneur de particules passe au-dessus du sprite mais sous les badges */
+.cbt-particules { z-index: 6; }
+/* =====================================================================
+   AURAS DE STATUT "MANGA" — particules CSS + glow, SANS emoji
+   A coller a la FIN de App.css. Ctrl+Z pour annuler. 100% CSS, zero JSX.
+   - Vire les emojis (font-size 0) et dessine de vraies particules en ::before
+   - Glow colore subtil sur le sprite (epouse le contour)
+   - Cumulable (plusieurs statuts = plusieurs auras)
+   - Ne decale jamais le sprite
+   ===================================================================== */
+
+/* On masque l'emoji texte mais on garde l'element pour dessiner dessus */
+.cbt-part {
+  font-size: 0 !important;          /* cache l'emoji */
+  filter: none !important;
+}
+.cbt-particules { z-index: 6; pointer-events: none; }
+
+/* Chaque particule devient un petit element graphique via ::before */
+.cbt-part::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  display: block;
+}
+
+/* =====================  BRULURE : flammeches qui montent  ============ */
+.cbt-part-feu::before {
+  width: 9px; height: 13px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: radial-gradient(ellipse at 50% 80%, #fff3b0 0%, #ffb028 35%, #ff5a1f 70%, rgba(255,60,20,0) 100%);
+  box-shadow: 0 0 6px 2px rgba(255,90,30,0.7);
+}
+/* (les positions left/bottom + l'anim cbt-feu existent deja, on les garde) */
+
+/* =====================  GEL : flocons / cristaux qui tombent  ======== */
+.cbt-part-gel::before {
+  width: 7px; height: 7px;
+  background:
+    linear-gradient(0deg, transparent 45%, #d6f0ff 45%, #d6f0ff 55%, transparent 55%),
+    linear-gradient(90deg, transparent 45%, #d6f0ff 45%, #d6f0ff 55%, transparent 55%),
+    linear-gradient(45deg, transparent 45%, #bfe8ff 45%, #bfe8ff 55%, transparent 55%),
+    linear-gradient(-45deg, transparent 45%, #bfe8ff 45%, #bfe8ff 55%, transparent 55%);
+  box-shadow: 0 0 5px 1px rgba(150,220,255,0.8);
+  border-radius: 1px;
+}
+
+/* =====================  POISON : bulles violettes qui montent  ======= */
+.cbt-part-poison::before {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #e0b3ff 0%, #a259e6 55%, #6a2db0 100%);
+  box-shadow: 0 0 6px 2px rgba(160,90,230,0.7);
+}
+
+/* =====================  PARALYSIE : eclairs qui crepitent  =========== */
+.cbt-part-elec::before {
+  width: 4px; height: 12px;
+  background: linear-gradient(180deg, #fff7b0, #ffd60a);
+  clip-path: polygon(40% 0, 100% 0, 55% 45%, 90% 45%, 20% 100%, 50% 55%, 0 55%);
+  box-shadow: 0 0 6px 2px rgba(255,214,10,0.8);
+}
+
+/* =====================  RAGE (buff) : eclats rouges  ================= */
+.cbt-part-rage::before {
+  width: 8px; height: 8px;
+  background: radial-gradient(circle, #ff6b6b 0%, #e63946 60%, rgba(200,40,50,0) 100%);
+  box-shadow: 0 0 7px 2px rgba(230,57,70,0.7);
+  border-radius: 50%;
+}
+
+/* =====================  GARDE (buff) : eclats bleus  ================= */
+.cbt-part-garde::before {
+  width: 9px; height: 9px;
+  background: radial-gradient(circle, #b3ecff 0%, #48cae4 60%, rgba(72,202,228,0) 100%);
+  box-shadow: 0 0 7px 2px rgba(72,202,228,0.7);
+  border-radius: 50%;
+}
+
+/* =====================  HATE (buff) : traits verts  ================= */
+.cbt-part-hate::before {
+  width: 10px; height: 4px;
+  background: linear-gradient(90deg, rgba(128,237,153,0) 0%, #80ed99 50%, rgba(128,237,153,0) 100%);
+  box-shadow: 0 0 6px 1px rgba(128,237,153,0.7);
+  border-radius: 2px;
+}
+
+/* =====================================================================
+   GLOW COLORE SUBTIL sur le sprite (epouse le contour via drop-shadow)
+   Detection du statut present via :has(). Cumulable (plusieurs filtres).
+   ===================================================================== */
+.cbt-sprite-bond:has(.cbt-part-feu) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 5px rgba(255,90,30,0.9));
+  animation: cbt-flotte 3s ease-in-out infinite, stat-glow-feu 1s ease-in-out infinite;
+}
+.cbt-sprite-bond:has(.cbt-part-gel) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 5px rgba(120,210,255,0.9)) brightness(1.05);
+}
+.cbt-sprite-bond:has(.cbt-part-poison) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 5px rgba(160,90,230,0.9));
+}
+.cbt-sprite-bond:has(.cbt-part-elec) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 5px rgba(255,214,10,0.9));
+  animation: cbt-flotte 3s ease-in-out infinite, stat-glow-elec 0.4s steps(2) infinite;
+}
+.cbt-sprite-bond:has(.cbt-part-rage) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 6px rgba(230,57,70,0.85));
+}
+.cbt-sprite-bond:has(.cbt-part-garde) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 6px rgba(72,202,228,0.85));
+}
+.cbt-sprite-bond:has(.cbt-part-hate) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 6px rgba(128,237,153,0.85));
+}
+
+@keyframes stat-glow-feu {
+  0%, 100% { filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 4px rgba(255,90,30,0.7)); }
+  50%      { filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 8px rgba(255,120,40,1)); }
+}
+@keyframes stat-glow-elec {
+  0%, 100% { filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 3px rgba(255,214,10,0.6)); }
+  50%      { filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 8px rgba(255,230,80,1)); }
+}
+/* =====================================================================
+   BADGES DE STATUT reduits + reorganises  ET  AURA plus flagrante
+   A coller a la FIN de App.css. Ctrl+Z pour annuler.
+   (Surcharge les blocs precedents : badges 22px -> 14px, aura renforcee)
+   ===================================================================== */
+
+/* --------- 1) BADGES : plus petits + en ligne serree en haut --------- */
+.statuts-badges {
+  bottom: auto !important;
+  right: auto !important;
+  top: -10px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  flex-direction: row !important;   /* en ligne, pas en colonne */
+  gap: 2px !important;
+  z-index: 20;
+}
+.statut-badge {
+  width: 14px !important;
+  height: 14px !important;
+  font-size: 9px !important;
+  border-width: 1px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.6), 0 0 5px var(--c-statut, #444) !important;
+}
+
+/* =====================================================================
+   2) AURA BEAUCOUP PLUS FLAGRANTE
+   Glow renforce sur le sprite + halo colore pulsant derriere.
+   ===================================================================== */
+
+/* Halo colore large derriere le sprite (en plus du glow drop-shadow) */
+.cbt-sprite-bond::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 105%; height: 105%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -2;
+  transition: opacity 0.3s ease;
+}
+.cbt-sprite-bond:has(.cbt-part-feu)::after {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(255,90,30,0.6) 0%, rgba(255,60,20,0.3) 45%, transparent 72%);
+  animation: aura-halo-pulse 0.9s ease-in-out infinite;
+}
+.cbt-sprite-bond:has(.cbt-part-gel)::after {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(120,210,255,0.6) 0%, rgba(80,180,240,0.3) 45%, transparent 72%);
+  animation: aura-halo-pulse 1.6s ease-in-out infinite;
+}
+.cbt-sprite-bond:has(.cbt-part-poison)::after {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(160,90,230,0.6) 0%, rgba(120,60,190,0.3) 45%, transparent 72%);
+  animation: aura-halo-pulse 1.3s ease-in-out infinite;
+}
+.cbt-sprite-bond:has(.cbt-part-elec)::after {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(255,220,40,0.6) 0%, rgba(255,230,80,0.28) 45%, transparent 72%);
+  animation: aura-halo-flash 0.4s steps(2) infinite;
+}
+.cbt-sprite-bond:has(.cbt-part-rage)::after {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(230,57,70,0.55) 0%, rgba(200,40,50,0.28) 45%, transparent 72%);
+  animation: aura-halo-pulse 1.1s ease-in-out infinite;
+}
+.cbt-sprite-bond:has(.cbt-part-garde)::after {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(72,202,228,0.55) 0%, rgba(100,210,235,0.28) 45%, transparent 72%);
+  animation: aura-halo-pulse 1.6s ease-in-out infinite;
+}
+.cbt-sprite-bond:has(.cbt-part-hate)::after {
+  opacity: 1;
+  background: radial-gradient(circle, rgba(128,237,153,0.55) 0%, rgba(110,230,140,0.28) 45%, transparent 72%);
+  animation: aura-halo-pulse 0.9s ease-in-out infinite;
+}
+@keyframes aura-halo-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.9);  opacity: 0.7; }
+  50%      { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+}
+@keyframes aura-halo-flash {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+
+/* Glow drop-shadow RENFORCE sur le sprite (double couche = plus flagrant) */
+.cbt-sprite-bond:has(.cbt-part-feu) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 8px rgba(255,90,30,1)) drop-shadow(0 0 14px rgba(255,120,40,0.8)) !important;
+}
+.cbt-sprite-bond:has(.cbt-part-gel) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 8px rgba(120,210,255,1)) drop-shadow(0 0 14px rgba(160,225,255,0.8)) brightness(1.08) !important;
+}
+.cbt-sprite-bond:has(.cbt-part-poison) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 8px rgba(160,90,230,1)) drop-shadow(0 0 14px rgba(190,130,240,0.8)) !important;
+}
+.cbt-sprite-bond:has(.cbt-part-elec) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 8px rgba(255,214,10,1)) drop-shadow(0 0 14px rgba(255,235,90,0.8)) !important;
+}
+.cbt-sprite-bond:has(.cbt-part-rage) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 8px rgba(230,57,70,0.95)) drop-shadow(0 0 14px rgba(255,90,100,0.75)) !important;
+}
+.cbt-sprite-bond:has(.cbt-part-garde) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 8px rgba(72,202,228,0.95)) drop-shadow(0 0 14px rgba(120,220,240,0.75)) !important;
+}
+.cbt-sprite-bond:has(.cbt-part-hate) .cbt-sprite {
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 8px rgba(128,237,153,0.95)) drop-shadow(0 0 14px rgba(160,245,180,0.75)) !important;
+}
+
+/* Particules un peu plus grosses pour le cote flagrant */
+.cbt-part-feu::before    { width: 11px !important; height: 16px !important; }
+.cbt-part-gel::before    { width: 9px  !important; height: 9px  !important; }
+.cbt-part-poison::before { width: 10px !important; height: 10px !important; }
+.cbt-part-elec::before   { width: 5px  !important; height: 15px !important; }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { BALLS, PIERRES, BONBONS } from './config'
-import { BONBONS_IV } from './ameliorations'
-import { nomShowdown } from './pokedexNoms'
+import { BALLS, PIERRES, BONBONS, prixDynamique } from './config'
+import { OBJETS } from './objets'
+import { PARCHEMINS, formaterPrixParchemin } from './parchemins'
 
 const ICONES_BALLS = {
   poke: '/icons/ball-poke.png',
@@ -9,6 +9,8 @@ const ICONES_BALLS = {
   hyper: '/icons/ball-hyper.png',
   master: '/icons/ball-master.png',
 }
+const ICONE_ARGENT = '/icons/argent.png'
+const ICONE_PARCHEMIN = '/icons/parchemin.png'
 const ICONES_BONBONS = {
   'bonbon': '/icons/bonbon.png',
   'super-bonbon': '/icons/super-bonbon.png',
@@ -26,223 +28,168 @@ const ICONES_PIERRES = {
   'ice-stone': '/icons/ice-stone.png',
 }
 
-function imageObjet(info, fallback) {
-  return (info && info.sprite) || fallback || null
-}
-
-// Sprite Pokémon animé Showdown (avec gestion shiny + repli).
-function SpritePoke({ poke, classe = 'sac-m-poke-sprite' }) {
-  const num = poke.id
-  const nomSd = num ? nomShowdown(num) : (poke.nom || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-  const shiny = !!poke.shiny
-  const urlAnime = nomSd ? `https://play.pokemonshowdown.com/sprites/${shiny ? 'ani-shiny' : 'ani'}/${nomSd}.gif` : null
-  const urlHd = num ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/${shiny ? 'official-artwork/shiny' : 'official-artwork'}/${num}.png` : null
-  const fallback = poke.sprite
-  const onError = (e) => {
-    const img = e.currentTarget
-    const etape = parseInt(img.dataset.etape || '0', 10)
-    if (etape === 0 && urlHd) { img.dataset.etape = '1'; img.src = urlHd }
-    else if (etape <= 1 && fallback) { img.dataset.etape = '2'; img.src = fallback }
-  }
-  return <img src={urlAnime || fallback || urlHd} alt={poke.nom} className={classe} data-etape="0" loading="lazy" onError={onError} />
-}
-
-function Sac({ balls, pierres, bonbons = {}, objetsBoss = {}, collection, onEvoluerPierre, onUtiliserBonbon, onUtiliserBonbonIV, onFermer }) {
+// achatsItems : objet { idItem: nombre d'achats } pour le prix dynamique (défaut {}).
+function Boutique({ pokeDollars, balls, pierres, bonbons = {}, objets = {}, parchemins = {}, achatsItems = {}, onAcheterBall, onAcheterPierre, onAcheterBonbon, onAcheterObjet, onAcheterParchemin, onFermer }) {
   const [onglet, setOnglet] = useState('balls')
-  const [pierreSelectionnee, setPierreSelectionnee] = useState(null)
-  const [bonbonSelectionne, setBonbonSelectionne] = useState(null)
-  const [bonbonIVSelectionne, setBonbonIVSelectionne] = useState(null)
-  const [rechercheIV, setRechercheIV] = useState('')
 
-  const pokemonsPourPierre = pierreSelectionnee
-    ? collection.filter((p) => (p.evolutionsPierre || []).some((e) => e.pierre === pierreSelectionnee))
-    : []
+  // Prix actuel d'un item à prix dynamique (pierres/objets) selon les achats déjà faits.
+  const prixActuel = (id, prixBase) => prixDynamique(prixBase, achatsItems[id] || 0)
 
-  function changerOnglet(o) {
-    setOnglet(o)
-    setPierreSelectionnee(null)
-    setBonbonSelectionne(null)
-    setBonbonIVSelectionne(null)
-    setRechercheIV('')
-  }
+  const onglets = [
+    { cle: 'balls', label: 'Poké Balls', icone: <img src={ICONES_BALLS.poke} alt="" className="btq-onglet-img" /> },
+    { cle: 'pierres', label: 'Pierres', icone: '💎' },
+    { cle: 'bonbons', label: 'Bonbons', icone: '🍬' },
+    { cle: 'objets', label: 'Objets', icone: '⚙️' },
+    { cle: 'parchemins', label: 'Parchemins', icone: '📜' },
+  ]
 
-  const collectionIV = (() => {
-    const q = rechercheIV.trim().toLowerCase()
-    if (!q) return collection
-    return collection.filter((p) => (p.nom || '').toLowerCase().includes(q))
-  })()
-
-  function ivDuPoke(poke, cleBonbon) {
-    const stat = BONBONS_IV[cleBonbon]?.stat
-    if (!stat || !poke.iv) return 0
-    return Number.isFinite(poke.iv[stat]) ? poke.iv[stat] : 0
-  }
-
-  // Item d'inventaire (case carrée).
-  function CaseItem({ img, emoji, nom, desc, qte, onClick, disabled, title }) {
-    const Tag = onClick ? 'button' : 'div'
+  // Ligne d'article réutilisable.
+  // sprite : URL d'image fiable (balls/pierres/objets/bonbons). Si l'image peut ne pas
+  // exister (parchemins), passer `sansImage` pour afficher un cadre vide sans tenter de charger.
+  function LigneItem({ sprite, sansImage, nom, sousTitre, prix, prixMajore, boutons }) {
     return (
-      <Tag
-        className={`sac-m-item ${qte === 0 ? 'vide' : ''} ${onClick ? 'cliquable' : ''}`}
-        onClick={onClick} disabled={disabled} title={title}>
-        <div className="sac-m-item-sprite">
-          {img ? <img src={img} alt={nom} className="sac-m-item-img" /> : <span className="sac-m-item-emoji">{emoji}</span>}
+      <div className="btq-item">
+        <div className="btq-item-sprite">
+          {sprite && !sansImage && <img src={sprite} alt={nom} className="btq-item-img" />}
         </div>
-        <span className="sac-m-item-nom">{nom}{desc && <span className="sac-m-item-desc"> {desc}</span>}</span>
-        <span className="sac-m-item-qte">×{qte}</span>
-      </Tag>
+        <div className="btq-item-texte">
+          <span className="btq-item-nom">{nom}</span>
+          {sousTitre && <span className="btq-item-sous">{sousTitre}</span>}
+        </div>
+        {prix != null && (
+          <span className={`btq-item-prix ${prixMajore ? 'majore' : ''}`}>
+            {prix} <img src={ICONE_ARGENT} alt="" className="btq-prix-icone" />
+          </span>
+        )}
+        {boutons && <div className="btq-item-boutons">{boutons}</div>}
+      </div>
     )
   }
 
   return (
     <div className="overlay" onClick={onFermer}>
-      <div className="sac-m-panneau" onClick={(e) => e.stopPropagation()}>
-        <div className="sac-m-entete">
-          <h2>🎒 Sac</h2>
-          <button className="sac-m-fermer" onClick={onFermer}>✕</button>
+      <div className="btq-panneau" onClick={(e) => e.stopPropagation()}>
+        <div className="btq-entete">
+          <h2>🛒 Boutique</h2>
+          <button className="btq-fermer" onClick={onFermer}>✕</button>
         </div>
 
-        <div className="sac-m-onglets">
-          <button className={`sac-m-onglet ${onglet === 'balls' ? 'actif' : ''}`} onClick={() => changerOnglet('balls')}>
-            <img src={imageObjet(BALLS.poke, ICONES_BALLS.poke)} alt="" className="sac-m-onglet-img" /> Balls
-          </button>
-          <button className={`sac-m-onglet ${onglet === 'pierres' ? 'actif' : ''}`} onClick={() => changerOnglet('pierres')}>💎 Pierres</button>
-          <button className={`sac-m-onglet ${onglet === 'objets' ? 'actif' : ''}`} onClick={() => changerOnglet('objets')}>🍬 Objets</button>
-          <button className={`sac-m-onglet ${onglet === 'iv' ? 'actif' : ''}`} onClick={() => changerOnglet('iv')}>✨ Bonbons IV</button>
+        <div className="btq-argent">
+          <img src={ICONE_ARGENT} alt="" className="btq-argent-icone" />
+          <span className="btq-argent-val">{pokeDollars.toLocaleString('fr-FR')}</span>
+          <span className="btq-argent-label">PokéDollars</span>
         </div>
 
-        {/* Balls */}
+        <div className="btq-onglets">
+          {onglets.map((o) => (
+            <button key={o.cle} className={`btq-onglet ${onglet === o.cle ? 'actif' : ''}`} onClick={() => setOnglet(o.cle)}>
+              <span className="btq-onglet-icone">{o.icone}</span>
+              <span className="btq-onglet-label">{o.label}</span>
+            </button>
+          ))}
+        </div>
+
         {onglet === 'balls' && (
-          <div className="sac-m-grille">
+          <div className="btq-liste">
             {Object.entries(BALLS).map(([type, info]) => (
-              <CaseItem key={type} img={imageObjet(info, ICONES_BALLS[type])} emoji={info.emoji || '◓'} nom={info.nom} qte={balls[type] || 0} />
+              <LigneItem
+                key={type}
+                sprite={ICONES_BALLS[type]}
+                nom={info.nom}
+                sousTitre={`En stock : ${balls[type] || 0}`}
+                prix={info.prix}
+                boutons={[1, 10, 50, 100].map((q) => (
+                  <button key={q} className="btq-achat" onClick={() => onAcheterBall(type, q)} disabled={pokeDollars < info.prix * q}>×{q}</button>
+                ))}
+              />
             ))}
           </div>
         )}
 
-        {/* Pierres */}
-        {onglet === 'pierres' && !pierreSelectionnee && (
-          <div className="sac-m-grille">
+        {onglet === 'pierres' && (
+          <div className="btq-liste">
+            <p className="btq-info">💎 Les pierres ne tombent plus en combat : on les achète ici. Le prix monte à chaque achat (puis rebaisse en battant des boss).</p>
             {Object.entries(PIERRES).map(([type, info]) => {
-              const qte = pierres[type] || 0
+              const prix = prixActuel(type, info.prix)
+              const majore = prix > info.prix
               return (
-                <CaseItem key={type} img={imageObjet(info, ICONES_PIERRES[type])} emoji={info.emoji} nom={info.nom} qte={qte}
-                  onClick={() => setPierreSelectionnee(type)} disabled={qte === 0}
-                  title={qte === 0 ? "Tu n'en as pas" : 'Voir les Pokémon qui évoluent'} />
+                <LigneItem
+                  key={type}
+                  sprite={ICONES_PIERRES[type]}
+                  spriteEmoji={info.emoji}
+                  nom={info.nom}
+                  sousTitre={`En stock : ${pierres[type] || 0}`}
+                  prix={prix}
+                  prixMajore={majore}
+                  boutons={[1, 5].map((q) => (
+                    <button key={q} className="btq-achat" onClick={() => onAcheterPierre(type, q)} disabled={pokeDollars < prix * q}>×{q}</button>
+                  ))}
+                />
               )
             })}
           </div>
         )}
 
-        {onglet === 'pierres' && pierreSelectionnee && (
-          <div className="sac-m-detail">
-            <button className="sac-m-retour" onClick={() => setPierreSelectionnee(null)}>← Retour</button>
-            <h3 className="sac-m-detail-titre">
-              {(() => { const img = imageObjet(PIERRES[pierreSelectionnee], ICONES_PIERRES[pierreSelectionnee]); return img ? <img src={img} alt="" className="sac-m-detail-icone" /> : PIERRES[pierreSelectionnee].emoji })()} {PIERRES[pierreSelectionnee].nom} (×{pierres[pierreSelectionnee] || 0})
-            </h3>
-            <p className="sac-m-aide">Clique sur un Pokémon pour le faire évoluer :</p>
-            <div className="sac-m-poke-grille">
-              {pokemonsPourPierre.length === 0 ? (
-                <p className="sac-m-vide">Aucun de tes Pokémon n'évolue avec cette pierre.</p>
-              ) : (
-                pokemonsPourPierre.map((poke) => {
-                  const evo = (poke.evolutionsPierre || []).find((e) => e.pierre === pierreSelectionnee)
-                  return (
-                    <button key={poke.uid} className="sac-m-poke" onClick={() => { onEvoluerPierre(poke.uid, evo.evolueEn, pierreSelectionnee); setPierreSelectionnee(null) }}>
-                      <div className="sac-m-poke-zone"><SpritePoke poke={poke} /></div>
-                      <span className="sac-m-poke-nom">{poke.nom}</span>
-                      <span className="sac-m-poke-info">→ {evo.evolueEn}</span>
-                    </button>
-                  )
-                })
-              )}
-            </div>
+        {onglet === 'bonbons' && (
+          <div className="btq-liste">
+            <p className="btq-info">🎁 Les bonbons ne sont plus en vente. On les obtient en butin de boss !</p>
+            {Object.entries(BONBONS).map(([type, info]) => (
+              <LigneItem
+                key={type}
+                sprite={ICONES_BONBONS[type]}
+                spriteEmoji={info.emoji}
+                nom={info.nom}
+                sousTitre={info.description}
+                boutons={<span className="btq-stock-compte">×{bonbons[type] || 0}</span>}
+              />
+            ))}
           </div>
         )}
 
-        {/* Objets (bonbons) */}
-        {onglet === 'objets' && !bonbonSelectionne && (
-          <div className="sac-m-grille">
-            {Object.entries(BONBONS).map(([type, info]) => {
-              const qte = bonbons[type] || 0
+        {onglet === 'objets' && (
+          <div className="btq-liste">
+            <p className="btq-info">⚙️ Objets à équiper sur tes Pokémon (1 par Pokémon). Le prix monte à chaque achat. On en gagne aussi en Arène et en combat !</p>
+            {Object.entries(OBJETS).filter(([, info]) => info.prix).map(([id, info]) => {
+              const prix = prixActuel(id, info.prix)
+              const majore = prix > info.prix
               return (
-                <CaseItem key={type} img={imageObjet(info, ICONES_BONBONS[type])} emoji={info.emoji} nom={info.nom} desc={`(${info.description})`} qte={qte}
-                  onClick={() => setBonbonSelectionne(type)} disabled={qte === 0}
-                  title={qte === 0 ? "Tu n'en as pas" : 'Choisir un Pokémon'} />
+                <LigneItem
+                  key={id}
+                  sprite={info.sprite}
+                  spriteEmoji={info.emoji}
+                  nom={info.nom}
+                  sousTitre={`${info.desc} — En stock : ${objets[id] || 0}`}
+                  prix={prix}
+                  prixMajore={majore}
+                  boutons={[1, 3].map((q) => (
+                    <button key={q} className="btq-achat" onClick={() => onAcheterObjet(id, q)} disabled={pokeDollars < prix * q}>×{q}</button>
+                  ))}
+                />
               )
             })}
           </div>
         )}
 
-        {onglet === 'objets' && bonbonSelectionne && (
-          <div className="sac-m-detail">
-            <button className="sac-m-retour" onClick={() => setBonbonSelectionne(null)}>← Retour</button>
-            <h3 className="sac-m-detail-titre">
-              {(() => { const img = imageObjet(BONBONS[bonbonSelectionne], ICONES_BONBONS[bonbonSelectionne]); return img ? <img src={img} alt="" className="sac-m-detail-icone" /> : BONBONS[bonbonSelectionne].emoji })()} {BONBONS[bonbonSelectionne].nom} (×{bonbons[bonbonSelectionne] || 0})
-            </h3>
-            <p className="sac-m-aide">Clique sur un Pokémon pour lui donner :</p>
-            <div className="sac-m-poke-grille">
-              {collection.length === 0 ? (
-                <p className="sac-m-vide">Aucun Pokémon.</p>
-              ) : (
-                collection.map((poke) => (
-                  <button key={poke.uid} className="sac-m-poke" onClick={() => { onUtiliserBonbon(poke.uid, bonbonSelectionne) }}>
-                    <div className="sac-m-poke-zone"><SpritePoke poke={poke} /></div>
-                    <span className="sac-m-poke-nom">{poke.nom}</span>
-                    <span className="sac-m-poke-info">N.{poke.niveau || 1}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Bonbons IV */}
-        {onglet === 'iv' && !bonbonIVSelectionne && (
-          <>
-            <p className="sac-m-aide">Les bonbons d'IV (butin de boss) augmentent de +1 l'IV d'une stat d'un Pokémon (max 31).</p>
-            <div className="sac-m-grille">
-              {Object.entries(BONBONS_IV).map(([cle, info]) => {
-                const qte = objetsBoss[cle] || 0
-                return (
-                  <CaseItem key={cle} img={info.sprite} emoji={info.emoji} nom={info.nom} qte={qte}
-                    onClick={() => setBonbonIVSelectionne(cle)} disabled={qte === 0}
-                    title={qte === 0 ? "Tu n'en as pas (butin de boss)" : 'Choisir un Pokémon'} />
-                )
-              })}
-            </div>
-          </>
-        )}
-
-        {onglet === 'iv' && bonbonIVSelectionne && (
-          <div className="sac-m-detail">
-            <button className="sac-m-retour" onClick={() => { setBonbonIVSelectionne(null); setRechercheIV('') }}>← Retour</button>
-            <h3 className="sac-m-detail-titre">
-              {(() => { const info = BONBONS_IV[bonbonIVSelectionne]; return info.sprite ? <img src={info.sprite} alt="" className="sac-m-detail-icone" /> : info.emoji })()} {BONBONS_IV[bonbonIVSelectionne].nom} (×{objetsBoss[bonbonIVSelectionne] || 0})
-            </h3>
-            <p className="sac-m-aide">Clique sur un Pokémon pour +1 IV {BONBONS_IV[bonbonIVSelectionne].stat} (max 31) :</p>
-            <input type="text" className="sac-m-recherche" placeholder="🔍 Rechercher un Pokémon..."
-              value={rechercheIV} onChange={(e) => setRechercheIV(e.target.value)} />
-            <div className="sac-m-poke-grille">
-              {collectionIV.length === 0 ? (
-                <p className="sac-m-vide">Aucun Pokémon ne correspond.</p>
-              ) : (
-                collectionIV.map((poke) => {
-                  const ivVal = ivDuPoke(poke, bonbonIVSelectionne)
-                  const auMax = ivVal >= 31
-                  return (
-                    <button key={poke.uid} className={`sac-m-poke ${auMax ? 'au-max' : ''}`} disabled={auMax}
-                      title={auMax ? 'IV déjà au max (31)' : `IV ${BONBONS_IV[bonbonIVSelectionne].stat} : ${ivVal}/31`}
-                      onClick={() => { if (!auMax) onUtiliserBonbonIV(poke.uid, bonbonIVSelectionne) }}>
-                      {poke.shiny && <span className="sac-m-poke-shiny">✨</span>}
-                      <div className="sac-m-poke-zone"><SpritePoke poke={poke} /></div>
-                      <span className="sac-m-poke-nom">{poke.nom}</span>
-                      <span className="sac-m-poke-info">{auMax ? 'MAX' : `${ivVal}/31`}</span>
-                    </button>
-                  )
-                })
-              )}
-            </div>
+        {onglet === 'parchemins' && (
+          <div className="btq-liste">
+            <p className="btq-info">📜 Objets ENDGAME ultra-rares. Utilise un parchemin sur un Pokémon (dans sa fiche) pour changer DÉFINITIVEMENT son rôle. Le Sceau du Joker le rend flexible (n'importe quelle case + passifs Joker).</p>
+            {Object.entries(PARCHEMINS).map(([cle, info]) => {
+              const cher = pokeDollars < info.prix
+              return (
+                <LigneItem
+                  key={cle}
+                  sprite={ICONE_PARCHEMIN}
+                  sansImage={true}
+                  nom={info.nom}
+                  sousTitre={`${info.description} — En stock : ${parchemins[cle] || 0}`}
+                  prix={formaterPrixParchemin(info.prix)}
+                  prixMajore={cher}
+                  boutons={
+                    <button className="btq-achat" onClick={() => onAcheterParchemin(cle, 1)} disabled={cher}>Acheter ×1</button>
+                  }
+                />
+              )
+            })}
           </div>
         )}
       </div>
@@ -250,4 +197,4 @@ function Sac({ balls, pierres, bonbons = {}, objetsBoss = {}, collection, onEvol
   )
 }
 
-export default Sac
+export default Boutique

@@ -44,9 +44,9 @@ export const EQUIPE_DEPART = [
 ]
 export const VITESSE_JAUGE = 0.3 // multiplie la vitesse → vitesse de remplissage des jauges
 export const XP_PAR_VICTOIRE = 90      // (ancienne valeur fixe — plus utilisée, l'XP est calculée selon l'ennemi)
-export const XP_BASE_ENNEMI = 10       // XP de base par niveau d'ennemi (ralenti de 14→10, début moins rapide)
+export const XP_BASE_ENNEMI = 6        // XP de base par niveau d'ennemi (ralenti 10→6 pour une run 10-20h)
 export const BONUS_STAT_NIVEAU = 0.06  // +6% de stats par niveau (était 0.08, calmé pour des chiffres plus sains)
-export const XP_BASE_NIVEAU = 20       // XP niveau 1→2 (courbe D2 marathon : fin très longue via exposant 1.8)
+export const XP_BASE_NIVEAU = 20       // XP niveau 1→2 (courbe marathon : exposant 1.7 dans stats.js)
 // Taux de capture de base selon la rareté du Pokémon.
 // Légendaire à 4% : avec Hyper Ball (×2.5) = 10% → ~10 balls en moyenne (vrai défi, pas frustrant).
 // MasterBall reste le luxe garanti (capture sûre) pour ne jamais rater un légendaire important.

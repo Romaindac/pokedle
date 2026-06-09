@@ -1,4 +1,4 @@
-import { BONUS_PRESTIGE } from './prestige'
+import { BONUS_PRESTIGE, ORDRE_BONUS_PRESTIGE } from './prestige'
 
 // Pop-up du système de prestige : médailles, bonus permanents, bouton prestige.
 function PanneauPrestige({
@@ -10,8 +10,6 @@ function PanneauPrestige({
   onPrestige,
   onFermer,
 }) {
-  const categories = ['xp', 'argent', 'shiny']
-
   return (
     <div className="overlay" onClick={onFermer}>
       <div className="panneau-pokedex panneau-prestige panneau-prestige-doree" onClick={(e) => e.stopPropagation()}>
@@ -22,8 +20,9 @@ function PanneauPrestige({
 
         <p className="prestige-intro">
           Le Prestige réinitialise tes <strong>niveaux, zones et argent</strong>, mais tu gardes
-          ton <strong>Pokédex</strong> et tes <strong>médailles</strong>. Chaque médaille investie
-          donne un bonus <strong>permanent</strong> qui rend les remontées de plus en plus rapides.
+          ton <strong>Pokédex</strong>, ton <strong>élevage</strong> et tes <strong>médailles</strong>.
+          Le bonus <strong>⚔️ Puissance</strong> est la clé : il rend ton équipe assez forte pour
+          franchir les <strong>murs de difficulté</strong> des zones hautes.
         </p>
 
         {/* Solde de médailles */}
@@ -35,15 +34,16 @@ function PanneauPrestige({
         {/* Bonus à acheter */}
         <h3 className="recomp-titre">Bonus permanents</h3>
         <div className="prestige-bonus-liste">
-          {categories.map((cat) => {
+          {ORDRE_BONUS_PRESTIGE.map((cat) => {
             const info = BONUS_PRESTIGE[cat]
             const niveau = investis[cat] || 0
             const multi = multiplicateurs[cat]
             const pct = Math.round((multi - 1) * 100)
+            const estPuissance = cat === 'puissance'
             return (
-              <div key={cat} className="prestige-bonus">
+              <div key={cat} className={`prestige-bonus ${estPuissance ? 'prestige-bonus-cle' : ''}`}>
                 <div className="prestige-bonus-info">
-                  <span className="prestige-bonus-nom">{info.emoji} {info.nom}</span>
+                  <span className="prestige-bonus-nom">{info.emoji} {info.nom}{estPuissance ? ' ★' : ''}</span>
                   <span className="prestige-bonus-detail">
                     Niveau {niveau} · actuellement <strong>+{pct}%</strong>
                   </span>

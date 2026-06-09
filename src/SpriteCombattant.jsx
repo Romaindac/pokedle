@@ -1,16 +1,21 @@
 import { useState, useEffect, useRef } from 'react'
 import { ROLES, determinerRole } from './roles'
 import { nomShowdown } from './pokedexNoms'
+import { xpRequise } from './stats'
+import { XP_BASE_NIVEAU } from './config'
+import { statutsActifs } from './statuts'
 
 // Sprite de combat "champ de bataille" : sprite animé sur le décor + plaque de combat.
 // - camp 'joueur'  → sprite de DOS (ani-back → back → ani → stocké)
 // - camp 'ennemi'  → sprite de FACE (ani → artwork HD → stocké)
-// Garde : barre de PV colorée, nom + niveau, liseré de jauge ATB, halo de rôle,
-// flash de coup, badge d'ultime, ciblage Master Ball (ennemis).
+// Garde : barre de PV colorée, nom + niveau, liseré de jauge ATB, barre d'XP doree,
+// halo de rôle, flash de coup, badge d'ultime, ciblage Master Ball (ennemis).
+// plafond : niveau max (level cap prestige) — affiche "MAX" quand atteint.
 function SpriteCombattant({
   pokemon, pvActuels, jauge = 0, camp = 'joueur',
   ultimeLance = false, ultimeEnnemi = false,
   marqueeMaster = false, ciblableMaster = false, onCiblerMaster = null,
+  plafond = null,
 }) {
   const pvMax = pokemon.pvMax || 1
   const pourcentageVie = Math.max(0, Math.min(100, (pvActuels / pvMax) * 100))
@@ -19,6 +24,13 @@ function SpriteCombattant({
 
   // Couleur de la barre de PV selon le pourcentage (vert → orange → rouge).
   const couleurPv = pourcentageVie > 50 ? '#34d399' : pourcentageVie > 22 ? '#fbbf24' : '#ef4444'
+
+  // --- XP : pourcentage vers le niveau suivant + état "MAX" ---
+  const niveau = pokemon.niveau || 1
+  const auMax = plafond != null && niveau >= plafond
+  const xpReq = xpRequise(niveau, XP_BASE_NIVEAU) || 1
+  const xpAct = pokemon.xp || 0
+  const pourcentageXp = auMax ? 100 : Math.max(0, Math.min(100, (xpAct / xpReq) * 100))
 
   // --- Cascade d'URLs de sprite selon le camp ---
   const num = pokemon.id || pokemon.numero
@@ -29,20 +41,19 @@ function SpriteCombattant({
   const base = 'https://play.pokemonshowdown.com/sprites/'
   const repoBase = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'
 
-  // Liste ordonnée des sources à tenter (la 1re qui charge gagne ; onError descend).
   let sources
   if (estJoueur) {
     sources = [
-      nomSd ? `${base}${dossierAniBack}/${nomSd}.gif` : null,            // dos animé
-      num ? `${repoBase}back/${shiny ? 'shiny/' : ''}${num}.png` : null, // dos statique
-      nomSd ? `${base}${dossierAni}/${nomSd}.gif` : null,                // face animée (repli)
-      pokemon.shiny ? (pokemon.spriteShiny || pokemon.sprite) : pokemon.sprite, // stocké
+      nomSd ? `${base}${dossierAniBack}/${nomSd}.gif` : null,
+      num ? `${repoBase}back/${shiny ? 'shiny/' : ''}${num}.png` : null,
+      nomSd ? `${base}${dossierAni}/${nomSd}.gif` : null,
+      pokemon.shiny ? (pokemon.spriteShiny || pokemon.sprite) : pokemon.sprite,
     ].filter(Boolean)
   } else {
     sources = [
-      nomSd ? `${base}${dossierAni}/${nomSd}.gif` : null,                          // face animée
-      num ? `${repoBase}other/${shiny ? 'official-artwork/shiny' : 'official-artwork'}/${num}.png` : null, // artwork HD
-      pokemon.shiny ? (pokemon.spriteShiny || pokemon.sprite) : pokemon.sprite,    // stocké
+      nomSd ? `${base}${dossierAni}/${nomSd}.gif` : null,
+      num ? `${repoBase}other/${shiny ? 'official-artwork/shiny' : 'official-artwork'}/${num}.png` : null,
+      pokemon.shiny ? (pokemon.spriteShiny || pokemon.sprite) : pokemon.sprite,
     ].filter(Boolean)
   }
   const onError = (e) => {
@@ -69,25 +80,27 @@ function SpriteCombattant({
   }, [pvActuels])
 
   // --- Bond d'attaque (la jauge ATB retombe = le Pokémon vient d'agir) ---
-  // On anime directement l'élément DOM via une ref (Web Animations API) :
-  // pas de recréation du sprite, pas de rechargement du GIF → bien plus fluide.
   const jaugePrec = useRef(jauge)
   const bondRef = useRef(null)
+  const bondEnCours = useRef(false)
   useEffect(() => {
-    if (jauge < jaugePrec.current - 25 && !ko && bondRef.current) {
-      const dx = estJoueur ? 16 : -16
-      const dy = estJoueur ? -12 : 12
+    if (jauge < jaugePrec.current - 25 && !ko && bondRef.current && !bondEnCours.current) {
+      const dx = estJoueur ? 14 : -14
+      const dy = estJoueur ? -8 : 8
       try {
-        bondRef.current.animate(
+        bondEnCours.current = true
+        const anim = bondRef.current.animate(
           [
             { transform: 'translate(0,0)' },
             { transform: `translate(${dx}px, ${dy}px)`, offset: 0.35 },
             { transform: 'translate(0,0)' },
           ],
-          { duration: 380, easing: 'ease-out' }
+          { duration: 360, easing: 'ease-out', fill: 'none' }
         )
+        anim.onfinish = () => { bondEnCours.current = false }
+        anim.oncancel = () => { bondEnCours.current = false }
       } catch {
-        // navigateur sans WAAPI : on ignore, pas grave
+        bondEnCours.current = false
       }
     }
     jaugePrec.current = jauge
@@ -95,15 +108,29 @@ function SpriteCombattant({
 
   const role = pokemon.role || determinerRole(pokemon)
   const infoRole = ROLES[role]
+  // Statuts actifs (pour les particules). Lu à chaque rendu (l'objet est muté par le moteur).
+  const statuts = ko ? [] : statutsActifs(pokemon)
+  // Pokemon rare de la Tour (mini-boss / boss) : marquage visuel.
+  const estRare = !!pokemon.estRareTour
+  // Aura selon la rarete du Pokemon (commun = rien, pour faire ressortir les rares).
+  // shiny et special priment (aura prismatique).
+  const rarete = pokemon.rarete || 'commun'
+  let niveauAura = ''
+  if (pokemon.shiny) niveauAura = 'prismatique'
+  else if (rarete === 'special') niveauAura = 'prismatique'
+  else if (rarete === 'legendaire') niveauAura = 'legendaire'
+  else if (rarete === 'tresRare' || rarete === 'tres_rare') niveauAura = 'tresrare'
+  else if (rarete === 'rare') niveauAura = 'rare'
+  // commun / peuCommun : pas d'aura
 
   return (
-    <div className={`cbt-slot ${estJoueur ? 'cbt-joueur' : 'cbt-ennemi'} ${ko ? 'cbt-ko' : ''} ${prendCoup ? 'cbt-coup' : ''} ${pokemon.shiny ? 'cbt-shiny' : ''} ${marqueeMaster ? 'cbt-cible-master' : ''}`}>
-      {/* Plaque de combat (nom + niveau + barre PV) */}
+    <div className={`cbt-slot ${estJoueur ? 'cbt-joueur' : 'cbt-ennemi'} ${ko ? 'cbt-ko' : ''} ${prendCoup ? 'cbt-coup' : ''} ${pokemon.shiny ? 'cbt-shiny' : ''} ${marqueeMaster ? 'cbt-cible-master' : ''} ${estRare ? 'cbt-rare' : ''} ${niveauAura ? 'cbt-aura-' + niveauAura : ''}`}>
+      {/* Plaque de combat (nom + niveau + barre PV + barre XP) */}
       <div className="cbt-plaque">
         <div className="cbt-plaque-haut">
           {infoRole && <span className="cbt-role" title={infoRole.nom}>{infoRole.emoji}</span>}
           <span className="cbt-nom">{pokemon.nom}</span>
-          <span className="cbt-niv">N.{pokemon.niveau || 1}</span>
+          <span className={`cbt-niv ${auMax ? 'cbt-niv-max' : ''}`}>{auMax ? `N.${niveau} MAX` : `N.${niveau}`}</span>
           {pokemon.shiny && <span className="cbt-shiny-badge" title="Shiny">✨</span>}
         </div>
         <div className="cbt-barre-pv">
@@ -112,11 +139,42 @@ function SpriteCombattant({
         <div className="cbt-barre-atb">
           <div className="cbt-barre-atb-fill" style={{ width: `${ko ? 0 : jauge}%` }}></div>
         </div>
+        {/* Barre d'XP doree animee (seulement pour le joueur) */}
+        {estJoueur && (
+          <div className={`cbt-barre-xp ${auMax ? 'cbt-barre-xp-max' : ''}`} title={auMax ? 'Niveau maximum atteint' : `XP : ${xpAct} / ${xpReq}`}>
+            <div className="cbt-barre-xp-fill" style={{ width: `${pourcentageXp}%` }}>
+              <span className="cbt-barre-xp-brillance"></span>
+            </div>
+          </div>
+        )}
         <span className="cbt-pv-txt">{Math.max(0, pvActuels)} / {pvMax}</span>
       </div>
 
       {/* Sprite sur le terrain */}
       <div className="cbt-sprite-zone">
+        {/* Couronne du Pokemon rare (mini-boss / boss de la Tour) */}
+        {estRare && !ko && <span className="cbt-couronne-rare" title="Pokemon rare">👑</span>}
+        {/* Aura doree du rare */}
+        {estRare && !ko && <div className="cbt-aura-rare"></div>}
+        {/* Halo / aura de role au sol */}
+        {!ko && infoRole && <div className="cbt-aura-role" style={{ '--c-role': infoRole.couleur }}></div>}
+        {/* Aura de rarete (halo + anneau autour du sprite rare/legendaire/shiny) */}
+        {!ko && niveauAura && (
+          <div className={`cbt-rarete-aura cbt-rarete-${niveauAura}`}>
+            <span className="cbt-rarete-halo"></span>
+            <span className="cbt-rarete-anneau"></span>
+            {(niveauAura === 'legendaire' || niveauAura === 'prismatique') && (
+              <>
+                <span className="cbt-rarete-etincelle e0"></span>
+                <span className="cbt-rarete-etincelle e1"></span>
+                <span className="cbt-rarete-etincelle e2"></span>
+                <span className="cbt-rarete-etincelle e3"></span>
+              </>
+            )}
+          </div>
+        )}
+        {/* Ombre portee sous le Pokemon (profondeur) */}
+        {!ko && <div className="cbt-ombre-sol"></div>}
         {ciblableMaster && onCiblerMaster && (
           <button type="button"
             className={`cbt-cible-master ${marqueeMaster ? 'actif' : ''}`}
@@ -135,6 +193,18 @@ function SpriteCombattant({
             data-etape="0"
             onError={onError}
           />
+          {/* Particules de statut autour du sprite */}
+          {!ko && statuts.length > 0 && (
+            <div className="cbt-particules" aria-hidden="true">
+              {statuts.includes('paralysie') && [0,1,2].map((n) => <span key={`p${n}`} className={`cbt-part cbt-part-elec cbt-part-elec-${n}`}>⚡</span>)}
+              {statuts.includes('brulure') && [0,1,2].map((n) => <span key={`b${n}`} className={`cbt-part cbt-part-feu cbt-part-feu-${n}`}>🔥</span>)}
+              {statuts.includes('gel') && [0,1,2].map((n) => <span key={`g${n}`} className={`cbt-part cbt-part-gel cbt-part-gel-${n}`}>❄️</span>)}
+              {statuts.includes('poison') && [0,1,2].map((n) => <span key={`v${n}`} className={`cbt-part cbt-part-poison cbt-part-poison-${n}`}>☠️</span>)}
+              {statuts.includes('rage') && [0,1].map((n) => <span key={`r${n}`} className={`cbt-part cbt-part-rage cbt-part-rage-${n}`}>💢</span>)}
+              {statuts.includes('garde') && [0,1].map((n) => <span key={`d${n}`} className={`cbt-part cbt-part-garde cbt-part-garde-${n}`}>🛡️</span>)}
+              {statuts.includes('hate') && [0,1].map((n) => <span key={`h${n}`} className={`cbt-part cbt-part-hate cbt-part-hate-${n}`}>🌀</span>)}
+            </div>
+          )}
         </div>
       </div>
     </div>

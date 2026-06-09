@@ -1,4 +1,9 @@
-import { NB_INCUBATEURS, TYPES_OEUF, ORDRE_OEUFS, infoOeuf, combatsRequis, pretAEclore, pourcentageOeuf } from './oeufs'
+import { useState } from 'react'
+import {
+  TYPES_OEUF, ORDRE_OEUFS, infoOeuf, combatsRequis, pretAEclore, pourcentageOeuf,
+  AMELIORATIONS_ELEVAGE, ORDRE_AMELIORATIONS, NIVEAU_MAX_AMELIO, prixAmelioration,
+  prixIncubateur, nbIncubateurs, NB_INCUBATEURS_MAX,
+} from './oeufs'
 
 // Petite icône d'œuf en SVG (couleur selon la rareté).
 function IconeOeuf({ couleur, accent, taille = 46 }) {
@@ -13,7 +18,6 @@ function IconeOeuf({ couleur, accent, taille = 46 }) {
       <path d="M20 2 C30 2 38 22 38 34 C38 45 30 50 20 50 C10 50 2 45 2 34 C2 22 10 2 20 2 Z"
         fill={`url(#og-${couleur.replace('#','')})`} stroke="rgba(0,0,0,0.25)" strokeWidth="1.5" />
       <ellipse cx="15" cy="18" rx="5" ry="7" fill="rgba(255,255,255,0.35)" />
-      {/* taches décoratives */}
       <circle cx="24" cy="30" r="3" fill="rgba(255,255,255,0.25)" />
       <circle cx="14" cy="38" r="2.5" fill="rgba(255,255,255,0.2)" />
     </svg>
@@ -21,7 +25,7 @@ function IconeOeuf({ couleur, accent, taille = 46 }) {
 }
 
 // Un incubateur (capsule à eau avec bulles). Vide, en incubation, ou prêt.
-function Incubateur({ oeuf, onEclore }) {
+function Incubateur({ oeuf, am, onEclore }) {
   if (!oeuf) {
     return (
       <div className="incub incub-vide">
@@ -35,14 +39,13 @@ function Incubateur({ oeuf, onEclore }) {
     )
   }
   const info = infoOeuf(oeuf.rarete)
-  const pct = pourcentageOeuf(oeuf)
-  const pret = pretAEclore(oeuf)
-  const requis = combatsRequis(oeuf)
+  const pct = pourcentageOeuf(oeuf, am)
+  const pret = pretAEclore(oeuf, am)
+  const requis = combatsRequis(oeuf, am)
   return (
     <div className={`incub ${pret ? 'incub-pret' : 'incub-actif'}`} style={{ '--c-oeuf': info.couleur, '--a-oeuf': info.accent }}>
       <div className="incub-capsule">
         <div className="incub-eau"></div>
-        {/* bulles */}
         <span className="incub-bulle b1"></span>
         <span className="incub-bulle b2"></span>
         <span className="incub-bulle b3"></span>
@@ -66,84 +69,163 @@ function Incubateur({ oeuf, onEclore }) {
   )
 }
 
-// Panneau principal des œufs.
+// Onglet Incubateurs : capsules + réserve + boutique d'œufs.
+function OngletIncubateurs({ slots, am, reserveOeufs, jetonsElevage, aUnLibre, onPlacerOeuf, onEclore, onAcheterOeuf }) {
+  return (
+    <>
+      <div className="incub-rangee">
+        {slots.map((oeuf, i) => (
+          <Incubateur key={i} oeuf={oeuf} am={am} onEclore={onEclore} />
+        ))}
+      </div>
+
+      <h3 className="oeufs-section-titre">Tes œufs ({reserveOeufs.length})</h3>
+      {reserveOeufs.length === 0 ? (
+        <p className="oeufs-vide">Aucun œuf en réserve. Trouve-en en combattant, ou achète-en ci-dessous.</p>
+      ) : (
+        <div className="oeufs-reserve">
+          {reserveOeufs.map((oeuf) => {
+            const info = infoOeuf(oeuf.rarete)
+            return (
+              <button key={oeuf.id} className="oeuf-reserve-item" style={{ '--c-oeuf': info.couleur, '--a-oeuf': info.accent }}
+                onClick={() => aUnLibre && onPlacerOeuf(oeuf)}
+                disabled={!aUnLibre}
+                title={aUnLibre ? 'Placer dans un incubateur' : 'Aucun incubateur libre'}>
+                <IconeOeuf couleur={info.couleur} accent={info.accent} taille={38} />
+                <span className="oeuf-reserve-nom" style={{ color: info.accent }}>{info.nom}</span>
+                <span className="oeuf-reserve-action">{aUnLibre ? 'Placer ▸' : 'Plein'}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      <h3 className="oeufs-section-titre">Acheter un œuf (jetons d'élevage)</h3>
+      <div className="oeufs-boutique">
+        {ORDRE_OEUFS.map((cle) => {
+          const info = TYPES_OEUF[cle]
+          const prix = info.prix
+          const peut = jetonsElevage >= prix
+          return (
+            <button key={cle} className="oeuf-achat" style={{ '--c-oeuf': info.couleur, '--a-oeuf': info.accent }}
+              onClick={() => peut && onAcheterOeuf(cle)} disabled={!peut}
+              title={peut ? `Acheter pour ${prix} jetons` : 'Pas assez de jetons'}>
+              {info.emoji && <span className="oeuf-achat-tag" style={{ background: info.couleur }}>{info.emoji}</span>}
+              <IconeOeuf couleur={info.couleur} accent={info.accent} taille={34} />
+              <span className="oeuf-achat-nom" style={{ color: info.accent }}>{info.nom}</span>
+              <span className="oeuf-achat-prix">🎟️ {prix}</span>
+            </button>
+          )
+        })}
+      </div>
+      <p className="oeufs-aide-jetons">Gagne des jetons en combattant et en battant les boss. Les œufs spéciaux (Chromatique, Parfait, Mystère) ne s'obtiennent qu'ici.</p>
+    </>
+  )
+}
+
+// Onglet Améliorations : 5 caractéristiques + achat d'incubateurs.
+function OngletAmeliorations({ am, jetonsElevage, onAmeliorer, onAcheterIncubateur }) {
+  const nbInc = nbIncubateurs(am)
+  const prixInc = prixIncubateur(nbInc)
+  return (
+    <div className="amel-elevage">
+      {/* Incubateurs */}
+      <div className="amel-bloc-inc">
+        <div className="amel-inc-txt">
+          <span className="amel-inc-titre">🏠 Incubateurs</span>
+          <span className="amel-inc-sous">{nbInc} / {NB_INCUBATEURS_MAX} débloqués</span>
+        </div>
+        {prixInc != null ? (
+          <button className="amel-bouton" disabled={jetonsElevage < prixInc}
+            onClick={() => onAcheterIncubateur()}>
+            + Incubateur · 🎟️ {prixInc}
+          </button>
+        ) : (
+          <span className="amel-max">MAX</span>
+        )}
+      </div>
+
+      {/* Les 5 améliorations */}
+      {ORDRE_AMELIORATIONS.map((cle) => {
+        const a = AMELIORATIONS_ELEVAGE[cle]
+        const niveau = am?.[cle] || 0
+        const prix = prixAmelioration(cle, niveau)
+        const max = niveau >= NIVEAU_MAX_AMELIO
+        const peut = prix != null && jetonsElevage >= prix
+        return (
+          <div key={cle} className="amel-ligne" style={{ '--c-amel': a.couleur }}>
+            <div className="amel-tete">
+              <span className="amel-pastille" style={{ background: a.couleur }}>{a.emoji}</span>
+              <div className="amel-info">
+                <span className="amel-nom">{a.nom} <span className="amel-niv">Niv. {niveau}/{NIVEAU_MAX_AMELIO}</span></span>
+                <span className="amel-desc">{a.desc}</span>
+              </div>
+            </div>
+            <div className="amel-barre">
+              {Array.from({ length: NIVEAU_MAX_AMELIO }).map((_, i) => (
+                <span key={i} className={`amel-cran ${i < niveau ? 'plein' : ''}`} style={i < niveau ? { background: a.couleur } : null}></span>
+              ))}
+            </div>
+            {max ? (
+              <span className="amel-max">MAX</span>
+            ) : (
+              <button className="amel-bouton" disabled={!peut} onClick={() => onAmeliorer(cle)}>
+                Améliorer · 🎟️ {prix}
+              </button>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function PanneauOeufs({
-  oeufsIncubes = [],     // tableau (taille NB_INCUBATEURS, peut contenir null)
-  reserveOeufs = [],     // œufs en attente (pas encore en incubateur)
-  jetonsElevage = 0,     // monnaie dédiée aux œufs
-  onPlacerOeuf,          // (oeuf) => met un œuf de la réserve dans un incubateur libre
-  onEclore,              // (oeuf) => éclôt l'œuf prêt
-  onAcheterOeuf,         // (rarete) => achète un œuf (boutique intégrée)
+  oeufsIncubes = [],
+  reserveOeufs = [],
+  jetonsElevage = 0,
+  ameliorations = {},
+  onPlacerOeuf,
+  onEclore,
+  onAcheterOeuf,
+  onAmeliorer,
+  onAcheterIncubateur,
   onFermer,
 }) {
-  // Comble le tableau d'incubateurs à NB_INCUBATEURS.
+  const [onglet, setOnglet] = useState('incubateurs')
+  const nbInc = nbIncubateurs(ameliorations)
+  // Tableau d'incubateurs dimensionné au nombre débloqué.
   const slots = []
-  for (let i = 0; i < NB_INCUBATEURS; i++) slots.push(oeufsIncubes[i] || null)
+  for (let i = 0; i < nbInc; i++) slots.push(oeufsIncubes[i] || null)
   const aUnLibre = slots.some((s) => !s)
 
   return (
     <div className="overlay" onClick={onFermer}>
       <div className="oeufs-panneau" onClick={(e) => e.stopPropagation()}>
         <div className="oeufs-entete">
-          <h2>🥚 Élevage — Incubateurs</h2>
+          <h2>🥚 Centre d'Élevage</h2>
           <span className="oeufs-jetons">🎟️ {jetonsElevage} jetons</span>
           <button className="oeufs-fermer" onClick={onFermer}>✕</button>
         </div>
 
-        <p className="oeufs-intro">
-          Place tes œufs dans un incubateur. Ils éclosent en <strong>combattant</strong> :
-          chaque victoire fait progresser l'incubation. Les œufs ont une <strong>chance accrue de shiny</strong> !
-        </p>
-
-        {/* Les incubateurs */}
-        <div className="incub-rangee">
-          {slots.map((oeuf, i) => (
-            <Incubateur key={i} oeuf={oeuf} onEclore={onEclore} />
-          ))}
+        {/* Onglets */}
+        <div className="oeufs-onglets">
+          <button className={`oeufs-onglet ${onglet === 'incubateurs' ? 'actif' : ''}`} onClick={() => setOnglet('incubateurs')}>Incubateurs</button>
+          <button className={`oeufs-onglet ${onglet === 'ameliorations' ? 'actif' : ''}`} onClick={() => setOnglet('ameliorations')}>Améliorations</button>
         </div>
 
-        {/* Réserve d'œufs à placer */}
-        <h3 className="oeufs-section-titre">Tes œufs ({reserveOeufs.length})</h3>
-        {reserveOeufs.length === 0 ? (
-          <p className="oeufs-vide">Aucun œuf en réserve. Trouve-en en combattant, en battant des boss, ou achète-en ci-dessous.</p>
+        {onglet === 'incubateurs' ? (
+          <OngletIncubateurs
+            slots={slots} am={ameliorations} reserveOeufs={reserveOeufs}
+            jetonsElevage={jetonsElevage} aUnLibre={aUnLibre}
+            onPlacerOeuf={onPlacerOeuf} onEclore={onEclore} onAcheterOeuf={onAcheterOeuf}
+          />
         ) : (
-          <div className="oeufs-reserve">
-            {reserveOeufs.map((oeuf) => {
-              const info = infoOeuf(oeuf.rarete)
-              return (
-                <button key={oeuf.id} className="oeuf-reserve-item" style={{ '--c-oeuf': info.couleur, '--a-oeuf': info.accent }}
-                  onClick={() => aUnLibre && onPlacerOeuf(oeuf)}
-                  disabled={!aUnLibre}
-                  title={aUnLibre ? 'Placer dans un incubateur' : 'Aucun incubateur libre'}>
-                  <IconeOeuf couleur={info.couleur} accent={info.accent} taille={38} />
-                  <span className="oeuf-reserve-nom" style={{ color: info.accent }}>{info.nom}</span>
-                  <span className="oeuf-reserve-action">{aUnLibre ? 'Placer ▸' : 'Plein'}</span>
-                </button>
-              )
-            })}
-          </div>
+          <OngletAmeliorations
+            am={ameliorations} jetonsElevage={jetonsElevage}
+            onAmeliorer={onAmeliorer} onAcheterIncubateur={onAcheterIncubateur}
+          />
         )}
-
-        {/* Boutique d'œufs intégrée (monnaie : jetons d'élevage) */}
-        <h3 className="oeufs-section-titre">Acheter un œuf (jetons d'élevage)</h3>
-        <div className="oeufs-boutique">
-          {ORDRE_OEUFS.map((cle) => {
-            const info = TYPES_OEUF[cle]
-            const prix = info.prix
-            const peut = jetonsElevage >= prix
-            return (
-              <button key={cle} className="oeuf-achat" style={{ '--c-oeuf': info.couleur, '--a-oeuf': info.accent }}
-                onClick={() => peut && onAcheterOeuf(cle)} disabled={!peut}
-                title={peut ? `Acheter pour ${prix} jetons` : 'Pas assez de jetons'}>
-                {info.emoji && <span className="oeuf-achat-tag" style={{ background: info.couleur }}>{info.emoji}</span>}
-                <IconeOeuf couleur={info.couleur} accent={info.accent} taille={34} />
-                <span className="oeuf-achat-nom" style={{ color: info.accent }}>{info.nom}</span>
-                <span className="oeuf-achat-prix">🎟️ {prix}</span>
-              </button>
-            )
-          })}
-        </div>
-        <p className="oeufs-aide-jetons">Gagne des jetons en combattant (parfois) et en battant les boss de zone (+5 garantis). Les œufs spéciaux (Chromatique, Parfait, Mystère) ne s'obtiennent qu'ici.</p>
       </div>
     </div>
   )

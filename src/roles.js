@@ -1,5 +1,6 @@
 // ============================================================
 // RÔLES DES POKÉMON (système enrichi : 4 rôles × passifs + Joker)
+// Passifs ÉQUILIBRÉS — aucun ne domine, valeurs pensées pour la boucle de tics.
 // ============================================================
 
 import { roleParNumero } from './rolesPokemon'
@@ -18,14 +19,14 @@ export const CASES_JOKER = ['tank', 'eclaireur', 'soutien', 'dps']
 export const COMPOSITION_REQUISE = { tank: 1, eclaireur: 1, soutien: 2, dps: 2 }
 export const TAILLE_EQUIPE = 6
 
-// ===== NOUVELLE RÈGLE DE COMPO (souple) =====
-// Au moins 1 de chaque rôle, au plus 2 de chaque rôle, et 1 spécial max par équipe.
+// ===== RÈGLE DE COMPO (souple) =====
 export const MIN_PAR_ROLE = 1
 export const MAX_PAR_ROLE = 2
 export const MAX_SPECIAL = 1
 
-// Cadence du soin périodique du Guérisseur (millisecondes de temps réel).
-export const PERIODE_SOIN_MS = 7000
+// Cadence du soin périodique du Guérisseur — désormais gérée en TICS dans le moteur.
+// (Conservée pour compatibilité, plus utilisée pour le timing.)
+export const PERIODE_SOIN_MS = 9300
 
 const TYPE_VERS_ROLE = {
   rock: 'tank', steel: 'tank', ground: 'tank',
@@ -38,12 +39,12 @@ const TYPE_VERS_ROLE = {
 
 export const ROLES_FORCES = {}
 
-// ---------- LES PASSIFS (3 par rôle) ----------
+// ---------- LES PASSIFS (3 par rôle) — ÉQUILIBRÉS ----------
 export const PASSIFS = {
   colosse: {
     nom: 'Colosse', role: 'tank', emoji: '🛡️',
-    description: '+40% PV max et attire les coups',
-    effet: { pvMult: 1.40, attireCoups: true },
+    description: '+35% PV max et attire les coups',
+    effet: { pvMult: 1.35, attireCoups: true },
   },
   carapace: {
     nom: 'Carapace', role: 'tank', emoji: '🐢',
@@ -52,53 +53,53 @@ export const PASSIFS = {
   },
   provocateur: {
     nom: 'Provocateur', role: 'tank', emoji: '😤',
-    description: '+20% PV, attire les coups et renvoie 15% des dégâts subis',
-    effet: { pvMult: 1.20, attireCoups: true, renvoiDegats: 0.15 },
+    description: '+20% PV, attire les coups et renvoie 18% des dégâts subis',
+    effet: { pvMult: 1.20, attireCoups: true, renvoiDegats: 0.18 },
   },
   bourrin: {
     nom: 'Bourrin', role: 'dps', emoji: '⚔️',
-    description: '+35% de dégâts',
-    effet: { degatsMult: 1.35 },
+    description: '+30% de dégâts',
+    effet: { degatsMult: 1.30 },
   },
   assassin: {
     nom: 'Assassin', role: 'dps', emoji: '🗡️',
-    description: '+20% dégâts, +50% sur les cibles affaiblies (sous 35% PV)',
-    effet: { degatsMult: 1.20, bonusExecution: 0.50, bonusExecutionSeuil: 0.35 },
+    description: '+15% dégâts, +45% sur les cibles affaiblies (sous 35% PV), +8% critique',
+    effet: { degatsMult: 1.15, bonusExecution: 0.45, bonusExecutionSeuil: 0.35, critChance: 0.08, critMult: 2 },
   },
   briseur: {
     nom: 'Briseur', role: 'dps', emoji: '🩸',
-    description: '+20% dégâts et réduit de 50% les soins de l\'équipe ennemie',
-    effet: { degatsMult: 1.20, reducSoinAdverse: 0.50 },
+    description: '+15% dégâts et réduit de 40% les soins de l\'équipe ennemie',
+    effet: { degatsMult: 1.15, reducSoinAdverse: 0.40 },
   },
   vif: {
     nom: 'Vif', role: 'eclaireur', emoji: '⚡',
-    description: '+15% de vitesse de jauge pour toute l\'équipe',
-    effet: { jaugeMult: 1.15, jaugeEquipe: 0.15 },
+    description: '+12% de vitesse de jauge pour toute l\'équipe',
+    effet: { jaugeMult: 1.10, jaugeEquipe: 0.12 },
   },
   saboteur: {
     nom: 'Saboteur', role: 'eclaireur', emoji: '🔧',
-    description: 'Réduit de 15% l\'attaque de toute l\'équipe ennemie',
+    description: 'Réduit de 15% l\'attaque de toute l\'équipe ennemie (+10% vitesse perso)',
     effet: { jaugeMult: 1.10, reducAttaqueAdverse: 0.15 },
   },
   handicapeur: {
     nom: 'Handicapeur', role: 'eclaireur', emoji: '🕸️',
-    description: 'Réduit de 15% la vitesse de jauge de toute l\'équipe ennemie',
+    description: 'Réduit de 15% la vitesse de jauge de toute l\'équipe ennemie (+10% vitesse perso)',
     effet: { jaugeMult: 1.10, reducVitesseAdverse: 0.15 },
   },
   stratege: {
     nom: 'Stratège', role: 'soutien', emoji: '🧠',
-    description: 'Augmente de 18% l\'attaque de toute l\'équipe',
-    effet: { boostDegatsEquipe: 0.18 },
+    description: 'Augmente de 15% l\'attaque de l\'équipe et lance des buffs (Rage/Garde/Hâte)',
+    effet: { boostDegatsEquipe: 0.15 },
   },
   gardien: {
     nom: 'Gardien', role: 'soutien', emoji: '✨',
-    description: 'Augmente de 18% la défense et de 12% les PV de toute l\'équipe',
-    effet: { boostDefenseEquipe: 0.18, boostPvEquipe: 0.12 },
+    description: 'Augmente de 15% la défense et de 10% les PV de toute l\'équipe',
+    effet: { boostDefenseEquipe: 0.15, boostPvEquipe: 0.10 },
   },
   guerisseur: {
     nom: 'Guérisseur', role: 'soutien', emoji: '💚',
-    description: 'Soigne 12% des PV max de toute l\'équipe toutes les 7 secondes',
-    effet: { soinPeriodique: 0.12 },
+    description: 'Soigne régulièrement 7% des PV max de toute l\'équipe',
+    effet: { soinPeriodique: 0.07 },
   },
 }
 
@@ -274,7 +275,6 @@ export function compterRoles(equipe) {
   return compte
 }
 
-// Compte les Pokémon spéciaux (méga / formes — rareté max) dans une équipe.
 export function compterSpeciaux(equipe) {
   let n = 0
   for (const p of (Array.isArray(equipe) ? equipe : [])) {
@@ -284,9 +284,6 @@ export function compterSpeciaux(equipe) {
   return n
 }
 
-// ===== NOUVELLE RÈGLE DE COMPO (souple) =====
-// Valide si : au moins 1 de chaque rôle, au plus 2 de chaque rôle, et 1 spécial max.
-// (Tant que l'équipe a moins de 6 Pokémon, la compo n'est pas bloquante — early game.)
 export function compositionValide(equipe) {
   const membres = (Array.isArray(equipe) ? equipe : []).filter(Boolean)
   if (membres.length < TAILLE_EQUIPE) return true

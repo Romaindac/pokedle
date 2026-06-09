@@ -20,8 +20,6 @@ function nombreSur(valeur, repli) {
 }
 
 // Normalise un objet IV : garantit les 4 stats (migration des vieux IV à 3 stats).
-// Les anciens Pokémon n'ont pas d'IV de défense → on lui donne une valeur aléatoire
-// une seule fois (à la migration), pour ne pas tous les bloquer à 0.
 export function normaliserIV(iv) {
   const src = iv || {}
   return {
@@ -34,15 +32,17 @@ export function normaliserIV(iv) {
   }
 }
 
-// Montée d'XP "marathon" assouplie pour aller jusqu'au niveau ~500 sans mur.
+// Montée d'XP "marathon". Facteur progressif accentué (0.02 → 0.035) pour
+// un vrai mur de fin : le late game devient lent (philosophie idle).
 function multiplicateurProgressif(niveau) {
-  return 1 + niveau * 0.02
+  return 1 + niveau * 0.035
 }
 
 // XP nécessaire pour passer du niveau actuel au suivant.
+// Exposant relevé 1.55 → 1.7 : early fluide, mid qui ralentit, late grind.
 export function xpRequise(niveau, xpBase) {
   const n = nombreSur(niveau, 1)
-  const base = nombreSur(xpBase, 20) * Math.pow(n, 1.55)
+  const base = nombreSur(xpBase, 20) * Math.pow(n, 1.7)
   return Math.max(1, Math.round(base * multiplicateurProgressif(n)))
 }
 

@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { xpRequise, STAT_MAX_IV } from './stats'
 import { XP_BASE_NIVEAU, PIERRES } from './config'
 import { ROLES, determinerRole, passifDe, passifEffectif, passifsDuRole, passifPourMode, compterRoles, compterSpeciaux, compositionValide, COMPOSITION_REQUISE, MIN_PAR_ROLE, MAX_PAR_ROLE, MAX_SPECIAL, estJoker, roleEffectif, CASES_JOKER } from './roles'
 import { OBJETS } from './objets'
 import { PARCHEMINS } from './parchemins'
+import { SYNERGIES, synergiesActives, manquePourSynergie } from './synergies'
 
 // Sprite de Pokémon avec cascade : animé Showdown -> artwork HD -> sprite normal.
-// Gère la variante shiny (URLs dédiées). poke.nom = nom anglais PokeAPI, poke.id = numéro.
 function SpritePoke({ poke, classe = 'eqm-sprite', anime = true }) {
   const nom = (poke.nom || '').toLowerCase().replace(/[^a-z0-9-]/g, '')
   const shiny = !!poke.shiny
@@ -14,7 +14,6 @@ function SpritePoke({ poke, classe = 'eqm-sprite', anime = true }) {
   const urlAnime = `https://play.pokemonshowdown.com/sprites/${dossierAnime}/${nom}.gif`
   const dossierHd = shiny ? 'official-artwork/shiny' : 'official-artwork'
   const urlHd = poke.id ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/${dossierHd}/${poke.id}.png` : null
-  // Dernier recours : le sprite déjà stocké (déjà shiny si le poke est shiny, cf. App.jsx).
   const fallback = poke.sprite
   const onError = (e) => {
     const img = e.currentTarget
@@ -74,6 +73,98 @@ function IndicateurCompo({ equipe }) {
           </span>
         )}
       </div>
+    </div>
+  )
+}
+
+// Popup explicative du fonctionnement des synergies.
+function PopupSynergies({ onFermer }) {
+  return (
+    <div className="overlay" onClick={onFermer} style={{ zIndex: 400 }}>
+      <div className="eqm-syn-popup" onClick={(e) => e.stopPropagation()}>
+        <button className="eqm-fermer" onClick={onFermer}>✕</button>
+        <h3 className="eqm-syn-popup-titre">⚡ Comment marchent les synergies ?</h3>
+        <p className="eqm-syn-popup-intro">
+          Les synergies sont des <strong>bonus automatiques</strong> qui s'activent selon les <strong>rôles</strong> des Pokémon de ton équipe. Tu n'as rien à cliquer : dès que ta composition remplit la condition, le bonus s'applique en combat !
+        </p>
+        <p className="eqm-syn-popup-exemple">
+          <strong>Exemple :</strong> si tu mets 2 Éclaireurs et 1 DPS dans ton équipe, la synergie <strong>⚡ Blitz</strong> s'active toute seule et booste la vitesse et les dégâts de toute l'équipe.
+        </p>
+        <div className="eqm-syn-popup-liste">
+          {Object.keys(SYNERGIES).map((cle) => {
+            const s = SYNERGIES[cle]
+            return (
+              <div key={cle} className="eqm-syn-popup-ligne" style={{ '--c-syn': s.couleur }}>
+                <span className="eqm-syn-popup-emoji">{s.emoji}</span>
+                <div>
+                  <span className="eqm-syn-popup-nom">{s.nom}</span>
+                  <span className="eqm-syn-popup-desc">{s.description}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <p className="eqm-syn-popup-astuce">💡 Astuce : tu peux changer le rôle d'un Pokémon avec un parchemin, ou utiliser un Joker qui s'adapte au rôle dont tu as besoin.</p>
+      </div>
+    </div>
+  )
+}
+
+// Encart des synergies d'équipe : compact par défaut (pastilles actives), dépliable.
+function IndicateurSynergies({ equipe }) {
+  const [popup, setPopup] = useState(false)
+  const [deplie, setDeplie] = useState(false)
+  const actives = synergiesActives(equipe)
+  const clesActives = new Set(actives.map((s) => s.cle))
+  const inactives = Object.keys(SYNERGIES).map((cle) => ({ cle, ...SYNERGIES[cle] })).filter((s) => !clesActives.has(s.cle))
+
+  return (
+    <div className="eqm-syn">
+      <div className="eqm-syn-titre">
+        <span>⚡ Synergies</span>
+        {actives.length > 0
+          ? <span className="eqm-syn-compteur">{actives.length} active{actives.length > 1 ? 's' : ''}</span>
+          : <span className="eqm-syn-compteur eqm-syn-compteur-vide">0 active</span>}
+        <button className="eqm-syn-aide-btn" onClick={() => setPopup(true)} title="Comment ça marche ?">?</button>
+      </div>
+
+      {/* Pastilles des synergies ACTIVES (compact) */}
+      {actives.length > 0 ? (
+        <div className="eqm-syn-pastilles">
+          {actives.map((s) => (
+            <span key={s.cle} className="eqm-syn-pastille" style={{ '--c-syn': s.couleur }} title={s.description}>
+              <span className="eqm-syn-pastille-emoji">{s.emoji}</span>
+              <span className="eqm-syn-pastille-nom">{s.nom}</span>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="eqm-syn-vide-txt">Aucune synergie active. Combine les rôles pour en débloquer (le « ? » explique tout).</p>
+      )}
+
+      {/* Bouton déplier / replier */}
+      <button className="eqm-syn-toggle" onClick={() => setDeplie((v) => !v)}>
+        {deplie ? '▲ Masquer les autres' : `▼ Voir toutes les synergies (${inactives.length} à débloquer)`}
+      </button>
+
+      {/* Liste complète des inactives (dépliable) */}
+      {deplie && (
+        <div className="eqm-syn-liste">
+          {inactives.map((s) => {
+            const manque = manquePourSynergie(equipe, s.cle)
+            return (
+              <div key={s.cle} className="eqm-syn-carte inactive" style={{ '--c-syn': s.couleur }} title={s.description}>
+                <span className="eqm-syn-emoji">{s.emoji}</span>
+                <span className="eqm-syn-nom">{s.nom}</span>
+                <span className="eqm-syn-desc">{s.description}</span>
+                <span className="eqm-syn-manque">{manque}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {popup && <PopupSynergies onFermer={() => setPopup(false)} />}
     </div>
   )
 }
@@ -494,6 +585,7 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}
         </div>
 
         <IndicateurCompo equipe={equipe} />
+        <IndicateurSynergies equipe={equipe} />
         <p className="eqm-aide">Les changements s'appliquent au prochain combat. Règle : 1 à 2 Pokémon par rôle, les 4 rôles présents · 1 spécial max.</p>
         {onAutoEquipe && (
           <button className="eqm-auto" onClick={onAutoEquipe}>⚡ Auto-équipe (compo idéale)</button>
@@ -527,4 +619,13 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}
   )
 }
 
-export default Equipe
+function equipePropsEgales(prev, next) {
+  if (prev.collection !== next.collection) return false
+  if (prev.equipe !== next.equipe) return false
+  if (prev.pierres !== next.pierres) return false
+  if (prev.objets !== next.objets) return false
+  if (prev.parchemins !== next.parchemins) return false
+  return true
+}
+
+export default memo(Equipe, equipePropsEgales)
