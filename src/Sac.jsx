@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { BALLS, PIERRES, BONBONS } from './config'
 import { OBJETS } from './objets'
 
-// Icones reutilisees (memes chemins que la Boutique).
 const ICONES_BALLS = {
   poke: '/icons/ball-poke.png',
   super: '/icons/ball-super.png',
@@ -26,10 +25,18 @@ const ICONES_PIERRES = {
   'ice-stone': '/icons/ice-stone.png',
 }
 
-// Sac = inventaire (affichage des quantites possedees). Reprend le style btq-*.
-// Props : balls, pierres, bonbons, objetsBoss, collection (+ actions, non utilisees en V1).
+// Sprite simple avec repli.
+function SpriteMini({ poke }) {
+  const fallback = poke.shiny && poke.spriteShiny ? poke.spriteShiny : (poke.sprite || poke.spriteNormal)
+  return <img src={fallback} alt={poke.nom} className="btq-item-img"
+    onError={(e) => { e.currentTarget.style.display = 'none' }} />
+}
+
+// Sac = inventaire. Onglet Pierres : cliquer une pierre -> choisir un Pokemon compatible -> evolution.
 function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collection = [], onEvoluerPierre, onUtiliserBonbon, onUtiliserBonbonIV, onFermer }) {
   const [onglet, setOnglet] = useState('balls')
+  // Pierre selectionnee pour laquelle on choisit un Pokemon a faire evoluer.
+  const [pierreChoisie, setPierreChoisie] = useState(null)
 
   const onglets = [
     { cle: 'balls', label: 'Poke Balls', icone: <img src={ICONES_BALLS.poke} alt="" className="btq-onglet-img" /> },
@@ -38,10 +45,10 @@ function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collecti
     { cle: 'objets', label: 'Objets de boss', icone: '🏆' },
   ]
 
-  // Ligne d'inventaire (sans prix : on affiche juste la quantite possedee).
-  function LigneItem({ sprite, sansImage, nom, sousTitre, quantite }) {
+  function LigneItem({ sprite, sansImage, nom, sousTitre, quantite, onClick, cliquable }) {
     return (
-      <div className="btq-item">
+      <div className={`btq-item ${cliquable ? 'btq-item-cliquable' : ''}`} onClick={cliquable ? onClick : undefined}
+        style={cliquable ? { cursor: 'pointer' } : undefined}>
         <div className="btq-item-sprite">
           {sprite && !sansImage && <img src={sprite} alt={nom} className="btq-item-img"
             onError={(e) => { e.currentTarget.style.display = 'none' }} />}
@@ -55,8 +62,13 @@ function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collecti
     )
   }
 
-  // Objets de boss : on liste ce que le joueur possede reellement (objetsBoss),
-  // en cherchant le nom dans OBJETS si dispo, sinon on affiche la cle brute.
+  // Pokemon de la collection qui peuvent evoluer avec la pierre choisie.
+  function pokemonsPourPierre(pierre) {
+    return collection.filter((p) =>
+      (p.evolutionsPierre || []).some((e) => e.pierre === pierre)
+    )
+  }
+
   const entreesObjetsBoss = Object.entries(objetsBoss).filter(([, q]) => (q || 0) > 0)
 
   return (
@@ -69,7 +81,8 @@ function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collecti
 
         <div className="btq-onglets">
           {onglets.map((o) => (
-            <button key={o.cle} className={`btq-onglet ${onglet === o.cle ? 'actif' : ''}`} onClick={() => setOnglet(o.cle)}>
+            <button key={o.cle} className={`btq-onglet ${onglet === o.cle ? 'actif' : ''}`}
+              onClick={() => { setOnglet(o.cle); setPierreChoisie(null) }}>
               <span className="btq-onglet-icone">{o.icone}</span>
               <span className="btq-onglet-label">{o.label}</span>
             </button>
@@ -85,14 +98,53 @@ function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collecti
           </div>
         )}
 
-        {onglet === 'pierres' && (
+        {onglet === 'pierres' && !pierreChoisie && (
           <div className="btq-liste">
-            <p className="btq-info">💎 Tes pierres d'evolution. Pour les utiliser, ouvre la fiche d'un Pokemon dans l'onglet Equipe.</p>
-            {Object.entries(PIERRES).map(([type, info]) => (
-              <LigneItem key={type} sprite={ICONES_PIERRES[type]} nom={info.nom} quantite={pierres[type]} />
-            ))}
+            <p className="btq-info">💎 Clique sur une pierre que tu possedes pour voir les Pokemon qui peuvent evoluer avec.</p>
+            {Object.entries(PIERRES).map(([type, info]) => {
+              const q = pierres[type] || 0
+              const cliquable = q > 0
+              return (
+                <LigneItem key={type} sprite={ICONES_PIERRES[type]} nom={info.nom}
+                  sousTitre={cliquable ? 'Clique pour utiliser' : 'Aucune en stock'}
+                  quantite={q} cliquable={cliquable}
+                  onClick={() => setPierreChoisie(type)} />
+              )
+            })}
           </div>
         )}
+
+        {onglet === 'pierres' && pierreChoisie && (() => {
+          const info = PIERRES[pierreChoisie]
+          const candidats = pokemonsPourPierre(pierreChoisie)
+          return (
+            <div className="btq-liste">
+              <button className="eqm-retour" onClick={() => setPierreChoisie(null)}>← Retour aux pierres</button>
+              <p className="btq-info">
+                {ICONES_PIERRES[pierreChoisie] && <img src={ICONES_PIERRES[pierreChoisie]} alt="" style={{ width: 20, verticalAlign: '-4px', marginRight: 6 }} />}
+                {info ? info.nom : pierreChoisie} ×{pierres[pierreChoisie] || 0} — choisis un Pokemon a faire evoluer :
+              </p>
+              {candidats.length === 0 ? (
+                <p className="btq-info" style={{ opacity: 0.7 }}>Aucun de tes Pokemon ne peut evoluer avec cette pierre.</p>
+              ) : (
+                candidats.map((poke) => {
+                  const evo = (poke.evolutionsPierre || []).find((e) => e.pierre === pierreChoisie)
+                  return (
+                    <div key={poke.uid} className="btq-item btq-item-cliquable" style={{ cursor: 'pointer' }}
+                      onClick={() => { onEvoluerPierre(poke.uid, evo.evolueEn, pierreChoisie); setPierreChoisie(null) }}>
+                      <div className="btq-item-sprite"><SpriteMini poke={poke} /></div>
+                      <div className="btq-item-texte">
+                        <span className="btq-item-nom">{poke.nom} {poke.shiny ? '✨' : ''}</span>
+                        <span className="btq-item-sous">N.{poke.niveau || 1} → evolue en {evo.evolueEn}</span>
+                      </div>
+                      <span className="btq-stock-compte">▸</span>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          )
+        })()}
 
         {onglet === 'bonbons' && (
           <div className="btq-liste">
@@ -112,12 +164,8 @@ function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collecti
               entreesObjetsBoss.map(([id, q]) => {
                 const info = OBJETS[id]
                 return (
-                  <LigneItem key={id}
-                    sprite={info?.sprite}
-                    sansImage={!info?.sprite}
-                    nom={info?.nom || id}
-                    sousTitre={info?.desc}
-                    quantite={q} />
+                  <LigneItem key={id} sprite={info?.sprite} sansImage={!info?.sprite}
+                    nom={info?.nom || id} sousTitre={info?.desc} quantite={q} />
                 )
               })
             )}
