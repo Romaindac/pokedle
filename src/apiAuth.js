@@ -5,23 +5,39 @@
 // ============================================================
 import { supabase } from './supabase'
 
-// ---- Inscription : cree un compte (email de confirmation envoye) ----
-export async function inscrire(email, motDePasse) {
+// Transforme un pseudo en email interne (invisible pour le joueur).
+// Supabase Auth exige un email ; on en fabrique un stable a partir du pseudo.
+// Domaine en .com pour passer la validation d'email de Supabase.
+function pseudoVersEmail(pseudo) {
+  const nettoye = (pseudo || '').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // retire accents
+    .replace(/[^a-z0-9]/g, '') // garde lettres + chiffres
+  return `${nettoye}@pokedle-joueurs.com`
+}
+
+// Indique si une chaine ressemble deja a un email (contient @).
+function estEmail(x) { return /.+@.+\..+/.test((x || '').trim()) }
+
+// Resout l'identifiant fourni (pseudo OU email) en email utilisable par Supabase.
+function resoudreEmail(identifiant) {
+  return estEmail(identifiant) ? identifiant.trim().toLowerCase() : pseudoVersEmail(identifiant)
+}
+
+// ---- Inscription : `identifiant` peut etre un pseudo OU un email ----
+export async function inscrire(identifiant, motDePasse) {
   const { data, error } = await supabase.auth.signUp({
-    email: (email || '').trim(),
+    email: resoudreEmail(identifiant),
     password: motDePasse || '',
   })
   if (error) return { ok: false, raison: error.message }
-  // Si la confirmation email est active, data.session est null tant que
-  // l'email n'est pas confirme : on previent l'utilisateur.
   const besoinConfirmation = !data.session
   return { ok: true, besoinConfirmation, utilisateur: data.user }
 }
 
-// ---- Connexion ----
-export async function connecter(email, motDePasse) {
+// ---- Connexion : `identifiant` peut etre un pseudo OU un email ----
+export async function connecter(identifiant, motDePasse) {
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: (email || '').trim(),
+    email: resoudreEmail(identifiant),
     password: motDePasse || '',
   })
   if (error) return { ok: false, raison: error.message }

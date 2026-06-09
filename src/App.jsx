@@ -1186,13 +1186,27 @@ function App() {
   useEffect(() => {
     let monte = true
     sessionActuelle().then((s) => { if (monte) { setSession(s); setSessionVerifiee(true) } })
-    const desabonner = surChangementAuth((s) => { if (monte) setSession(s) })
+    // On ne reagit qu'a un VRAI changement d'utilisateur (login/logout),
+    // pas aux rafraichissements de token (qui surviennent au retour d'onglet).
+    const desabonner = surChangementAuth((s) => {
+      if (!monte) return
+      setSession((ancienne) => {
+        const ancienId = ancienne?.user?.id || null
+        const nouvelId = s?.user?.id || null
+        if (ancienId === nouvelId) return ancienne // meme user -> on ne change rien
+        return s
+      })
+    })
     return () => { monte = false; desabonner() }
   }, [])
 
   // Au demarrage (une fois connecte) : lit les 3 slots DU CLOUD et affiche le menu titre.
+  // Ne se declenche qu'UNE fois par utilisateur (pas a chaque retour d'onglet).
+  const slotsChargesRef = useRef(false)
   useEffect(() => {
-    if (!session) return
+    if (!session) { slotsChargesRef.current = false; return }
+    if (slotsChargesRef.current) return // deja charge pour cet utilisateur
+    slotsChargesRef.current = true
     let monte = true
     setChargement(true)
     chargerSlotsCloud().then((slotsData) => {
