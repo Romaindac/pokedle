@@ -68,6 +68,8 @@ import { creerHorloge } from './horlogeWorker'
 import PanneauTour from './PanneauTour'
 import CentreFusion from './CentreFusion'
 import AmbianceCombat from './AmbianceCombat'
+import TapisDuel from './TapisDuel'
+import HudDuel from './HudDuel'
 import CombatTour from './CombatTour'
 import { dropCarteTour, difficulteNiveau, niveauPokemonTour, tailleEquipeTour, bonusCompletionSet, ORDRE_SETS, typeNiveau, multiplicateurRareTour, estimerTauxCarte } from './tour'
 
@@ -686,6 +688,14 @@ function App() {
   // Fusionne les doublons d'espece (meme id + meme statut shiny) en gardant
   // le plus HAUT niveau et en combinant les IV. Remappe les equipes vers le garde.
   // Renvoie { captures, equipeIds, equipeAreneIds, equipeRaidIds, equipeDefenseIds, equipeAttaqueIds, nbFusions }.
+
+  function choisirSocle(uid, carte) {
+    const nouvelleCollection = capturesRef.current.map((p) => (p.uid === uid ? { ...p, socleCarte: carte || null } : p))
+    capturesRef.current = nouvelleCollection; setCaptures(nouvelleCollection)
+    const poke = nouvelleCollection.find((p) => p.uid === uid)
+    if (poke) ajouterAuJournal(carte ? `🎴 ${poke.nom} combat sur "${carte.nom}" !` : `🎴 ${poke.nom} : dos de carte par defaut.`, 'info')
+  }
+
   function fusionnerDoublonsCollection(liste, equipes) {
     const cle = (p) => `${p.id}-${p.shiny ? 's' : 'n'}`
     const groupes = {}
@@ -1154,7 +1164,12 @@ function App() {
             setTimeout(() => ajouterAuJournal(`${res.nbFusions} doublon(s) fusionne(s) -> IV combines.`, 'capture'), 2000)
           }
         }
-        setCaptures(capturesRecalc); setEquipeIds(trierIdsParRole(equipeIdsInit, capturesRecalc))
+        // --- Nettoyage des uids "fantomes" : un uid d'equipe doit pointer vers
+        // un Pokemon qui existe encore dans la collection (ex: parents consommes
+        // par une fusion). Sinon il bloque des slots invisibles (raid limite a 4).
+        const uidsExistants = new Set(capturesRecalc.map((p) => p && p.uid).filter(Boolean))
+        const nettoyerEquipe = (ids) => (ids || []).filter((uid) => uidsExistants.has(uid))
+        setCaptures(capturesRecalc); setEquipeIds(trierIdsParRole(nettoyerEquipe(equipeIdsInit), capturesRecalc))
         setPokedexVus(data.pokedexVus || [])
         if (data.pokedexSpeciaux) setPokedexSpeciaux(data.pokedexSpeciaux)
         { const baseShiny = data.pokedexShiny || []; const fusion = new Set(baseShiny); idsShinyRattrapes.forEach((id) => fusion.add(id)); setPokedexShiny([...fusion]) }
@@ -1170,9 +1185,9 @@ function App() {
         if (typeof data.nbPrestiges === 'number') setNbPrestiges(data.nbPrestiges)
         if (typeof data.raidsReussis === 'number') setRaidsReussis(data.raidsReussis)
         if (data.investisPrestige) setInvestisPrestige(data.investisPrestige)
-        if (data.equipeAreneIds) setEquipeAreneIds(data.equipeAreneIds)
+        setEquipeAreneIds(nettoyerEquipe(equipeAreneInit))
         if (data.raidsCooldowns) setRaidsCooldowns(data.raidsCooldowns)
-        if (data.equipeRaidIds) setEquipeRaidIds(data.equipeRaidIds)
+        setEquipeRaidIds(nettoyerEquipe(equipeRaidInit))
         if (Array.isArray(data.reserveOeufs)) setReserveOeufs(data.reserveOeufs)
         if (typeof data.jetonsElevage === 'number') setJetonsElevage(data.jetonsElevage)
         const amElevageCharge = { ...ameliorationsParDefaut(), ...(data.ameliorationsElevage || {}) }
@@ -1182,8 +1197,8 @@ function App() {
           const slots = Array(Math.max(nbInc, data.oeufsIncubes.length)).fill(null)
           data.oeufsIncubes.forEach((o, i) => { slots[i] = o || null }); setOeufsIncubes(slots)
         } else { setOeufsIncubes(Array(nbInc).fill(null)) }
-        if (data.equipeDefenseIds) setEquipeDefenseIds(data.equipeDefenseIds)
-        if (data.equipeAttaqueIds) setEquipeAttaqueIds(data.equipeAttaqueIds)
+        setEquipeDefenseIds(nettoyerEquipe(equipeDefenseInit))
+        setEquipeAttaqueIds(nettoyerEquipe(equipeAttaqueInit))
         if (data.tutoVu) setTutoVu(true)
         if (data.tutoPrestigeVu) setTutoPrestigeVu(true)
         if (typeof data.meilleurNiveauTour === 'number') setMeilleurNiveauTour(data.meilleurNiveauTour)
@@ -1819,12 +1834,17 @@ function App() {
       capturesRef.current = maj
       return maj
     })
-    // Retire les parents de l'equipe s'ils y etaient.
+    // Retire les parents de TOUTES les equipes s'ils y etaient
+    // (sinon leurs uids restent en "fantomes" et bloquent les slots, ex: raid limite a 4).
     setEquipeIds((ids) => {
       const maj = ids.filter((uid) => !uidsConso.has(uid))
       equipeIdsRef.current = maj
       return maj
     })
+    setEquipeRaidIds((ids) => ids.filter((uid) => !uidsConso.has(uid)))
+    setEquipeAreneIds((ids) => ids.filter((uid) => !uidsConso.has(uid)))
+    setEquipeDefenseIds((ids) => ids.filter((uid) => !uidsConso.has(uid)))
+    setEquipeAttaqueIds((ids) => ids.filter((uid) => !uidsConso.has(uid)))
     setAdnFusion((a) => a - cout)
     ajouterAuJournal(`Fusion reussie : ${fusion.nom} est ne ! (-${cout} ADN 🧬)`, 'capture')
   }
@@ -1986,7 +2006,7 @@ function App() {
     const equipeRaid = equipeRaidIds.map((uid) => captures.find((p) => p.uid === uid)).filter(Boolean)
     const equipeRaidValide = compositionValide(equipeRaid); const equipeRaidDiagnostic = diagnostiqueComposition(equipeRaid)
     function basculerMembreRaid(uid) {
-      setEquipeRaidIds((ids) => { if (ids.includes(uid)) return ids.filter((x) => x !== uid); if (ids.length >= 6) return ids; const poke = captures.find((p) => p.uid === uid); if (estSpecial(poke) && compterSpeciaux(ids, captures) >= 1) { alert('Un seul Pokemon special par equipe.'); return ids } return trierIdsParRole([...ids, uid], captures) })
+      setEquipeRaidIds((idsBruts) => { const ids = idsBruts.filter((x) => captures.some((p) => p && p.uid === x)); if (ids.includes(uid)) return ids.filter((x) => x !== uid); if (ids.length >= 6) return ids; const poke = captures.find((p) => p.uid === uid); if (estSpecial(poke) && compterSpeciaux(ids, captures) >= 1) { alert('Un seul Pokemon special par equipe.'); return ids } return trierIdsParRole([...ids, uid], captures) })
     }
     async function lancerRaid(raid) {
       if (!compositionValide(equipeRaid)) { alert('Ton equipe de raid doit respecter la compo.'); return }
@@ -2190,22 +2210,22 @@ function App() {
           {combatBoss && (<div className="bandeau-boss-timer"><p className="bandeau-boss">COMBAT DE BOSS</p><TimerAnneau tempsRestant={tempsBossZone} tempsTotal={45} taille={58} /></div>)}
           {!compoValide && (<div className="alerte-compo"><p className="alerte-compo-titre">Composition d'equipe invalide</p><p className="alerte-compo-sous">Le combat est en pause. Compo : 1 a 2 par role, les 4 roles, 1 special max.</p><ul className="alerte-compo-liste">{compoDiagnostic.map((m, i) => <li key={i}>{m}</li>)}</ul></div>)}
           {equipeAuPlafond && (<div className="alerte-plafond"><p className="alerte-plafond-titre">👑 Plafond de niveau atteint (Niv. {capActuel})</p><p className="alerte-plafond-sous">Ton equipe ne peut plus monter de niveau. Pour devenir plus fort et franchir les zones suivantes, fais un PRESTIGE et investis en Puissance pour debloquer plus de niveaux.</p><button className="alerte-plafond-btn" onClick={() => setVueOuverte('prestige')}>Ouvrir le Prestige</button></div>)}
-          <div className={`arene arene-terrain ${combatBoss ? 'arene-boss' : ''}`} style={{ backgroundImage: `url(${routeParId(routeActive).decor})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+          <div className={`arene arene-terrain ${combatBoss ? 'arene-boss' : ''}`} style={{ position: 'relative', overflow: 'hidden', borderRadius: 14, minHeight: '74vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '64px 14px 16px', backgroundImage: `url(${routeParId(routeActive).decor})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
             <AmbianceCombat decor={routeParId(routeActive).decor} estBoss={combatBoss} />
-            <div className="terrain-rangee terrain-ennemis">
+            <TapisDuel decor={routeParId(routeActive).decor} estBoss={combatBoss} />
+            <HudDuel equipeJoueur={equipeJoueur} equipeEnnemie={equipeEnnemie} pvJoueur={pvJoueur} pvEnnemis={pvEnnemis} journal={journal} pseudo={identiteJoueur?.pseudo || 'Toi'} nomZone={routeParId(routeActive).nom} estBoss={combatBoss} />
+            <div className="terrain-rangee terrain-ennemis" style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '84%', marginLeft: 'auto', marginRight: 'auto', transform: 'scale(0.9)', transformOrigin: 'top center' }}>
               {equipeEnnemie.map((poke, i) => {
                 const marqueeMaster = ciblesMasterBall.some((c) => c.cle === `${poke.id}${poke.shiny ? '-shiny' : ''}`); const ciblable = !poke.estBoss && !poke.estEvolution
-                return (<div className="terrain-slot" key={`${poke.uid || 'enn'}-${i}`}><SpriteCombattant pokemon={poke} pvActuels={pvEnnemis[i]} jauge={jaugeEnnemis[i]} camp="ennemi" ultimeLance={ultimeLanceEnnemiAff[i] || false} ultimeEnnemi marqueeMaster={marqueeMaster} ciblableMaster={ciblable} onCiblerMaster={() => basculerCibleMasterBall(poke)} />{rendreBadgesStatut(poke)}<div className="chiffres-couche">{chiffresFlottants.filter((c) => c.camp === 'ennemi' && c.index === i).map((c) => rendreChiffre(c))}</div></div>)
+                return (<div className="terrain-slot" key={`${poke.uid || 'enn'}-${i}`} style={{ position: 'relative', flex: '0 1 150px', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}><SpriteCombattant pokemon={poke} pvActuels={pvEnnemis[i]} jauge={jaugeEnnemis[i]} camp="ennemi" ultimeLance={ultimeLanceEnnemiAff[i] || false} ultimeEnnemi marqueeMaster={marqueeMaster} ciblableMaster={ciblable} onCiblerMaster={() => basculerCibleMasterBall(poke)} />{rendreBadgesStatut(poke)}<div className="chiffres-couche">{chiffresFlottants.filter((c) => c.camp === 'ennemi' && c.index === i).map((c) => rendreChiffre(c))}</div></div>)
               })}
             </div>
-            <div className="terrain-vs"><img src={ICONE_COMBAT} alt="VS" className="vs-img" /></div>
-            <div className="terrain-rangee terrain-joueur">
-              {equipeJoueur.map((poke, i) => (<div className="terrain-slot" key={poke.uid}><SpriteCombattant pokemon={poke} pvActuels={pvJoueur[i]} jauge={jaugeJoueur[i]} camp="joueur" ultimeLance={ultimeLanceJoueur[i] || false} plafond={capActuel} />{rendreBadgesStatut(poke)}<div className="chiffres-couche">{chiffresFlottants.filter((c) => c.camp === 'joueur' && c.index === i).map((c) => rendreChiffre(c))}</div></div>))}
+            <div className="terrain-vs" style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center', padding: '4px 0' }}><img src={ICONE_COMBAT} alt="VS" className="vs-img" /></div>
+            <div className="terrain-rangee terrain-joueur" style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '98%', marginLeft: 'auto', marginRight: 'auto' }}>
+              {equipeJoueur.map((poke, i) => (<div className="terrain-slot" key={poke.uid} style={{ position: 'relative', flex: '0 1 188px', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}><SpriteCombattant pokemon={poke} pvActuels={pvJoueur[i]} jauge={jaugeJoueur[i]} camp="joueur" ultimeLance={ultimeLanceJoueur[i] || false} plafond={capActuel} />{rendreBadgesStatut(poke)}<div className="chiffres-couche">{chiffresFlottants.filter((c) => c.camp === 'joueur' && c.index === i).map((c) => rendreChiffre(c))}</div></div>))}
             </div>
           </div>
-          <div className="console">
-            {journal.length === 0 ? (<p className="console-vide">Le combat commence...</p>) : (journal.map((ligne) => (<p key={ligne.id} className={`console-ligne ${ligne.type}`}>{ligne.texte}</p>)))}
-          </div>
+          
         </main>
 
         <aside className="colonne colonne-droite" data-tuto="capture">
@@ -2256,7 +2276,7 @@ function App() {
       {identiteJoueur && changerPseudoOuvert && (<ChoixPseudo onValide={(identite) => { setIdentiteJoueur(identite); setChangerPseudoOuvert(false); setTimeout(() => envoyerScore(statsClassementRef.current), 0); ajouterAuJournal(`Pseudo change : ${identite.pseudo}`, 'info') }} onAnnuler={() => setChangerPseudoOuvert(false)} />)}
       {vueOuverte === 'classement' && (<><TutoFenetre id="classement" /><Classement onFermer={() => setVueOuverte(null)} /></>)}
       {vueOuverte === 'pokedex' && (<><TutoFenetre id="pokedex" /><Pokedex captures={captures} pokedexVus={pokedexVus} pokedexShiny={pokedexShiny} pokedexSpeciaux={pokedexSpeciaux} recompensesReclamees={recompensesReclamees} onReclamer={reclamerRecompense} onFermer={() => setVueOuverte(null)} /></>)}
-      {vueOuverte === 'equipe' && (<><TutoFenetre id="equipe" /><Equipe equipe={equipeJoueur} collection={captures} pierres={pierres} objets={objets} onEquiperObjet={equiperObjet} onEvoluerPierre={evoluerParPierre} onChoisirPassif={choisirPassif} onChoisirCaseJoker={choisirCaseJoker} parchemins={parchemins} onAppliquerParchemin={appliquerParchemin} onAjouterMembre={(poke) => { if (equipeIds.length >= 6) return; if (equipeIds.includes(poke.uid)) return; if (estSpecial(poke) && compterSpeciaux(equipeIds, captures) >= 1) { alert('Un seul Pokemon special par equipe.'); return } const nouveaux = trierIdsParRole([...equipeIds, poke.uid], captures); setEquipeIds(nouveaux); equipeIdsRef.current = nouveaux; ajouterAuJournal(`${poke.nom} rejoint l'equipe au prochain combat.`, 'info') }} onRetirerMembre={(index) => { const nouveaux = trierIdsParRole(equipeIds.filter((_, i) => i !== index), captures); setEquipeIds(nouveaux); equipeIdsRef.current = nouveaux; ajouterAuJournal(`Pokemon retire de l'equipe.`, 'info') }} onAutoEquipe={autoEquipe} onFermer={() => setVueOuverte(null)} /></>)}
+      {vueOuverte === 'equipe' && (<><TutoFenetre id="equipe" /><Equipe collectionCartesTCG={collectionCartesTCG} onChoisirSocle={choisirSocle} equipe={equipeJoueur} collection={captures} pierres={pierres} objets={objets} onEquiperObjet={equiperObjet} onEvoluerPierre={evoluerParPierre} onChoisirPassif={choisirPassif} onChoisirCaseJoker={choisirCaseJoker} parchemins={parchemins} onAppliquerParchemin={appliquerParchemin} onAjouterMembre={(poke) => { if (equipeIds.length >= 6) return; if (equipeIds.includes(poke.uid)) return; if (estSpecial(poke) && compterSpeciaux(equipeIds, captures) >= 1) { alert('Un seul Pokemon special par equipe.'); return } const nouveaux = trierIdsParRole([...equipeIds, poke.uid], captures); setEquipeIds(nouveaux); equipeIdsRef.current = nouveaux; ajouterAuJournal(`${poke.nom} rejoint l'equipe au prochain combat.`, 'info') }} onRetirerMembre={(index) => { const nouveaux = trierIdsParRole(equipeIds.filter((_, i) => i !== index), captures); setEquipeIds(nouveaux); equipeIdsRef.current = nouveaux; ajouterAuJournal(`Pokemon retire de l'equipe.`, 'info') }} onAutoEquipe={autoEquipe} onFermer={() => setVueOuverte(null)} /></>)}
       {vueOuverte === 'routes' && (<><TutoFenetre id="routes" /><MenuRoutes routeActive={routeActive} victoiresParRoute={victoiresParRoute} bossVaincus={bossVaincus} nomsVus={captures.map((p) => p.nom)} tableNoms={tableNoms} ciblesMasterBall={ciblesMasterBall} onCiblerMasterBall={(numero, nom) => { const cle = `${numero}`; const dejaCiblee = ciblesMasterBallRef.current.some((c) => c.cle === cle); setCiblesMasterBall((liste) => { const maj = dejaCiblee ? liste.filter((c) => c.cle !== cle) : [...liste, { cle, id: numero, nom, shiny: false, sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${numero}.png` }]; ciblesMasterBallRef.current = maj; return maj }); ajouterAuJournal(!dejaCiblee ? `${nom} cible pour la Master Ball.` : `${nom} n'est plus cible.`, 'info') }} onChoisir={(id) => { setRouteActive(id); routeActiveRef.current = id; ajouterAuJournal(`Direction ${routeParId(id).nom} !`, 'info'); setVueOuverte(null) }} onFermer={() => setVueOuverte(null)} /></>)}
       {vueOuverte === 'prestige' && (<><TutoFenetre id="prestige" /><PanneauPrestige medailles={medailles} investis={investisPrestige} gainPotentiel={gainPrestige} multiplicateurs={multisPrestige} conditions={conditionsPrestige(nbPrestiges, { dresseursVaincus: Object.keys(dresseursVaincus).length, zoneMax: ROUTES.filter((r) => routeDebloquee(r, bossVaincus)).length, raidsReussis, pokedexVus: pokedexVus.length, niveauTour: meilleurNiveauTour })} nbPrestiges={nbPrestiges} onInvestir={investirMedaille} coutAmelioration={coutAmeliorationPrestige} onPrestige={faireePrestige} onFermer={() => setVueOuverte(null)} /></>)}
       {tutoPrestigeOuvert && (

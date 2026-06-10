@@ -204,6 +204,23 @@ const COULEURS_TYPE = {
   steel: '#5a8ea1', fairy: '#ec8fe6',
 }
 
+// ===== SOCLE-CARTE (menu Style) : helpers =====
+// Les cartes TCG peuvent avoir des champs legerement differents selon la source :
+// on lit de facon defensive.
+function urlCarte(c) {
+  if (!c) return null
+  return c.imageSmall || c.image || c.imageUrl || c.img || null
+}
+function nomCarte(c) {
+  if (!c) return ''
+  return c.nom || c.name || ''
+}
+function couleurFinition(finition) {
+  if (finition === 'prismatique') return '#c084fc'
+  if (finition === 'brillante') return '#cfd8e3'
+  return '#2a3242'
+}
+
 function BarreStat({ label, valeur, pctMax, couleur }) {
   const pct = Math.max(8, Math.min(100, pctMax))
   return (
@@ -228,8 +245,9 @@ function BarreIV({ label, valeur }) {
   )
 }
 
-function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet, onEvoluerPierre, onChoisirPassif, onChoisirCaseJoker, onAppliquerParchemin, onRetour }) {
+function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, cartesTCG = [], onChoisirSocle, onEquiperObjet, onEvoluerPierre, onChoisirPassif, onChoisirCaseJoker, onAppliquerParchemin, onRetour }) {
   const [grilleOuverte, setGrilleOuverte] = useState(false)
+  const [styleOuvert, setStyleOuvert] = useState(false)
   const iv = pokemon.iv || { pv: 0, attaque: 0, vitesse: 0, defense: 0 }
   const niv = pokemon.niveau || 1
   const requise = xpRequise(niv, XP_BASE_NIVEAU)
@@ -258,6 +276,28 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet,
   const objetEquipe = pokemon.objetEquipe && OBJETS[pokemon.objetEquipe] ? OBJETS[pokemon.objetEquipe] : null
   const objetsDispo = Object.entries(objets).filter(([id, n]) => n > 0 && id !== pokemon.objetEquipe && OBJETS[id])
   const evosPierre = (pokemon.evolutionsPierre || []).filter((e) => (pierres[e.pierre] || 0) > 0)
+
+  // ===== SOCLE-CARTE : cartes TCG disponibles pour CE Pokemon =====
+  // Espece = debut du nom PokeAPI (anglais), avant le premier tiret.
+  // Les FUSIONS (especes inexistantes dans le TCG) ont droit a TOUTES les cartes.
+  const socleActuel = pokemon.socleCarte || null
+  const baseEspece = (pokemon.nom || '').toLowerCase().split('-')[0]
+  const cartesEspece = (() => {
+    const source = Array.isArray(cartesTCG) ? cartesTCG : []
+    const filtrees = pokemon.estFusion
+      ? source
+      : source.filter((c) => nomCarte(c).toLowerCase().includes(baseEspece))
+    // Deduplication (la collection peut contenir des doublons de la meme carte).
+    const vues = new Set()
+    const uniques = []
+    for (const c of filtrees) {
+      const cle = (c && c.id) || `${nomCarte(c)}|${c?.setNom || c?.set || ''}|${c?.finition || ''}`
+      if (!cle || vues.has(cle)) continue
+      vues.add(cle)
+      if (urlCarte(c)) uniques.push(c)
+    }
+    return uniques
+  })()
 
   return (
     <div className="eqm-fiche">
@@ -405,6 +445,109 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet,
         )
       })()}
 
+      {/* ===== 🎴 STYLE — SOCLE DE COMBAT (carte TCG sous le Pokemon) ===== */}
+      {onChoisirSocle && (
+        <div className="eqm-section">
+          <div className="eqm-section-titre">🎴 Style — Socle de combat</div>
+          <p className="eqm-passif-aide">
+            La carte posée sous ce Pokémon sur le terrain. {pokemon.estFusion ? 'Fusion : toutes tes cartes sont autorisées !' : 'Seules tes cartes de cette espèce sont proposées — drop-en dans la Tour !'}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{
+              width: 64, height: 89, borderRadius: 6, overflow: 'hidden', flexShrink: 0,
+              border: socleActuel ? `2px solid ${couleurFinition(socleActuel.finition) === '#2a3242' ? '#fcd34d' : couleurFinition(socleActuel.finition)}` : '1px dashed rgba(255,255,255,0.3)',
+              background: '#1c2434', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {socleActuel && urlCarte(socleActuel)
+                ? <img src={urlCarte(socleActuel)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
+                : <span style={{ fontSize: 10, color: '#7a87a0', textAlign: 'center', padding: 4 }}>Dos de carte (défaut)</span>}
+            </div>
+            <div style={{ flex: 1, minWidth: 170 }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>
+                {socleActuel ? nomCarte(socleActuel) : 'Dos de carte par défaut'}
+              </div>
+              {socleActuel && socleActuel.finition && socleActuel.finition !== 'normale' && (
+                <div style={{ fontSize: 11, color: couleurFinition(socleActuel.finition), fontWeight: 700 }}>
+                  {socleActuel.finition === 'prismatique' ? '🌈 Prismatique' : '✨ Brillante'}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                <button className="eqm-objet-retirer" onClick={() => setStyleOuvert((v) => !v)}>
+                  {styleOuvert ? 'Fermer' : `Choisir une carte (${cartesEspece.length})`}
+                </button>
+                {socleActuel && (
+                  <button className="eqm-objet-retirer" onClick={() => { onChoisirSocle(pokemon.uid, null); setStyleOuvert(false) }}>
+                    Remettre le dos
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          {styleOuvert && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
+              {/* Option : dos de carte par defaut */}
+              <button
+                onClick={() => { onChoisirSocle(pokemon.uid, null); setStyleOuvert(false) }}
+                title="Dos de carte classique"
+                style={{
+                  width: 84, cursor: 'pointer', borderRadius: 8, padding: 4,
+                  border: !socleActuel ? '2px solid #fcd34d' : '1px solid #2a3242',
+                  background: '#141a26', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                }}>
+                <div style={{
+                  width: 72, height: 100, borderRadius: 5,
+                  background: 'linear-gradient(160deg, #3470c4 0%, #2a5fb0 45%, #1d4a92 100%)',
+                  border: '3px solid #f0e6c8', boxSizing: 'border-box',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <div style={{ width: '46%', aspectRatio: '1', borderRadius: '50%', background: '#1c4486', border: '2px solid #f0e6c8' }}></div>
+                </div>
+                <span style={{ fontSize: 10, color: '#9ca8bd' }}>Dos (défaut)</span>
+              </button>
+              {/* Les cartes TCG possedees pour cette espece */}
+              {cartesEspece.length === 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0 8px' }}>
+                  <span style={{ fontSize: 12, color: '#7a87a0' }}>
+                    Aucune carte de {pokemon.nom} dans ta collection — la Tour t'attend ! 🏯
+                  </span>
+                </div>
+              ) : (
+                cartesEspece.map((c, idx) => {
+                  const cleC = (c && c.id) || `${nomCarte(c)}-${idx}`
+                  const choisie = socleActuel && ((socleActuel.id && socleActuel.id === c.id) || (urlCarte(socleActuel) === urlCarte(c)))
+                  const carteMin = {
+                    id: c.id || null,
+                    nom: nomCarte(c).slice(0, 40),
+                    imageSmall: urlCarte(c),
+                    finition: c.finition || 'normale',
+                    rarete: c.rarete || null,
+                    setNom: c.setNom || c.set || null,
+                  }
+                  return (
+                    <button key={cleC}
+                      onClick={() => { onChoisirSocle(pokemon.uid, carteMin); setStyleOuvert(false) }}
+                      title={`${nomCarte(c)}${c.setNom ? ' — ' + c.setNom : ''}`}
+                      style={{
+                        width: 84, cursor: 'pointer', borderRadius: 8, padding: 4,
+                        border: choisie ? '2px solid #fcd34d' : `1px solid ${couleurFinition(c.finition)}`,
+                        background: '#141a26', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                      }}>
+                      <img src={urlCarte(c)} alt={nomCarte(c)}
+                        style={{ width: 72, height: 100, objectFit: 'cover', borderRadius: 5, display: 'block' }}
+                        loading="lazy"
+                        onError={(e) => { const b = e.currentTarget.closest('button'); if (b) b.style.display = 'none' }} />
+                      <span style={{ fontSize: 9, color: c.finition === 'prismatique' ? '#c084fc' : c.finition === 'brillante' ? '#cfd8e3' : '#9ca8bd', textAlign: 'center', lineHeight: 1.2 }}>
+                        {choisie ? '✓ Choisie' : (c.finition === 'prismatique' ? '🌈 Prisma' : c.finition === 'brillante' ? '✨ Brillante' : nomCarte(c).slice(0, 14))}
+                      </span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="eqm-section eqm-objet">
         <div className="eqm-section-titre">⚙️ Objet équipé</div>
         <div className="eqm-objet-zone">
@@ -463,7 +606,7 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, onEquiperObjet,
   )
 }
 
-function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}, onEquiperObjet, onEvoluerPierre, onChoisirPassif, onChoisirCaseJoker, onAppliquerParchemin, onAjouterMembre, onRetirerMembre, onAutoEquipe, onFermer }) {
+function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}, collectionCartesTCG = [], onChoisirSocle, onEquiperObjet, onEvoluerPierre, onChoisirPassif, onChoisirCaseJoker, onAppliquerParchemin, onAjouterMembre, onRetirerMembre, onAutoEquipe, onFermer }) {
   const [selection, setSelection] = useState(null)
   const [ajoutEnCours, setAjoutEnCours] = useState(false)
   const [tri, setTri] = useState('numero')
@@ -576,6 +719,7 @@ function Equipe({ equipe, collection, pierres = {}, objets = {}, parchemins = {}
             <button className="eqm-fermer" onClick={onFermer}>✕</button>
           </div>
           <Fiche pokemon={pokemonAJour} pierres={pierres} objets={objets} parchemins={parchemins}
+            cartesTCG={collectionCartesTCG} onChoisirSocle={onChoisirSocle}
             onEquiperObjet={onEquiperObjet} onEvoluerPierre={onEvoluerPierre} onChoisirPassif={onChoisirPassif}
             onChoisirCaseJoker={onChoisirCaseJoker} onAppliquerParchemin={onAppliquerParchemin}
             onRetour={() => setSelection(null)} />
@@ -635,6 +779,7 @@ function equipePropsEgales(prev, next) {
   if (prev.pierres !== next.pierres) return false
   if (prev.objets !== next.objets) return false
   if (prev.parchemins !== next.parchemins) return false
+  if (prev.collectionCartesTCG !== next.collectionCartesTCG) return false
   return true
 }
 

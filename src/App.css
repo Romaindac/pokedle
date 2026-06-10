@@ -24068,3 +24068,13 @@ a img,
 .terrain-joueur img[src*="customsprites"] {
   scale: -1 1;
 }
+/* ===== NETTOYAGE ARENE DE DUEL : zero plateforme/ellipse sous les combattants ===== */
+.terrain-slot::before, .terrain-slot::after,
+.cbt-slot::before, .cbt-slot::after,
+.cbt-sprite-zone::before, .cbt-sprite-zone::after {
+  display: none !important;
+  content: none !important;
+}
+.cbt-ombre-sol, .cbt-aura-role, .cbt-rarete-aura, .cbt-aura-rare, .cbt-plaque {
+  display: none !important;
+}
