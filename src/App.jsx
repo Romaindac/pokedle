@@ -13,7 +13,7 @@ import { ULTIMES, ultimeDuRole, COUT_ULTIME } from './ultimes'
 import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise, normaliserIV } from './stats'
 import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole, passifPourMode, champPassifDuMode } from './roles'
 import { statsBaseOfficielles, niveauMinimalForme } from './donneesPokemon'
-import { urlFusionDepuisNational } from './fusion'
+import { urlFusionDepuisNational, reparerFusions, appliquerGeneDominant } from './fusion'
 import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
 import CartePokemon from './CartePokemon'
 import SpriteCombattant from './SpriteCombattant'
@@ -1099,7 +1099,7 @@ function App() {
           data.resetDepart = VERSION_RESET_DEPART
           setTimeout(() => ajouterAuJournal('Nouveau depart ! Tes Pokemon sont conserves, le reste repart a zero.', 'victoire'), 1800)
         }
-        let capturesRecalc = (data.captures || []).map((p) => { if (!p) return p; if (p.estFusion) { const urlF = (p.teteId && p.corpsId) ? urlFusionDepuisNational(p.teteId, p.corpsId) : null; return urlF ? { ...p, sprite: urlF, spriteNormal: urlF, spriteShiny: urlF } : p } const off = statsBaseOfficielles(p.id); const base = off ? { ...p, ...off } : p; const nivMin = niveauMinimalForme(base.id); const repare = (typeof base.id === 'number' && (base.niveau || 1) < nivMin) ? { ...base, niveau: nivMin, xp: 0 } : base; return { ...repare, iv: normaliserIV(repare.iv), role: determinerRole(repare), passif: determinerPassif(repare) } })
+        let capturesRecalc = reparerFusions(data.captures || []).map((p) => { if (!p) return p; if (p.estFusion) { const urlF = (p.teteId && p.corpsId) ? urlFusionDepuisNational(p.teteId, p.corpsId) : null; return urlF ? { ...p, sprite: urlF, spriteNormal: urlF, spriteShiny: urlF } : p } const off = statsBaseOfficielles(p.id); const base = off ? { ...p, ...off } : p; const nivMin = niveauMinimalForme(base.id); const repare = (typeof base.id === 'number' && (base.niveau || 1) < nivMin) ? { ...base, niveau: nivMin, xp: 0 } : base; return { ...repare, iv: normaliserIV(repare.iv), role: determinerRole(repare), passif: determinerPassif(repare) } })
         for (let i = 0; i < capturesRecalc.length; i++) { const p = capturesRecalc[i]; if (p) capturesRecalc[i] = { ...p, ...statsFinales(p, BONUS_STAT_NIVEAU) } }
         const stockObjets = { ...(data.objets || {}) }; const compteObjet = {}; let nbDesequipes = 0
         for (let i = 0; i < capturesRecalc.length; i++) {
@@ -1792,6 +1792,17 @@ function App() {
     setCombatTourActif(false); setNiveauTourActuel(1); setEquipeEnnemieTour([])
   }
 
+  function changerGeneDominant(uid) {
+    const poke = capturesRef.current.find((p) => p.uid === uid)
+    if (!poke || !poke.estFusion) return
+    const gene = poke.geneDominant === 'corps' ? 'tete' : 'corps'
+    const maj = appliquerGeneDominant(poke, gene)
+    const nouvelleCollection = capturesRef.current.map((p) => (p.uid === uid ? maj : p))
+    capturesRef.current = nouvelleCollection; setCaptures(nouvelleCollection)
+    if (equipeIdsRef.current.includes(uid)) { const triee = trierIdsParRole(equipeIdsRef.current, nouvelleCollection); equipeIdsRef.current = triee; setEquipeIds(triee) }
+    ajouterAuJournal(`Gene ${gene === 'tete' ? 'TETE' : 'CORPS'} dominant pour ${poke.nom} !`, 'victoire')
+  }
+
   // Fusionne deux Pokemon : consomme les deux, ajoute la fusion, deduit l'ADN.
   function fusionner(pokeA, pokeB, fusion, cout) {
     if (!pokeA || !pokeB || !fusion) return
@@ -2277,7 +2288,7 @@ function App() {
 
       {combatTourActif && equipeEnnemieTour.length > 0 && (<CombatTour key={niveauTourActuel} niveauTour={niveauTourActuel} equipeJoueur={equipeJoueur} equipeEnnemie={equipeEnnemieTour} vitesse={vitesse} onVictoire={victoireTour} onDefaite={defaiteTour} onQuitter={() => { setCombatTourActif(false); setNiveauTourActuel(1) }} />)}
       {tourOuverte && !combatTourActif && (<PanneauTour collectionCartes={collectionCartesTCG} meilleurNiveau={meilleurNiveauTour} onLancer={() => { setTourOuverte(false); lancerTour() }} enCours={combatTourActif} onFermer={() => setTourOuverte(false)} />)}
-      {vueOuverte === 'fusion' && (<CentreFusion collection={captures} adnFusion={adnFusion} onFusionner={fusionner} onFermer={() => setVueOuverte(null)} />)}
+      {vueOuverte === 'fusion' && (<CentreFusion collection={captures} adnFusion={adnFusion} onFusionner={fusionner} onChangerGene={changerGeneDominant} onFermer={() => setVueOuverte(null)} />)}
       {carteDrop && (<div className={`tcg-drop-encart fin-${carteDrop.finition || 'normale'}`}><div className="tcg-drop-carte-mini">{carteDrop.imageSmall && <img src={carteDrop.imageSmall} alt={carteDrop.nom} />}{carteDrop.finition === 'brillante' && <div className="tcg-fx-brillante" aria-hidden="true" />}{carteDrop.finition === 'prismatique' && <div className="tcg-fx-prismatique" aria-hidden="true" />}</div><div className="tcg-drop-texte"><span className="tcg-drop-titre">{carteDrop.finition === 'prismatique' ? '🌈 Carte PRISMATIQUE !' : carteDrop.finition === 'brillante' ? '✨ Carte brillante !' : 'Carte obtenue !'}</span><span className="tcg-drop-nom">{carteDrop.nom}</span><span className="tcg-drop-rarete">{carteDrop.rarete} - {carteDrop.setNom}</span></div></div>)}
 
       <GuideInteractif id={guideActif} actif={!!guideActif} onTermine={() => setGuideActif(null)} />

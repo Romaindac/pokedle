@@ -5,6 +5,10 @@ import { bonusStatsObjet } from './objets'
 
 export const STAT_MAX_IV = 31
 
+// BONUS SHINY : multiplicateur applique a TOUTES les stats d'un Pokemon shiny.
+// 1.08 = +8%. Pour ajuster, change juste cette valeur (ex 1.05 = +5%, 1.10 = +10%).
+export const BONUS_SHINY = 1.08
+
 export function genererIV() {
   return {
     pv: Math.floor(Math.random() * (STAT_MAX_IV + 1)),
@@ -47,6 +51,7 @@ export function xpRequise(niveau, xpBase) {
 }
 
 // Calcule les stats finales : (base + IV) × multiplicateur de niveau, + bonus de PASSIF + objet.
+// Les Pokemon SHINY recoivent en plus le BONUS_SHINY (+8%) sur toutes les stats.
 export function statsFinales(pokemon, bonusNiveau = 0.08) {
   const p = pokemon || {}
   const ivBrut = p.iv || {}
@@ -58,6 +63,9 @@ export function statsFinales(pokemon, bonusNiveau = 0.08) {
   }
   const niveau = nombreSur(p.niveau, 1)
   const mult = 1 + nombreSur(bonusNiveau, 0.08) * (niveau - 1)
+
+  // Bonus shiny : applique a toutes les stats si le Pokemon est shiny.
+  const multShiny = p.shiny === true ? BONUS_SHINY : 1
 
   const pvBase = nombreSur(p.pvBase, 50)
   const attaqueBase = nombreSur(p.attaqueBase, 50)
@@ -82,10 +90,10 @@ export function statsFinales(pokemon, bonusNiveau = 0.08) {
   }
 
   return {
-    pvMax: finir((pvBase + iv.pv) * mult * pvMult * objPv, 1),
-    attaque: finir((attaqueBase + iv.attaque) * mult * objAtt, 1),
-    vitesse: finir((vitesseBase + iv.vitesse) * mult * objVit, 1),
-    defense: finir((defBase + iv.defense) * mult * defMult * objDef, 1),
+    pvMax: finir((pvBase + iv.pv) * mult * multShiny * pvMult * objPv, 1),
+    attaque: finir((attaqueBase + iv.attaque) * mult * multShiny * objAtt, 1),
+    vitesse: finir((vitesseBase + iv.vitesse) * mult * multShiny * objVit, 1),
+    defense: finir((defBase + iv.defense) * mult * multShiny * defMult * objDef, 1),
     role,
   }
 }

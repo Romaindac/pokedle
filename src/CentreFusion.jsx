@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { creerFusion, trouverSpriteFusionSync, nomFusion, statsFusion, typesFusion, coutFusion, especeFusionnable, urlSpriteFusionSecours } from './fusion'
+import { enregistrerDecouverte, chargerRegistre, cleFusion } from './apiFusions'
 import { trouverFusion } from './fusionsDisponibles'
 import { partenairesDe, ESPECES_FUSION } from './fusionsDisponibles'
 import { nomShowdown } from './pokedexNoms'
+import { ROLES } from './roles'
 
 // Couleur par type (pour les pastilles de type).
 const COULEUR_TYPE = {
@@ -21,7 +23,7 @@ const NOM_TYPE_FR = {
 
 const SPRITE_POKEAPI = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'
 
-// Cascade d'erreur pour un sprite de fusion : GitLab -> miroir GitHub -> action finale.
+// Cascade d'erreur pour un sprite de fusion : source principale -> secours -> action finale.
 function erreurSpriteFusion(e, natA, natB, actionFinale) {
   const img = e.currentTarget
   const etape = parseInt(img.dataset.secours || '0', 10)
@@ -67,6 +69,7 @@ const S = {
   onglet: (actif) => ({ flex: 1, padding: '9px 10px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer',
     border: actif ? '1px solid #fcd34d' : '1px solid #2a3242',
     background: actif ? 'rgba(252,211,77,0.12)' : 'rgba(255,255,255,0.03)', color: '#e8edf7' }),
+  boutonGene: { background: 'rgba(96,165,250,0.12)', border: '1px solid rgba(96,165,250,0.4)', borderRadius: 8, color: '#9cc4ff', fontWeight: 700, fontSize: 10, padding: '4px 8px', cursor: 'pointer' },
 }
 
 function PastilleType({ type }) {
@@ -81,6 +84,7 @@ function CentreFusion({
   collection = [],
   adnFusion = 0,
   onFusionner,
+  onChangerGene,
   onFermer,
 }) {
   const [onglet, setOnglet] = useState('fusion') // 'fusion' | 'pokedex'
@@ -93,6 +97,15 @@ function CentreFusion({
   const [dexEspece, setDexEspece] = useState(null) // id national
   const [dexDetail, setDexDetail] = useState(null) // id national du partenaire
   const [dexRecherche, setDexRecherche] = useState('')
+  // Registre mondial : { "tete-corps": { pseudo, nom, cree_le } }
+  const [registre, setRegistre] = useState({})
+  const [decouverteMsg, setDecouverteMsg] = useState('')
+
+  useEffect(() => {
+    let monte = true
+    chargerRegistre().then((r) => { if (monte && r.ok) setRegistre(r.table) })
+    return () => { monte = false }
+  }, [])
 
   const pokeA = collection.find((p) => p.uid === choixA) || null
   const pokeB = collection.find((p) => p.uid === choixB) || null
@@ -141,6 +154,15 @@ function CentreFusion({
     setChargement(false)
     if (!fusion) return
     onFusionner && onFusionner(pokeA, pokeB, fusion, cout)
+    // Registre mondial : enregistre la decouverte (le premier gagne le titre).
+    enregistrerDecouverte(fusion).then((r) => {
+      if (!r.ok) return
+      if (r.premiere && r.ligne) {
+        setRegistre((t) => ({ ...t, [r.cle]: { pseudo: r.ligne.pseudo, nom: r.ligne.nom } }))
+        setDecouverteMsg(`🏴 PREMIERE DECOUVERTE MONDIALE : ${fusion.nom} ! Ton nom est grave a jamais.`)
+        setTimeout(() => setDecouverteMsg(''), 6000)
+      }
+    }).catch(() => {})
     setChoixA(null); setChoixB(null); setInverse(false)
   }
 
@@ -189,6 +211,12 @@ function CentreFusion({
           <button onClick={() => { setOnglet('pokedex'); setDexDetail(null) }} style={S.onglet(onglet === 'pokedex')}>📖 Pokedex des fusions</button>
         </div>
 
+        {decouverteMsg && (
+          <div style={{ marginBottom: 10, padding: '10px 14px', borderRadius: 12, border: '1px solid #fcd34d', background: 'rgba(252,211,77,0.12)', color: '#fcd34d', fontWeight: 800, fontSize: 13, textAlign: 'center' }}>
+            {decouverteMsg}
+          </div>
+        )}
+
         {/* ================= ONGLET POKEDEX ================= */}
         {onglet === 'pokedex' && !dexEspece && (
           <div>
@@ -236,6 +264,7 @@ function CentreFusion({
                   const possedeP = especesPossedees.has(idP)
                   const realisable = aLEspece && possedeP
                   const detailOuvert = dexDetail === idP
+                  const dec = registre[cleFusion(f.teteId, f.corpsId)]
                   return (
                     <button key={idP} onClick={() => setDexDetail(detailOuvert ? null : idP)}
                       style={{ ...S.carte, borderColor: detailOuvert ? '#fcd34d' : (realisable ? '#7ee3a8' : '#2a3242') }}>
@@ -245,6 +274,7 @@ function CentreFusion({
                       <span style={{ fontSize: 10, color: realisable ? '#7ee3a8' : '#5b6575' }}>
                         {realisable ? '+ ' + (nomShowdown(idP) || idP) : '???'}
                       </span>
+                      {dec && <span style={{ fontSize: 9, color: '#fcd34d' }}>🏴 {dec.pseudo}</span>}
                     </button>
                   )
                 })}
@@ -257,11 +287,15 @@ function CentreFusion({
                 const possedeP = especesPossedees.has(idP)
                 const realisable = aLEspece && possedeP
                 const nomP = nomShowdown(idP) || `N.${idP}`
+                const dec = registre[cleFusion(f.teteId, f.corpsId)]
                 return (
                   <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: '1px solid rgba(96,165,250,0.35)', background: 'rgba(96,165,250,0.06)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                     <img src={f.url} alt="fusion" style={{ width: 72, height: 72, objectFit: 'contain', imageRendering: 'pixelated', filter: realisable ? 'none' : 'brightness(0) opacity(0.6)' }}
                       onError={(e) => erreurSpriteFusion(e, dexEspece, idP, null)} />
                     <div style={{ flex: 1, minWidth: 200 }}>
+                      <div style={{ fontSize: 11, marginBottom: 6, color: dec ? '#fcd34d' : '#7ee3a8', fontWeight: 700 }}>
+                        {dec ? `🏴 Decouverte par ${dec.pseudo}` : '🏴 Jamais decouverte — sois le premier au monde !'}
+                      </div>
                       <div style={{ fontWeight: 800, marginBottom: 4 }}>Il te faut :</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                         <img src={`${SPRITE_POKEAPI}${dexEspece}.png`} alt={nomEspece} style={{ width: 34, height: 34, filter: aLEspece ? 'none' : 'grayscale(1) brightness(0.4)' }} />
@@ -344,6 +378,9 @@ function CentreFusion({
                         <span>💨 {apercuStats.vitesseBase}</span>
                       </div>
                     )}
+                    {pokeA && pokeB && (pokeA.shiny && pokeB.shiny) && (
+                      <div style={{ marginTop: 6, fontSize: 12, color: '#fcd34d', fontWeight: 700 }}>✨ Fusion SHINY (2 parents shiny) !</div>
+                    )}
                   </div>
                 </div>
               )}
@@ -379,7 +416,7 @@ function CentreFusion({
                     onClick={() => choisir(p.uid)}
                   >
                     <img src={p.spriteNormal || p.sprite} alt={p.nom} style={S.carteSprite} />
-                    <span>{p.nom}</span>
+                    <span>{p.nom}{p.shiny ? ' ✨' : ''}</span>
                     <span style={{ color: '#7a87a0' }}>N.{p.niveau}</span>
                     {choisi && <span style={{ position: 'absolute', top: 4, right: 6, color: '#fcd34d', fontWeight: 800 }}>✓</span>}
                   </button>
@@ -396,15 +433,30 @@ function CentreFusion({
           {mesFusions.length > 0 && (
             <div>
               <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>🧬 Mes fusions ({mesFusions.length})</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
-                {mesFusions.map((f) => (
-                  <div key={f.uid} style={{ background: 'rgba(126,227,168,0.05)', border: '1px solid rgba(126,227,168,0.3)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <img src={f.sprite} alt={f.nom} style={{ width: 64, height: 64, objectFit: 'contain', imageRendering: 'pixelated' }} loading="lazy" />
-                    <span style={{ fontWeight: 700, fontSize: 12 }}>{f.nom}</span>
-                    <span style={{ fontSize: 10, color: '#9ca8bd' }}>{f.nomTete} + {f.nomCorps}</span>
-                    <span style={{ fontSize: 10, color: '#7a87a0' }}>N.{f.niveau}</span>
-                  </div>
-                ))}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
+                {mesFusions.map((f) => {
+                  const roleActuel = ROLES[f.role]?.nom || f.role || '?'
+                  const roleTete = ROLES[f.roleTete]?.nom || f.roleTete
+                  const roleCorps = ROLES[f.roleCorps]?.nom || f.roleCorps
+                  const genesDifferents = f.roleTete && f.roleCorps && f.roleTete !== f.roleCorps
+                  const dec = registre[cleFusion(f.teteId, f.corpsId)]
+                  return (
+                    <div key={f.uid} style={{ background: f.shiny ? 'rgba(252,211,77,0.07)' : 'rgba(126,227,168,0.05)', border: f.shiny ? '1px solid rgba(252,211,77,0.5)' : '1px solid rgba(126,227,168,0.3)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <img src={f.sprite} alt={f.nom} style={{ width: 64, height: 64, objectFit: 'contain', imageRendering: 'pixelated' }} loading="lazy"
+                        onError={(e) => erreurSpriteFusion(e, f.teteId, f.corpsId, null)} />
+                      <span style={{ fontWeight: 700, fontSize: 12 }}>{f.shiny ? '✨ ' : ''}{f.nom}</span>
+                      <span style={{ fontSize: 10, color: '#9ca8bd' }}>{f.nomTete} + {f.nomCorps}</span>
+                      <span style={{ fontSize: 10, color: '#7a87a0' }}>N.{f.niveau} — {roleActuel}</span>
+                      {dec && <span style={{ fontSize: 9, color: '#fcd34d' }}>🏴 Decouverte par {dec.pseudo}</span>}
+                      {genesDifferents && onChangerGene && (
+                        <button style={S.boutonGene} onClick={() => onChangerGene(f.uid)}
+                          title={`Gene dominant : ${f.geneDominant === 'corps' ? 'Corps' : 'Tete'}. Clique pour basculer sur ${f.geneDominant === 'corps' ? roleTete : roleCorps}.`}>
+                          🧬 Gene : {f.geneDominant === 'corps' ? `Corps (${roleCorps})` : `Tete (${roleTete})`} ↔
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}

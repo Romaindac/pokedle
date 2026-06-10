@@ -2,26 +2,24 @@
 // SYSTEME DE FUSION — facon Pokemon Infinite Fusion
 // Fusionne 2 Pokemon en un seul, avec :
 //   - sprite custom (dessine main par la communaute)
-//   - stats = le MEILLEUR des deux par stat
+//   - stats = le MEILLEUR des deux par stat (base + IV)
 //   - double-type (type de la tete + type du corps)
 //   - nom stylise (debut de la tete + fin du corps)
 // La fusion CONSOMME les deux parents (craft).
 //
-// La disponibilite des sprites est lue dans une TABLE STATIQUE
-// (fusionsDisponibles.js, issue de la matrice officielle Infinite Fusion).
-// Aucune verification reseau : tout est instantane.
-// Les URLs du repo de sprites utilisent les ids du dex INFINITE FUSION (PIF).
-//
-// FIX SPRITES (important) :
-//   - L'ancienne source GitLab ne chargeait pas, et l'ancien secours
-//     (Aegide/custom-fusion-sprites) est un repo MORT (403).
-//   - Nouvelle source principale : le MIROIR GITHUB OFFICIEL
-//     pokemoninfinitefusion/custom-sprites (verifie : repond 200,
-//     meme domaine raw.githubusercontent.com que les sprites PokeAPI).
-//   - Secours : le GitLab officiel.
+// V3 — GENE DOMINANT :
+//   - La fusion memorise le ROLE de ses 2 parents (roleTete / roleCorps).
+//   - Le joueur choisit le "gene dominant" (tete ou corps) : la fusion
+//     prend le role correspondant. Basculable a volonte (appliquerGeneDominant).
+// V2 — FIX COMBAT (conserve) :
+//   - IV fusionnes stat par stat, role/passif/stats finales a la creation,
+//   - shiny si les DEUX parents sont shiny.
 // ============================================================
 
 import { trouverFusion, pifIdDepuisNational, nationalDepuisPif } from './fusionsDisponibles'
+import { statsFinales, fusionnerIV, normaliserIV } from './stats'
+import { determinerRole, determinerPassif, passifParDefautDuRole } from './roles'
+import { BONUS_STAT_NIVEAU } from './config'
 
 // Source PRINCIPALE : miroir GitHub officiel (fiable, meme domaine que PokeAPI).
 const BASE_CUSTOM = 'https://raw.githubusercontent.com/pokemoninfinitefusion/custom-sprites/master/CustomBattlers'
@@ -47,18 +45,64 @@ export function urlFusionDepuisNational(natTete, natCorps) {
   return urlSpriteFusion(t, c)
 }
 
-// REPARATION : met a jour les sprites des fusions deja sauvegardees
-// (creees avec l'ancienne URL morte). A appeler sur la liste de captures
-// au chargement de la sauvegarde. Renvoie la liste (inchangee si rien a faire).
+// ============================================================
+// GENE DOMINANT
+// ============================================================
+// Applique le gene choisi ('tete' ou 'corps') : la fusion prend le role
+// du parent correspondant. Renvoie le Pokemon mis a jour (stats recalculees).
+export function appliquerGeneDominant(poke, gene) {
+  if (!poke || !poke.estFusion) return poke
+  const g = gene === 'corps' ? 'corps' : 'tete'
+  const role = g === 'corps' ? (poke.roleCorps || poke.role) : (poke.roleTete || poke.role)
+  if (!role) return poke
+  const maj = {
+    ...poke,
+    geneDominant: g,
+    role,
+    roleForce: role,
+    passifChoisi: passifParDefautDuRole(role),
+  }
+  maj.passif = determinerPassif(maj)
+  return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
+}
+
+// REPARATION : met a jour les fusions deja sauvegardees.
+//   1) URL de sprite morte -> nouvelle source
+//   2) IV au mauvais format -> objet propre
+//   3) Genes manquants (roleTete/roleCorps) -> deduits des deux types
+//   4) Role / passif / stats finales manquants ou casses
+// A appeler sur la liste de captures au chargement de la sauvegarde.
 export function reparerFusions(listeCaptures) {
   if (!Array.isArray(listeCaptures)) return listeCaptures
   let modifie = false
   const liste = listeCaptures.map((p) => {
     if (!p || !p.estFusion) return p
+    let maj = p
+    const copie = () => { if (maj === p) maj = { ...p } }
+    // 1) URL de sprite morte -> nouvelle source.
     const url = urlFusionDepuisNational(p.teteId, p.corpsId)
-    if (!url || p.sprite === url) return p
-    modifie = true
-    return { ...p, sprite: url, spriteNormal: url, spriteShiny: url }
+    if (url && p.sprite !== url) {
+      copie(); maj.sprite = url; maj.spriteNormal = url; maj.spriteShiny = url
+    }
+    // 2) IV au mauvais format (nombre/NaN) -> objet propre.
+    if (!maj.iv || typeof maj.iv !== 'object') { copie(); maj.iv = normaliserIV(null) }
+    // 3) Genes manquants : roles des parents deduits des deux types de la fusion
+    //    (type 1 = type principal de la tete, type 2 = type principal du corps).
+    if (!maj.roleTete || !maj.roleCorps) {
+      copie()
+      const t = maj.types || []
+      maj.roleTete = determinerRole({ ...maj, types: [t[0] || 'normal'] })
+      maj.roleCorps = determinerRole({ ...maj, types: [t[1] || t[0] || 'normal'] })
+      maj.geneDominant = maj.geneDominant || 'tete'
+    }
+    // 4) Role / passif manquants.
+    if (!maj.role) { copie(); maj.role = maj.roleTete; maj.roleForce = maj.roleTete; maj.passif = determinerPassif(maj) }
+    // 5) Stats finales manquantes ou cassees (NaN).
+    if (!Number.isFinite(maj.pvMax) || !Number.isFinite(maj.attaque)) {
+      maj = { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
+    }
+    if (maj !== p) modifie = true
+    return maj
   })
   return modifie ? liste : listeCaptures
 }
@@ -214,11 +258,20 @@ export async function creerFusion(pokeA, pokeB, nouvelUidFn) {
   const types = typesFusion(tete, corps)
   const nom = nomFusion(tete.nom, corps.nom)
   const niveau = Math.max(pokeA.niveau || 1, pokeB.niveau || 1)
-  const iv = Math.max(pokeA.iv || 0, pokeB.iv || 0)
+
+  // IV : le MEILLEUR de chaque stat entre les deux parents.
+  const iv = fusionnerIV(normaliserIV(pokeA.iv), normaliserIV(pokeB.iv))
+
+  // SHINY : la fusion est shiny seulement si les DEUX parents sont shiny.
+  const estShiny = !!(pokeA.shiny && pokeB.shiny)
+
+  // GENES : roles des deux parents (gene dominant par defaut = tete).
+  const roleTete = tete.role || determinerRole(tete)
+  const roleCorps = corps.role || determinerRole(corps)
 
   const idFusion = `fusion-${trouve.teteId}-${trouve.corpsId}`
 
-  const fusion = {
+  const base = {
     uid: nouvelUidFn ? nouvelUidFn() : `fus-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     id: idFusion,
     estFusion: true,
@@ -233,12 +286,24 @@ export async function creerFusion(pokeA, pokeB, nouvelUidFn) {
     sprite: trouve.url,
     spriteNormal: trouve.url,
     spriteShiny: trouve.url,
-    shiny: false,
+    shiny: estShiny,
     iv,
     niveau,
     xp: 0,
+    roleTete,
+    roleCorps,
+    geneDominant: 'tete',
     evolueEn: null, evolueNiveau: null, evolutionsPierre: [], formeEvoluee: null,
     estEvolution: false, familleId: null,
   }
-  return fusion
+
+  // Role = gene dominant (tete par defaut), comme un roleForce.
+  base.role = roleTete
+  base.roleForce = roleTete
+  base.passifChoisi = passifParDefautDuRole(roleTete)
+  base.passif = determinerPassif(base)
+
+  // Stats finales (pvMax, attaque, defense, vitesse) — pretes pour le combat.
+  const finales = statsFinales(base, BONUS_STAT_NIVEAU)
+  return { ...base, ...finales }
 }
