@@ -1,23 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
-import { creerFusion, trouverSpriteFusion, nomFusion, statsFusion, typesFusion, coutFusion } from './fusion'
+import { useState, useMemo } from 'react'
+import { creerFusion, trouverSpriteFusionSync, nomFusion, statsFusion, typesFusion, coutFusion, especeFusionnable, urlSpriteFusionSecours } from './fusion'
+import { trouverFusion } from './fusionsDisponibles'
+import { partenairesDe, ESPECES_FUSION } from './fusionsDisponibles'
 import { nomShowdown } from './pokedexNoms'
-
-// ============================================================
-// CACHE GLOBAL (niveau module) : persiste entre les ouvertures du panneau
-// pendant toute la session. cle "idMin-idMax" -> true/false (sprite existe ?)
-// ============================================================
-const cachePaires = {}
-
-function clePaire(a, b) { return a < b ? `${a}-${b}` : `${b}-${a}` }
-
-// Renvoie l'objet { url, teteId, corpsId } si un sprite existe, sinon false. Avec cache.
-async function paireFusionnable(idA, idB) {
-  const cle = clePaire(idA, idB)
-  if (cachePaires[cle] !== undefined) return cachePaires[cle]
-  const trouve = await trouverSpriteFusion(idA, idB)
-  cachePaires[cle] = trouve || false
-  return cachePaires[cle]
-}
 
 // Couleur par type (pour les pastilles de type).
 const COULEUR_TYPE = {
@@ -32,6 +17,19 @@ const NOM_TYPE_FR = {
   ice: 'Glace', fighting: 'Combat', poison: 'Poison', ground: 'Sol', flying: 'Vol',
   psychic: 'Psy', bug: 'Insecte', rock: 'Roche', ghost: 'Spectre', dragon: 'Dragon',
   dark: 'Tenebres', steel: 'Acier', fairy: 'Fee',
+}
+
+const SPRITE_POKEAPI = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'
+
+// Cascade d'erreur pour un sprite de fusion : GitLab -> miroir GitHub -> action finale.
+function erreurSpriteFusion(e, natA, natB, actionFinale) {
+  const img = e.currentTarget
+  const etape = parseInt(img.dataset.secours || '0', 10)
+  if (etape === 0) {
+    const f = trouverFusion(natA, natB)
+    if (f) { img.dataset.secours = '1'; img.src = urlSpriteFusionSecours(f.tetePif, f.corpsPif); return }
+  }
+  if (actionFinale) actionFinale(img)
 }
 
 // ---- Styles inline de structure (immunises contre App.css) ----
@@ -66,11 +64,14 @@ const S = {
   carteSprite: { width: 52, height: 52, objectFit: 'contain', imageRendering: 'pixelated' },
   recherche: { width: '100%', boxSizing: 'border-box', background: '#10151f', border: '1px solid #2a3242', borderRadius: 10, padding: '9px 12px', color: '#e8edf7', fontSize: 13, marginBottom: 8 },
   bouton: { background: 'linear-gradient(135deg, #fcd34d, #f59e0b)', border: 'none', borderRadius: 12, color: '#1a1205', fontWeight: 800, fontSize: 14, padding: '12px 22px', cursor: 'pointer' },
+  onglet: (actif) => ({ flex: 1, padding: '9px 10px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+    border: actif ? '1px solid #fcd34d' : '1px solid #2a3242',
+    background: actif ? 'rgba(252,211,77,0.12)' : 'rgba(255,255,255,0.03)', color: '#e8edf7' }),
 }
 
 function PastilleType({ type }) {
   return (
-    <span className="cf-type" style={{ background: COULEUR_TYPE[type] || '#888', color: '#0d1117', borderRadius: 999, padding: '2px 10px', fontSize: 11, fontWeight: 700, marginRight: 4 }}>
+    <span style={{ background: COULEUR_TYPE[type] || '#888', color: '#0d1117', borderRadius: 999, padding: '2px 10px', fontSize: 11, fontWeight: 700, marginRight: 4 }}>
       {NOM_TYPE_FR[type] || type}
     </span>
   )
@@ -82,122 +83,32 @@ function CentreFusion({
   onFusionner,
   onFermer,
 }) {
+  const [onglet, setOnglet] = useState('fusion') // 'fusion' | 'pokedex'
   const [choixA, setChoixA] = useState(null)
   const [choixB, setChoixB] = useState(null)
   const [recherche, setRecherche] = useState('')
-  const [apercu, setApercu] = useState(null)
   const [chargement, setChargement] = useState(false)
-  const [erreurSprite, setErreurSprite] = useState(false)
   const [inverse, setInverse] = useState(false)
-  const demandeRef = useRef(0)
-
-  // partenaires : { [idEspece]: true (au moins 1 fusion possible) | false (aucune) }
-  const [partenaires, setPartenaires] = useState({})
-  const [scanGlobal, setScanGlobal] = useState(false)
-  const [progres, setProgres] = useState(0)
-  // fusionnables : { [idEspece]: true|false } AVEC le Pokemon A selectionne.
-  const [fusionnables, setFusionnables] = useState({})
-  const [scanA, setScanA] = useState(false)
-  const scanGlobalRef = useRef(0)
-  const scanARef = useRef(0)
-  // ===== Onglet Guide des fusions =====
-  const [onglet, setOnglet] = useState('fusion') // 'fusion' | 'guide'
-  const [guideListe, setGuideListe] = useState([]) // [{ cle, idA, idB, detail }]
-  const [guideScan, setGuideScan] = useState(false)
-  const [guideProgres, setGuideProgres] = useState(0)
-  const guideScanRef = useRef(0)
-  const guideFaitRef = useRef(false)
-  // ===== Chasse : fusions a debloquer (il manque un Pokemon) =====
-  const [chasseListe, setChasseListe] = useState([]) // [{ cle, idPossede, idManquant, detail }]
-  const [chasseScan, setChasseScan] = useState(false)
-  const [chasseProgres, setChasseProgres] = useState(0)
-  const chasseScanRef = useRef(0)
+  // Pokedex : espece selectionnee + fusion selectionnee (detail "qui il faut").
+  const [dexEspece, setDexEspece] = useState(null) // id national
+  const [dexDetail, setDexDetail] = useState(null) // id national du partenaire
+  const [dexRecherche, setDexRecherche] = useState('')
 
   const pokeA = collection.find((p) => p.uid === choixA) || null
   const pokeB = collection.find((p) => p.uid === choixB) || null
 
-  // Especes uniques de la collection (hors fusions deja faites).
-  // LIMITE GEN 1-2 (ids <= 251) : le repo de sprites utilise le dex Infinite Fusion,
-  // qui ne correspond au dex national QUE pour les gen 1-2. Au-dela, risque de
-  // sprite d'une MAUVAISE paire. On garantit donc des fusions toujours correctes.
-  const ID_MAX_FUSION = 251
-  const especes = [...new Set(collection.filter((p) => p && !p.estFusion && p.id <= ID_MAX_FUSION).map((p) => p.id))]
+  // Especes possedees (hors fusions). INSTANTANE.
+  const especesPossedees = useMemo(() => new Set(collection.filter((p) => p && !p.estFusion).map((p) => p.id)), [collection])
 
-  // ===== SCAN GLOBAL a l'ouverture : qui a au moins UN partenaire ? =====
-  // Early-exit : des qu'un partenaire est trouve pour une espece, elle est validee.
-  useEffect(() => {
-    const monScan = ++scanGlobalRef.current
-    if (especes.length < 2) return
-    setScanGlobal(true); setProgres(0)
-    let resolues = 0
+  // Partenaires (table statique) du Pokemon A selectionne. INSTANTANE.
+  const partenairesA = useMemo(() => pokeA ? new Set(partenairesDe(pokeA.id)) : null, [choixA])
 
-    async function verifierEspece(id) {
-      const autres = especes.filter((x) => x !== id)
-      // Teste les paires une par une, s'arrete au premier partenaire trouve.
-      for (const autre of autres) {
-        if (scanGlobalRef.current !== monScan) return
-        const ok = await paireFusionnable(id, autre)
-        if (ok) { return true }
-      }
-      return false
-    }
-
-    async function lancer() {
-      // 4 especes verifiees en parallele (chacune fait ses requetes en serie).
-      const file = [...especes]
-      async function ouvrier() {
-        while (file.length > 0) {
-          if (scanGlobalRef.current !== monScan) return
-          const id = file.shift()
-          const ok = await verifierEspece(id)
-          if (scanGlobalRef.current !== monScan) return
-          resolues += 1
-          setPartenaires((p) => ({ ...p, [id]: !!ok }))
-          setProgres(Math.round((resolues / especes.length) * 100))
-        }
-      }
-      await Promise.all([ouvrier(), ouvrier(), ouvrier(), ouvrier()])
-      if (scanGlobalRef.current === monScan) setScanGlobal(false)
-    }
-    lancer()
-    return () => { scanGlobalRef.current += 1 }
-  }, [])
-
-  // ===== SCAN CIBLE : quand un Pokemon A est choisi, qui fusionne avec LUI ? =====
-  useEffect(() => {
-    if (!pokeA) { setFusionnables({}); setScanA(false); return }
-    const monScan = ++scanARef.current
-    setScanA(true); setFusionnables({})
-    const cibles = especes.filter((id) => id !== pokeA.id)
-    let index = 0
-    const TAILLE_LOT = 8
-    async function lot() {
-      if (scanARef.current !== monScan) return
-      const tranche = cibles.slice(index, index + TAILLE_LOT)
-      if (tranche.length === 0) { setScanA(false); return }
-      index += TAILLE_LOT
-      const res = {}
-      await Promise.all(tranche.map(async (id) => { res[id] = await paireFusionnable(pokeA.id, id) }))
-      if (scanARef.current !== monScan) return
-      setFusionnables((f) => ({ ...f, ...res }))
-      lot()
-    }
-    lot()
-  }, [choixA])
-
-  // Apercu de la fusion selectionnee.
-  useEffect(() => {
-    if (!pokeA || !pokeB) { setApercu(null); setErreurSprite(false); return }
-    const demande = ++demandeRef.current
-    setChargement(true); setErreurSprite(false); setApercu(null)
+  // Apercu de la fusion : lookup synchrone, ZERO reseau.
+  const apercu = useMemo(() => {
+    if (!pokeA || !pokeB) return null
     const a = inverse ? pokeB : pokeA
     const b = inverse ? pokeA : pokeB
-    trouverSpriteFusion(a.id, b.id).then((trouve) => {
-      if (demande !== demandeRef.current) return
-      setChargement(false)
-      if (trouve) setApercu(trouve)
-      else { setApercu(null); setErreurSprite(true) }
-    })
+    return trouverSpriteFusionSync(a.id, b.id)
   }, [choixA, choixB, inverse])
 
   const cout = pokeA && pokeB ? coutFusion(pokeA, pokeB) : 0
@@ -212,91 +123,6 @@ function CentreFusion({
     apercuStats = statsFusion(pokeA, pokeB)
     apercuTypes = typesFusion(tete, corps)
   }
-
-  // ===== SCAN EXHAUSTIF DU GUIDE : toutes les paires de la collection =====
-  function lancerScanGuide() {
-    const monScan = ++guideScanRef.current
-    const paires = []
-    for (let i = 0; i < especes.length; i++) {
-      for (let j = i + 1; j < especes.length; j++) paires.push([especes[i], especes[j]])
-    }
-    if (paires.length === 0) { setGuideScan(false); return }
-    setGuideScan(true); setGuideProgres(0)
-    let faites = 0
-    const trouvees = []
-    const file = [...paires]
-    async function ouvrier() {
-      while (file.length > 0) {
-        if (guideScanRef.current !== monScan) return
-        const [a, b] = file.shift()
-        const detail = await paireFusionnable(a, b)
-        if (guideScanRef.current !== monScan) return
-        faites += 1
-        if (detail) trouvees.push({ cle: clePaire(a, b), idA: a, idB: b, detail })
-        if (faites % 6 === 0 || file.length === 0) {
-          setGuideProgres(Math.round((faites / paires.length) * 100))
-          setGuideListe([...trouvees])
-        }
-      }
-    }
-    Promise.all([ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier()]).then(() => {
-      if (guideScanRef.current === monScan) { setGuideScan(false); setGuideProgres(100); setGuideListe([...trouvees]) }
-    })
-  }
-
-  // ===== SCAN CHASSE : tes Pokemon x les especes gen 1-2 que tu n'as PAS =====
-  // Long (beaucoup de paires) : a la demande, progressif, avec cache partage.
-  function lancerScanChasse() {
-    const monScan = ++chasseScanRef.current
-    const possedees = new Set(especes)
-    const manquantes = []
-    for (let id = 1; id <= ID_MAX_FUSION; id++) { if (!possedees.has(id)) manquantes.push(id) }
-    const paires = []
-    for (const a of especes) { for (const b of manquantes) paires.push([a, b]) }
-    if (paires.length === 0) { setChasseScan(false); return }
-    setChasseScan(true); setChasseProgres(0)
-    let faites = 0
-    const trouvees = []
-    const file = [...paires]
-    async function ouvrier() {
-      while (file.length > 0) {
-        if (chasseScanRef.current !== monScan) return
-        const [a, b] = file.shift()
-        const detail = await paireFusionnable(a, b)
-        if (chasseScanRef.current !== monScan) return
-        faites += 1
-        if (detail) trouvees.push({ cle: clePaire(a, b), idPossede: a, idManquant: b, detail })
-        if (faites % 10 === 0 || file.length === 0) {
-          setChasseProgres(Math.round((faites / paires.length) * 100))
-          setChasseListe([...trouvees])
-        }
-      }
-    }
-    Promise.all([ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier()]).then(() => {
-      if (chasseScanRef.current === monScan) { setChasseScan(false); setChasseProgres(100); setChasseListe([...trouvees]) }
-    })
-  }
-
-  function ouvrirGuide() {
-    setOnglet('guide')
-    if (!guideFaitRef.current) { guideFaitRef.current = true; lancerScanGuide() }
-  }
-
-  // Prepare une fusion depuis le guide : selectionne les deux Pokemon et revient a l'onglet Fusion.
-  function preparerFusion(idA, idB) {
-    const a = collection.find((p) => p && !p.estFusion && p.id === idA)
-    const b = collection.find((p) => p && !p.estFusion && p.id === idB)
-    if (!a || !b) return
-    setChoixA(a.uid); setChoixB(b.uid); setInverse(false); setOnglet('fusion')
-  }
-
-  // Premier Pokemon de la collection pour une espece (pour les sprites du guide).
-  function pokeDeLEspece(id) {
-    return collection.find((p) => p && !p.estFusion && p.id === id) || null
-  }
-
-  // Fusions deja possedees (galerie).
-  const mesFusions = collection.filter((p) => p && p.estFusion)
 
   function choisir(uid) {
     if (uid === choixA) { setChoixA(null); setChoixB(null); return }
@@ -313,26 +139,40 @@ function CentreFusion({
     setChargement(true)
     const fusion = await creerFusion(a, b, null)
     setChargement(false)
-    if (!fusion) { setErreurSprite(true); return }
+    if (!fusion) return
     onFusionner && onFusionner(pokeA, pokeB, fusion, cout)
-    setChoixA(null); setChoixB(null); setApercu(null); setInverse(false)
+    setChoixA(null); setChoixB(null); setInverse(false)
   }
 
-  // ===== LISTE AFFICHEE =====
-  // Sans selection : on masque ceux confirmes SANS partenaire (false).
-  // Avec un Pokemon A : on ne montre que A + ceux fusionnables avec A
-  // (ceux pas encore verifies restent visibles, estompes).
+  // Prepare une fusion depuis le Pokedex.
+  function preparerFusion(idA, idB) {
+    const a = collection.find((p) => p && !p.estFusion && p.id === idA)
+    const b = collection.find((p) => p && !p.estFusion && p.id === idB)
+    if (!a || !b) return
+    setChoixA(a.uid); setChoixB(b.uid); setInverse(false); setOnglet('fusion'); setDexDetail(null)
+  }
+
+  // ===== Liste de l'onglet Fusionner =====
+  // Fusionnables seulement ; avec un A selectionne : seulement ses partenaires possedes.
   const liste = collection
-    .filter((p) => p && !p.estFusion && p.id <= ID_MAX_FUSION)
+    .filter((p) => p && !p.estFusion && especeFusionnable(p.id))
     .filter((p) => !recherche || (p.nom || '').toLowerCase().includes(recherche.toLowerCase()))
     .filter((p) => {
-      if (pokeA) {
-        if (p.uid === choixA || p.uid === choixB) return true
-        if (p.id === pokeA.id) return false // meme espece : pas de fusion
-        return fusionnables[p.id] !== false // garde fusionnables + pas-encore-verifies
-      }
-      return partenaires[p.id] !== false // masque ceux sans AUCUN partenaire
+      if (!pokeA) return true
+      if (p.uid === choixA || p.uid === choixB) return true
+      if (p.id === pokeA.id) return false
+      return partenairesA && partenairesA.has(p.id)
     })
+
+  const mesFusions = collection.filter((p) => p && p.estFusion)
+
+  // ===== Donnees du Pokedex =====
+  const dexListe = ESPECES_FUSION.filter((id) => {
+    if (!dexRecherche) return true
+    const nom = nomShowdown(id) || ''
+    return nom.includes(dexRecherche.toLowerCase()) || String(id).includes(dexRecherche)
+  })
+  const nbPossedees = ESPECES_FUSION.filter((id) => especesPossedees.has(id)).length
 
   return (
     <div className="cf-overlay" style={S.overlay} onClick={onFermer}>
@@ -343,147 +183,111 @@ function CentreFusion({
           <button className="cf-fermer" style={S.fermer} onClick={onFermer}>✕</button>
         </div>
 
-        <p className="cf-intro" style={{ fontSize: 13, color: '#9ca8bd', lineHeight: 1.5, marginTop: 0 }}>
-          Fusionne deux Pokemon en un seul ! La fusion <strong>consomme les deux Pokemon</strong> et
-          cree un nouvel etre unique. Sprites dessines main (projet Infinite Fusion) :
-          seuls les Pokemon des <strong>generations 1 et 2</strong> peuvent fusionner, et seuls
-          ceux avec une fusion possible sont affiches.
-        </p>
-
-        {/* Onglets : Fusionner / Guide */}
+        {/* Onglets */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-          <button onClick={() => setOnglet('fusion')}
-            style={{ flex: 1, padding: '9px 10px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer',
-              border: onglet === 'fusion' ? '1px solid #fcd34d' : '1px solid #2a3242',
-              background: onglet === 'fusion' ? 'rgba(252,211,77,0.12)' : 'rgba(255,255,255,0.03)', color: '#e8edf7' }}>
-            ⚡ Fusionner
-          </button>
-          <button onClick={ouvrirGuide}
-            style={{ flex: 1, padding: '9px 10px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer',
-              border: onglet === 'guide' ? '1px solid #fcd34d' : '1px solid #2a3242',
-              background: onglet === 'guide' ? 'rgba(252,211,77,0.12)' : 'rgba(255,255,255,0.03)', color: '#e8edf7' }}>
-            📖 Guide des fusions
-          </button>
+          <button onClick={() => setOnglet('fusion')} style={S.onglet(onglet === 'fusion')}>⚡ Fusionner</button>
+          <button onClick={() => { setOnglet('pokedex'); setDexDetail(null) }} style={S.onglet(onglet === 'pokedex')}>📖 Pokedex des fusions</button>
         </div>
 
-        {scanGlobal && onglet === 'fusion' && (
-          <p style={{ fontSize: 12, color: '#fcd34d', margin: '0 0 6px' }}>
-            🔎 Analyse des fusions possibles dans ta collection... {progres}%
-          </p>
-        )}
-
-        {/* ===== ONGLET GUIDE ===== */}
-        {onglet === 'guide' && (
+        {/* ================= ONGLET POKEDEX ================= */}
+        {onglet === 'pokedex' && !dexEspece && (
           <div>
-            {guideScan && (
-              <p style={{ fontSize: 12, color: '#fcd34d', margin: '0 0 8px' }}>
-                🔎 Recherche de toutes les fusions de ta collection... {guideProgres}%
-              </p>
-            )}
-            {!guideScan && guideListe.length === 0 && (
-              <p style={{ fontSize: 13, color: '#7a87a0' }}>Aucune fusion possible avec ta collection actuelle (gen 1-2). Capture plus de Pokemon !</p>
-            )}
-            {guideListe.length > 0 && (
-              <p style={{ fontSize: 12, color: '#9ca8bd', margin: '0 0 8px' }}>
-                {guideListe.length} fusion{guideListe.length > 1 ? 's' : ''} realisable{guideListe.length > 1 ? 's' : ''} avec ta collection — clique « Preparer » pour la lancer.
-              </p>
-            )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10, maxHeight: 380, overflow: 'auto', padding: 2 }}>
-              {guideListe.map(({ cle, idA, idB, detail }) => {
-                const pA = pokeDeLEspece(idA)
-                const pB = pokeDeLEspece(idB)
-                if (!pA || !pB) return null
-                const tete = detail.teteId === pA.id ? pA : pB
-                const corps = detail.teteId === pA.id ? pB : pA
-                const nom = nomFusion(tete.nom, corps.nom)
-                const cout = coutFusion(pA, pB)
+            <p style={{ fontSize: 13, color: '#9ca8bd', marginTop: 0 }}>
+              Choisis un Pokemon pour voir <strong>toutes ses fusions</strong>. Les ombres = Pokemon que tu n'as pas encore. ({nbPossedees} / {ESPECES_FUSION.length} possedes)
+            </p>
+            <input style={S.recherche} type="text" placeholder="Rechercher (nom anglais ou numero)..."
+              value={dexRecherche} onChange={(e) => setDexRecherche(e.target.value)} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(74px, 1fr))', gap: 6, maxHeight: 430, overflow: 'auto', padding: 2 }}>
+              {dexListe.map((id) => {
+                const possede = especesPossedees.has(id)
                 return (
-                  <div key={cle} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #2a3242', borderRadius: 12, padding: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                    <img src={detail.url} alt={nom} style={{ width: 84, height: 84, objectFit: 'contain', imageRendering: 'pixelated' }} loading="lazy" />
-                    <div style={{ fontWeight: 800, fontSize: 14 }}>{nom}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9ca8bd' }}>
-                      <img src={pA.spriteNormal || pA.sprite} alt={pA.nom} style={{ width: 28, height: 28, objectFit: 'contain' }} loading="lazy" />
-                      <span>{pA.nom}</span>
-                      <span style={{ color: '#fcd34d' }}>+</span>
-                      <img src={pB.spriteNormal || pB.sprite} alt={pB.nom} style={{ width: 28, height: 28, objectFit: 'contain' }} loading="lazy" />
-                      <span>{pB.nom}</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: adnFusion >= cout ? '#7ee3a8' : '#fca5a5' }}>Cout : 🧬 {cout} ADN</div>
-                    <button onClick={() => preparerFusion(idA, idB)}
-                      style={{ ...S.bouton, padding: '7px 14px', fontSize: 12 }}>
-                      Preparer
-                    </button>
-                  </div>
+                  <button key={id} onClick={() => { setDexEspece(id); setDexDetail(null) }}
+                    style={{ ...S.carte, padding: '6px 2px' }}>
+                    <img src={`${SPRITE_POKEAPI}${id}.png`} alt={nomShowdown(id) || id}
+                      style={{ width: 48, height: 48, objectFit: 'contain', imageRendering: 'pixelated', filter: possede ? 'none' : 'brightness(0) opacity(0.55)' }}
+                      loading="lazy" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} />
+                    <span style={{ fontSize: 10, color: possede ? '#dfe6f2' : '#5b6575' }}>{possede ? (nomShowdown(id) || id) : `N.${id}`}</span>
+                  </button>
                 )
               })}
             </div>
-
-            {/* ===== Section CHASSE : fusions a debloquer ===== */}
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 6 }}>🔍 Fusions a debloquer</div>
-              {chasseListe.length === 0 && !chasseScan && (
-                <button onClick={lancerScanChasse}
-                  style={{ ...S.bouton, padding: '9px 16px', fontSize: 13, background: 'linear-gradient(135deg, #60a5fa, #3b82f6)', color: '#0d1117' }}>
-                  🔍 Chercher les fusions a debloquer (scan long)
-                </button>
-              )}
-              {chasseScan && (
-                <p style={{ fontSize: 12, color: '#60a5fa', margin: '4px 0 8px' }}>
-                  🔎 Recherche des fusions avec les Pokemon qu'il te manque... {chasseProgres}%
-                  <span style={{ color: '#7a87a0' }}> (ca peut prendre quelques minutes, les resultats arrivent au fur et a mesure)</span>
-                </p>
-              )}
-              {chasseListe.length > 0 && (
-                <p style={{ fontSize: 12, color: '#9ca8bd', margin: '4px 0 8px' }}>
-                  {chasseListe.length} fusion{chasseListe.length > 1 ? 's' : ''} a debloquer — capture le Pokemon assombri pour la rendre possible !
-                </p>
-              )}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 10, maxHeight: 340, overflow: 'auto', padding: 2 }}>
-                {chasseListe.map(({ cle, idPossede, idManquant, detail }) => {
-                  const pA = pokeDeLEspece(idPossede)
-                  if (!pA) return null
-                  const nomManquant = nomShowdown(idManquant) || ('N.' + idManquant)
-                  const spriteManquant = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + idManquant + '.png'
-                  return (
-                    <div key={cle} style={{ background: 'rgba(96,165,250,0.04)', border: '1px solid rgba(96,165,250,0.25)', borderRadius: 12, padding: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                      <img src={detail.url} alt="fusion a debloquer"
-                        style={{ width: 84, height: 84, objectFit: 'contain', imageRendering: 'pixelated', filter: 'brightness(0.18) saturate(0.3)' }} loading="lazy" />
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9ca8bd' }}>
-                        <img src={pA.spriteNormal || pA.sprite} alt={pA.nom} style={{ width: 30, height: 30, objectFit: 'contain' }} loading="lazy" />
-                        <span>{pA.nom}</span>
-                        <span style={{ color: '#fcd34d' }}>+</span>
-                        <img src={spriteManquant} alt={nomManquant}
-                          style={{ width: 30, height: 30, objectFit: 'contain', filter: 'brightness(0.3) grayscale(1)' }} loading="lazy"
-                          onError={(e) => { e.currentTarget.style.display = 'none' }} />
-                        <span style={{ color: '#60a5fa', fontWeight: 700 }}>{nomManquant} ?</span>
-                      </div>
-                      <span style={{ fontSize: 11, color: '#60a5fa' }}>🎯 A capturer : {nomManquant}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {mesFusions.length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>🧬 Mes fusions ({mesFusions.length})</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
-                  {mesFusions.map((f) => (
-                    <div key={f.uid} style={{ background: 'rgba(126,227,168,0.05)', border: '1px solid rgba(126,227,168,0.3)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <img src={f.sprite} alt={f.nom} style={{ width: 64, height: 64, objectFit: 'contain', imageRendering: 'pixelated' }} loading="lazy" />
-                      <span style={{ fontWeight: 700, fontSize: 12 }}>{f.nom}</span>
-                      <span style={{ fontSize: 10, color: '#9ca8bd' }}>{f.nomTete} + {f.nomCorps}</span>
-                      <span style={{ fontSize: 10, color: '#7a87a0' }}>N.{f.niveau}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
+        {onglet === 'pokedex' && dexEspece && (() => {
+          const partenaires = partenairesDe(dexEspece)
+          const aLEspece = especesPossedees.has(dexEspece)
+          const nomEspece = nomShowdown(dexEspece) || `N.${dexEspece}`
+          return (
+            <div>
+              <button style={{ ...S.fermer, fontSize: 14, padding: '4px 0' }} onClick={() => { setDexEspece(null); setDexDetail(null) }}>← Retour au Pokedex</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0 10px' }}>
+                <img src={`${SPRITE_POKEAPI}${dexEspece}.png`} alt={nomEspece}
+                  style={{ width: 56, height: 56, objectFit: 'contain', imageRendering: 'pixelated', filter: aLEspece ? 'none' : 'brightness(0) opacity(0.55)' }} />
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>{nomEspece} {aLEspece ? '' : '(non possede)'}</div>
+                  <div style={{ fontSize: 12, color: '#9ca8bd' }}>{partenaires.length} fusions possibles — en couleur si tu as les deux Pokemon, en ombre sinon (clique pour voir qui il faut)</div>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))', gap: 8, maxHeight: 380, overflow: 'auto', padding: 2 }}>
+                {partenaires.map((idP) => {
+                  const f = trouverSpriteFusionSync(dexEspece, idP)
+                  if (!f) return null
+                  const possedeP = especesPossedees.has(idP)
+                  const realisable = aLEspece && possedeP
+                  const detailOuvert = dexDetail === idP
+                  return (
+                    <button key={idP} onClick={() => setDexDetail(detailOuvert ? null : idP)}
+                      style={{ ...S.carte, borderColor: detailOuvert ? '#fcd34d' : (realisable ? '#7ee3a8' : '#2a3242') }}>
+                      <img src={f.url} alt="fusion"
+                        style={{ width: 62, height: 62, objectFit: 'contain', imageRendering: 'pixelated', filter: realisable ? 'none' : 'brightness(0) opacity(0.6)' }}
+                        loading="lazy" onError={(e) => erreurSpriteFusion(e, dexEspece, idP, (img) => { const b = img.closest('button'); if (b) b.style.display = 'none' })} />
+                      <span style={{ fontSize: 10, color: realisable ? '#7ee3a8' : '#5b6575' }}>
+                        {realisable ? '+ ' + (nomShowdown(idP) || idP) : '???'}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              {/* Detail "qui il faut" */}
+              {dexDetail && (() => {
+                const idP = dexDetail
+                const f = trouverSpriteFusionSync(dexEspece, idP)
+                if (!f) return null
+                const possedeP = especesPossedees.has(idP)
+                const realisable = aLEspece && possedeP
+                const nomP = nomShowdown(idP) || `N.${idP}`
+                return (
+                  <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: '1px solid rgba(96,165,250,0.35)', background: 'rgba(96,165,250,0.06)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <img src={f.url} alt="fusion" style={{ width: 72, height: 72, objectFit: 'contain', imageRendering: 'pixelated', filter: realisable ? 'none' : 'brightness(0) opacity(0.6)' }}
+                      onError={(e) => erreurSpriteFusion(e, dexEspece, idP, null)} />
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <div style={{ fontWeight: 800, marginBottom: 4 }}>Il te faut :</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                        <img src={`${SPRITE_POKEAPI}${dexEspece}.png`} alt={nomEspece} style={{ width: 34, height: 34, filter: aLEspece ? 'none' : 'grayscale(1) brightness(0.4)' }} />
+                        <span style={{ color: aLEspece ? '#7ee3a8' : '#fca5a5' }}>{nomEspece} {aLEspece ? '✓' : '✗ (a capturer)'}</span>
+                        <span style={{ color: '#fcd34d' }}>+</span>
+                        <img src={`${SPRITE_POKEAPI}${idP}.png`} alt={nomP} style={{ width: 34, height: 34, filter: possedeP ? 'none' : 'grayscale(1) brightness(0.4)' }} />
+                        <span style={{ color: possedeP ? '#7ee3a8' : '#fca5a5' }}>{nomP} {possedeP ? '✓' : '✗ (a capturer)'}</span>
+                      </div>
+                    </div>
+                    {realisable && (
+                      <button style={{ ...S.bouton, padding: '8px 16px', fontSize: 13 }} onClick={() => preparerFusion(dexEspece, idP)}>⚡ Preparer</button>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
+          )
+        })()}
+
+        {/* ================= ONGLET FUSIONNER ================= */}
         {onglet === 'fusion' && (
         <div className="cf-corps" style={S.corps}>
+          <p style={{ fontSize: 13, color: '#9ca8bd', lineHeight: 1.5, margin: 0 }}>
+            Fusionne deux Pokemon en un seul ! La fusion <strong>consomme les deux Pokemon</strong> et
+            cree un nouvel etre unique (sprite dessine main). Choisis un Pokemon : seuls ses partenaires de fusion restent affiches.
+          </p>
           <div className="cf-apercu">
             <div className="cf-slots" style={S.slots}>
               <div className="cf-slot" style={{ ...S.slot, borderStyle: pokeA ? 'solid' : 'dashed', borderColor: pokeA ? '#fcd34d' : '#3a4356' }}>
@@ -517,18 +321,16 @@ function CentreFusion({
             <div className="cf-resultat" style={S.resultat}>
               {!pokeA || !pokeB ? (
                 <p style={{ color: '#7a87a0', fontSize: 13 }}>
-                  {pokeA ? (scanA ? 'Recherche des partenaires de ' + pokeA.nom + '...' : 'Choisis le 2e Pokemon parmi les partenaires affiches.') : 'Choisis deux Pokemon ci-dessous pour voir la fusion.'}
+                  {pokeA ? 'Choisis le 2e Pokemon parmi les partenaires affiches.' : 'Choisis deux Pokemon ci-dessous pour voir la fusion.'}
                 </p>
-              ) : chargement ? (
-                <p style={{ color: '#7a87a0', fontSize: 13 }}>Recherche du sprite de fusion...</p>
-              ) : erreurSprite ? (
+              ) : !apercu ? (
                 <div style={{ color: '#fca5a5', fontSize: 13 }}>
                   <p style={{ margin: '4px 0' }}>😕 Pas de sprite dessine pour cette fusion.</p>
-                  <p style={{ margin: 0, opacity: 0.8 }}>Essaie le bouton ↔ pour inverser, ou une autre paire.</p>
                 </div>
-              ) : apercu ? (
+              ) : (
                 <div className="cf-fusion-preview" style={S.fusionPreview}>
-                  <img src={apercu.url} alt={apercuNom} style={S.fusionSprite} />
+                  <img src={apercu.url} alt={apercuNom} style={S.fusionSprite}
+                    onError={(e) => erreurSpriteFusion(e, pokeA.id, pokeB.id, null)} />
                   <div style={{ textAlign: 'left' }}>
                     <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>{apercuNom}</div>
                     <div style={{ marginBottom: 6 }}>
@@ -544,7 +346,7 @@ function CentreFusion({
                     )}
                   </div>
                 </div>
-              ) : null}
+              )}
             </div>
 
             {pokeA && pokeB && (
@@ -568,43 +370,44 @@ function CentreFusion({
               onChange={(e) => setRecherche(e.target.value)}
             />
             <div className="cf-grille" style={S.grille}>
-              {pokeA && scanA && (
-                <p style={{ color: '#fcd34d', fontSize: 12, gridColumn: '1 / -1', margin: '2px 0' }}>
-                  🔎 Verification des partenaires de {pokeA.nom}...
-                </p>
-              )}
               {liste.map((p) => {
                 const choisi = p.uid === choixA || p.uid === choixB
-                const confirme = pokeA ? fusionnables[p.id] === true : partenaires[p.id] === true
-                const enAttente = pokeA
-                  ? (!choisi && fusionnables[p.id] === undefined && p.id !== pokeA.id)
-                  : partenaires[p.id] === undefined
                 return (
                   <button
                     key={p.uid}
-                    style={{
-                      ...S.carte,
-                      borderColor: choisi ? '#fcd34d' : (confirme ? '#7ee3a8' : '#2a3242'),
-                      background: choisi ? 'rgba(252,211,77,0.08)' : S.carte.background,
-                      opacity: enAttente ? 0.55 : 1,
-                    }}
+                    style={{ ...S.carte, borderColor: choisi ? '#fcd34d' : (pokeA ? '#7ee3a8' : '#2a3242'), background: choisi ? 'rgba(252,211,77,0.08)' : S.carte.background }}
                     onClick={() => choisir(p.uid)}
                   >
                     <img src={p.spriteNormal || p.sprite} alt={p.nom} style={S.carteSprite} />
                     <span>{p.nom}</span>
                     <span style={{ color: '#7a87a0' }}>N.{p.niveau}</span>
                     {choisi && <span style={{ position: 'absolute', top: 4, right: 6, color: '#fcd34d', fontWeight: 800 }}>✓</span>}
-                    {confirme && !choisi && <span style={{ position: 'absolute', top: 4, right: 6, color: '#7ee3a8', fontWeight: 800 }}>🧬</span>}
                   </button>
                 )
               })}
               {liste.length === 0 && (
                 <p style={{ color: '#7a87a0', fontSize: 13, gridColumn: '1 / -1' }}>
-                  {scanGlobal ? 'Analyse en cours...' : pokeA ? `Aucun partenaire de fusion pour ${pokeA.nom} dans ta collection.` : 'Aucun Pokemon avec une fusion possible.'}
+                  {pokeA ? `Aucun partenaire de fusion pour ${pokeA.nom} dans ta collection (voir le Pokedex pour savoir qui chasser).` : 'Aucun Pokemon fusionnable.'}
                 </p>
               )}
             </div>
           </div>
+
+          {mesFusions.length > 0 && (
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>🧬 Mes fusions ({mesFusions.length})</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+                {mesFusions.map((f) => (
+                  <div key={f.uid} style={{ background: 'rgba(126,227,168,0.05)', border: '1px solid rgba(126,227,168,0.3)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <img src={f.sprite} alt={f.nom} style={{ width: 64, height: 64, objectFit: 'contain', imageRendering: 'pixelated' }} loading="lazy" />
+                    <span style={{ fontWeight: 700, fontSize: 12 }}>{f.nom}</span>
+                    <span style={{ fontSize: 10, color: '#9ca8bd' }}>{f.nomTete} + {f.nomCorps}</span>
+                    <span style={{ fontSize: 10, color: '#7a87a0' }}>N.{f.niveau}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         )}
       </div>

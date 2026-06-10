@@ -24058,3 +24058,13 @@ a img,
 /* On garde les micro-interactions voulues sur les boutons uniquement. */
 .cnx-bouton:hover:not(:disabled) { transform: none !important; filter: brightness(1.06); }
 .cnx-bouton:active:not(:disabled) { transform: translateY(3px) !important; }
+/* ============================================================
+   SPRITES DE FUSION EN COMBAT — miroir côté joueur.
+   Les fusions n'ont qu'un sprite de face : côté joueur on le
+   retourne horizontalement pour qu'il regarde vers les ennemis.
+   AJOUT PUR — à coller à la TOUTE FIN de App.css.
+   ============================================================ */
+.terrain-joueur img[src*="custom-sprites"],
+.terrain-joueur img[src*="customsprites"] {
+  scale: -1 1;
+}
