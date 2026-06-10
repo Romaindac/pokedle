@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { BALLS, PIERRES, BONBONS } from './config'
-import { OBJETS } from './objets'
+import { OBJETS_BOSS, BONBONS_IV } from './ameliorations'
 
 const ICONES_BALLS = {
   poke: '/icons/ball-poke.png',
@@ -25,18 +25,27 @@ const ICONES_PIERRES = {
   'ice-stone': '/icons/ice-stone.png',
 }
 
-// Sprite simple avec repli.
+const NOM_STAT = { pv: 'PV', attaque: 'ATT', vitesse: 'VIT', defense: 'DEF' }
+
 function SpriteMini({ poke }) {
-  const fallback = poke.shiny && poke.spriteShiny ? poke.spriteShiny : (poke.sprite || poke.spriteNormal)
-  return <img src={fallback} alt={poke.nom} className="btq-item-img"
+  const src = poke.shiny && poke.spriteShiny ? poke.spriteShiny : (poke.sprite || poke.spriteNormal)
+  return <img src={src} alt={poke.nom} className="btq-item-img"
     onError={(e) => { e.currentTarget.style.display = 'none' }} />
 }
 
-// Sac = inventaire. Onglet Pierres : cliquer une pierre -> choisir un Pokemon compatible -> evolution.
+// ============================================================
+// SAC complet :
+//  - Balls : affichage des stocks
+//  - Pierres : clic -> liste des Pokemon compatibles -> evolution
+//  - Bonbons : classiques (XP/niveau) + bonbons IV -> clic -> choisir un Pokemon
+//  - Objets de boss : affichage (avec le BON dictionnaire OBJETS_BOSS)
+// ============================================================
 function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collection = [], onEvoluerPierre, onUtiliserBonbon, onUtiliserBonbonIV, onFermer }) {
   const [onglet, setOnglet] = useState('balls')
-  // Pierre selectionnee pour laquelle on choisit un Pokemon a faire evoluer.
   const [pierreChoisie, setPierreChoisie] = useState(null)
+  // Bonbon en cours d'utilisation : { genre: 'classique'|'iv', cle }
+  const [bonbonChoisi, setBonbonChoisi] = useState(null)
+  const [recherchePoke, setRecherchePoke] = useState('')
 
   const onglets = [
     { cle: 'balls', label: 'Poke Balls', icone: <img src={ICONES_BALLS.poke} alt="" className="btq-onglet-img" /> },
@@ -45,13 +54,20 @@ function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collecti
     { cle: 'objets', label: 'Objets de boss', icone: '🏆' },
   ]
 
-  function LigneItem({ sprite, sansImage, nom, sousTitre, quantite, onClick, cliquable }) {
+  function changerOnglet(cle) {
+    setOnglet(cle); setPierreChoisie(null); setBonbonChoisi(null); setRecherchePoke('')
+  }
+
+  function LigneItem({ sprite, emoji, nom, sousTitre, quantite, onClick, cliquable }) {
     return (
       <div className={`btq-item ${cliquable ? 'btq-item-cliquable' : ''}`} onClick={cliquable ? onClick : undefined}
         style={cliquable ? { cursor: 'pointer' } : undefined}>
         <div className="btq-item-sprite">
-          {sprite && !sansImage && <img src={sprite} alt={nom} className="btq-item-img"
-            onError={(e) => { e.currentTarget.style.display = 'none' }} />}
+          {sprite ? (
+            <img src={sprite} alt={nom} className="btq-item-img" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+          ) : emoji ? (
+            <span style={{ fontSize: 24 }}>{emoji}</span>
+          ) : null}
         </div>
         <div className="btq-item-texte">
           <span className="btq-item-nom">{nom}</span>
@@ -62,6 +78,14 @@ function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collecti
     )
   }
 
+  // Liste filtree des Pokemon pour le choix de cible.
+  function pokemonsFiltres() {
+    let liste = collection.filter((p) => p)
+    const q = recherchePoke.trim().toLowerCase()
+    if (q) liste = liste.filter((p) => (p.nom || '').toLowerCase().includes(q))
+    return liste
+  }
+
   // Pokemon de la collection qui peuvent evoluer avec la pierre choisie.
   function pokemonsPourPierre(pierre) {
     return collection.filter((p) =>
@@ -69,7 +93,64 @@ function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collecti
     )
   }
 
-  const entreesObjetsBoss = Object.entries(objetsBoss).filter(([, q]) => (q || 0) > 0)
+  // Bonbons IV possedes (dans objetsBoss, definis par BONBONS_IV).
+  const bonbonsIVPossedes = Object.entries(BONBONS_IV || {})
+    .map(([cle, info]) => ({ cle, info, stock: objetsBoss[cle] || 0 }))
+  // Objets de boss "purs" (hors bonbons IV).
+  const objetsBossPurs = Object.entries(objetsBoss)
+    .filter(([cle, q]) => (q || 0) > 0 && !(BONBONS_IV && BONBONS_IV[cle]))
+
+  // ===== ECRAN DE CHOIX DE POKEMON (pour un bonbon) =====
+  function EcranChoixPokemon() {
+    const estIV = bonbonChoisi.genre === 'iv'
+    const info = estIV ? BONBONS_IV[bonbonChoisi.cle] : BONBONS[bonbonChoisi.cle]
+    if (!info) return null
+    const stock = estIV ? (objetsBoss[bonbonChoisi.cle] || 0) : (bonbons[bonbonChoisi.cle] || 0)
+    const liste = pokemonsFiltres()
+    return (
+      <div className="btq-liste">
+        <button className="eqm-retour" onClick={() => { setBonbonChoisi(null); setRecherchePoke('') }}>← Retour aux bonbons</button>
+        <p className="btq-info">
+          {info.emoji} <strong>{info.nom}</strong> ×{stock} — choisis le Pokemon qui le recoit :
+          {estIV && info.stat && <span> (+1 IV {NOM_STAT[info.stat] || info.stat}, max 31)</span>}
+        </p>
+        <input type="text" className="btq-recherche-poke" placeholder="🔍 Rechercher un Pokemon..."
+          style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: 10, border: '1px solid #2a3242', background: '#10151f', color: '#e8edf7', marginBottom: 8, fontSize: 13 }}
+          value={recherchePoke} onChange={(e) => setRecherchePoke(e.target.value)} />
+        {liste.length === 0 ? (
+          <p className="btq-info" style={{ opacity: 0.7 }}>Aucun Pokemon trouve.</p>
+        ) : (
+          liste.map((poke) => {
+            // Pour un bonbon IV : griser si l'IV de la stat est deja au max.
+            const ivActuel = estIV && info.stat ? ((poke.iv && Number.isFinite(poke.iv[info.stat])) ? poke.iv[info.stat] : 0) : null
+            const auMax = estIV && ivActuel != null && ivActuel >= 31
+            const plusDeStock = stock <= 0
+            const grise = auMax || plusDeStock
+            return (
+              <div key={poke.uid} className="btq-item btq-item-cliquable"
+                style={{ cursor: grise ? 'not-allowed' : 'pointer', opacity: grise ? 0.35 : 1 }}
+                onClick={() => {
+                  if (grise) return
+                  if (estIV) onUtiliserBonbonIV(poke.uid, bonbonChoisi.cle)
+                  else onUtiliserBonbon(poke.uid, bonbonChoisi.cle)
+                  // On reste sur l'ecran pour pouvoir enchainer (stock decremente au prochain rendu).
+                }}>
+                <div className="btq-item-sprite"><SpriteMini poke={poke} /></div>
+                <div className="btq-item-texte">
+                  <span className="btq-item-nom">{poke.nom} {poke.shiny ? '✨' : ''}</span>
+                  <span className="btq-item-sous">
+                    N.{poke.niveau || 1}
+                    {estIV && info.stat && ` · IV ${NOM_STAT[info.stat] || info.stat} : ${ivActuel}/31${auMax ? ' (MAX)' : ''}`}
+                  </span>
+                </div>
+                <span className="btq-stock-compte">{grise ? '—' : '▸'}</span>
+              </div>
+            )
+          })
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="overlay" onClick={onFermer}>
@@ -82,13 +163,14 @@ function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collecti
         <div className="btq-onglets">
           {onglets.map((o) => (
             <button key={o.cle} className={`btq-onglet ${onglet === o.cle ? 'actif' : ''}`}
-              onClick={() => { setOnglet(o.cle); setPierreChoisie(null) }}>
+              onClick={() => changerOnglet(o.cle)}>
               <span className="btq-onglet-icone">{o.icone}</span>
               <span className="btq-onglet-label">{o.label}</span>
             </button>
           ))}
         </div>
 
+        {/* ===== BALLS ===== */}
         {onglet === 'balls' && (
           <div className="btq-liste">
             <p className="btq-info">🎯 Tes Poke Balls. Elles servent automatiquement a capturer selon tes regles de capture.</p>
@@ -98,6 +180,7 @@ function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collecti
           </div>
         )}
 
+        {/* ===== PIERRES ===== */}
         {onglet === 'pierres' && !pierreChoisie && (
           <div className="btq-liste">
             <p className="btq-info">💎 Clique sur une pierre que tu possedes pour voir les Pokemon qui peuvent evoluer avec.</p>
@@ -146,26 +229,48 @@ function Sac({ balls = {}, pierres = {}, bonbons = {}, objetsBoss = {}, collecti
           )
         })()}
 
-        {onglet === 'bonbons' && (
+        {/* ===== BONBONS (classiques + IV) ===== */}
+        {onglet === 'bonbons' && !bonbonChoisi && (
           <div className="btq-liste">
-            <p className="btq-info">🍬 Tes bonbons (gagnes sur les boss). Pour les utiliser, ouvre la fiche d'un Pokemon dans l'onglet Equipe.</p>
-            {Object.entries(BONBONS).map(([type, info]) => (
-              <LigneItem key={type} sprite={ICONES_BONBONS[type]} nom={info.nom} sousTitre={info.description} quantite={bonbons[type]} />
+            <p className="btq-info">🍬 Clique sur un bonbon que tu possedes, puis choisis le Pokemon qui le recoit.</p>
+
+            {Object.entries(BONBONS).map(([type, info]) => {
+              const q = bonbons[type] || 0
+              return (
+                <LigneItem key={type} sprite={ICONES_BONBONS[type]} emoji={info.emoji} nom={info.nom}
+                  sousTitre={q > 0 ? (info.description || 'Clique pour utiliser') : 'Aucun en stock'}
+                  quantite={q} cliquable={q > 0}
+                  onClick={() => setBonbonChoisi({ genre: 'classique', cle: type })} />
+              )
+            })}
+
+            <p className="btq-info" style={{ marginTop: 10 }}>🧪 <strong>Bonbons IV</strong> (gagnes sur les boss) : +1 IV permanent sur une stat.</p>
+            {bonbonsIVPossedes.map(({ cle, info, stock }) => (
+              <LigneItem key={cle} emoji={info.emoji} nom={info.nom}
+                sousTitre={stock > 0 ? `+1 IV ${NOM_STAT[info.stat] || info.stat} — clique pour utiliser` : 'Aucun en stock'}
+                quantite={stock} cliquable={stock > 0}
+                onClick={() => setBonbonChoisi({ genre: 'iv', cle })} />
             ))}
           </div>
         )}
 
+        {onglet === 'bonbons' && bonbonChoisi && EcranChoixPokemon()}
+
+        {/* ===== OBJETS DE BOSS ===== */}
         {onglet === 'objets' && (
           <div className="btq-liste">
             <p className="btq-info">🏆 Objets rares obtenus sur les boss et en arene.</p>
-            {entreesObjetsBoss.length === 0 ? (
+            {objetsBossPurs.length === 0 ? (
               <p className="btq-info" style={{ opacity: 0.7 }}>Aucun objet de boss pour l'instant. Bats des boss pour en gagner !</p>
             ) : (
-              entreesObjetsBoss.map(([id, q]) => {
-                const info = OBJETS[id]
+              objetsBossPurs.map(([cle, q]) => {
+                const info = (OBJETS_BOSS && OBJETS_BOSS[cle]) || null
                 return (
-                  <LigneItem key={id} sprite={info?.sprite} sansImage={!info?.sprite}
-                    nom={info?.nom || id} sousTitre={info?.desc} quantite={q} />
+                  <LigneItem key={cle}
+                    emoji={info?.emoji || '🏆'}
+                    nom={info?.nom || cle}
+                    sousTitre={info?.desc || info?.description}
+                    quantite={q} />
                 )
               })
             )}
