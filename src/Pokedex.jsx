@@ -8,6 +8,8 @@ import {
 } from './recompenses'
 import { SPECIAUX, SPECIAUX_RAID, TOUS_SPECIAUX, spriteSpecial } from './speciaux'
 import { nomShowdown } from './pokedexNoms'
+import { urlSpriteFusionSecours } from './fusion'
+import { trouverFusion } from './fusionsDisponibles'
 
 const TOTAL_POKEDEX = 1025
 const TOTAL_SPECIAUX = TOUS_SPECIAUX.length
@@ -24,16 +26,20 @@ const GENERATIONS = [
   { nom: 'Gen 9', debut: 906, fin: 1025 },
 ]
 
-function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesReclamees = [], onReclamer, onFermer }) {
+function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], captures = [], recompensesReclamees = [], onReclamer, onFermer }) {
   const [onglet, setOnglet] = useState('dex') // 'dex' | 'recompenses'
   const [modeShiny, setModeShiny] = useState(false)
   const [modeSpeciaux, setModeSpeciaux] = useState(false)
+  const [modeFusions, setModeFusions] = useState(false)
   const [filtre, setFiltre] = useState('tous') // 'tous' | 'obtenus' | 'manquants'
 
   const idsVus = new Set(pokedexVus || [])
   const idsShiny = new Set(pokedexShiny || [])
   const idsSpeciaux = new Set(pokedexSpeciaux || [])
   const reclamees = new Set(recompensesReclamees || [])
+
+  // Les fusions creees (presentes dans la collection).
+  const mesFusions = (captures || []).filter((p) => p && p.estFusion)
 
   const registreActif = modeShiny ? idsShiny : idsVus
 
@@ -106,13 +112,37 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
     )
   }
 
+  // Carte d'une fusion creee (reutilise le style des cases speciales).
+  function CaseFusion({ f }) {
+    // Si le sprite principal echoue, on tente le miroir de secours une fois.
+    const erreurSprite = (e) => {
+      const img = e.currentTarget
+      if (img.dataset.secours === '1') { img.style.visibility = 'hidden'; return }
+      const tab = trouverFusion(f.teteId, f.corpsId)
+      if (tab) { img.dataset.secours = '1'; img.src = urlSpriteFusionSecours(tab.tetePif, tab.corpsPif) }
+      else { img.style.visibility = 'hidden' }
+    }
+    const typesTexte = (f.types || []).join(' / ')
+    return (
+      <div className="pkx-case pkx-case-speciale obtenu"
+        title={`${f.nom} — ${f.nomTete} + ${f.nomCorps}${typesTexte ? ` (${typesTexte})` : ''}`}>
+        <img src={f.sprite} alt={f.nom} className="pkx-sprite" loading="lazy" onError={erreurSprite} />
+        <span className="pkx-speciale-nom">🧬 {f.nom}</span>
+        <span className="pkx-speciale-boss">{f.nomTete} + {f.nomCorps}</span>
+        <span className="pkx-speciale-boss">Niv. {f.niveau || 1}</span>
+      </div>
+    )
+  }
+
   return (
     <div className="overlay" onClick={onFermer}>
       <div className="pkx-panneau" onClick={(e) => e.stopPropagation()}>
         <div className="pkx-entete">
           <h2>
             {onglet === 'dex'
-              ? (modeSpeciaux
+              ? (modeFusions
+                  ? `Pokédex 🧬 Fusions (${mesFusions.length})`
+                  : modeSpeciaux
                   ? `Pokédex 🌟 Spéciaux (${idsSpeciaux.size}/${TOTAL_SPECIAUX})`
                   : `Pokédex ${modeShiny ? '✨' : '📖'} (${registreActif.size}/${TOTAL_POKEDEX})`)
               : '🎁 Récompenses'}
@@ -130,7 +160,7 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
 
         {onglet === 'dex' && (
           <>
-            {!modeSpeciaux && (
+            {!modeSpeciaux && !modeFusions && (
               <div className="pkx-completion">
                 {completionParGen.map((g) => {
                   const pct = Math.round((g.obtenus / g.total) * 100)
@@ -145,14 +175,15 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
               </div>
             )}
 
-            {/* Mode Normal / Shiny / Spéciaux */}
+            {/* Mode Normal / Shiny / Spéciaux / Fusions */}
             <div className="pkx-sous-onglets">
-              <button className={`pkx-pilule ${!modeShiny && !modeSpeciaux ? 'actif' : ''}`} onClick={() => { setModeShiny(false); setModeSpeciaux(false) }}>📖 Normal ({idsVus.size})</button>
-              <button className={`pkx-pilule ${modeShiny && !modeSpeciaux ? 'actif' : ''}`} onClick={() => { setModeShiny(true); setModeSpeciaux(false) }}>✨ Shiny ({idsShiny.size})</button>
-              <button className={`pkx-pilule ${modeSpeciaux ? 'actif' : ''}`} onClick={() => setModeSpeciaux(true)}>🌟 Spéciaux ({idsSpeciaux.size}/{TOTAL_SPECIAUX})</button>
+              <button className={`pkx-pilule ${!modeShiny && !modeSpeciaux && !modeFusions ? 'actif' : ''}`} onClick={() => { setModeShiny(false); setModeSpeciaux(false); setModeFusions(false) }}>📖 Normal ({idsVus.size})</button>
+              <button className={`pkx-pilule ${modeShiny && !modeSpeciaux && !modeFusions ? 'actif' : ''}`} onClick={() => { setModeShiny(true); setModeSpeciaux(false); setModeFusions(false) }}>✨ Shiny ({idsShiny.size})</button>
+              <button className={`pkx-pilule ${modeSpeciaux ? 'actif' : ''}`} onClick={() => { setModeSpeciaux(true); setModeFusions(false) }}>🌟 Spéciaux ({idsSpeciaux.size}/{TOTAL_SPECIAUX})</button>
+              <button className={`pkx-pilule ${modeFusions ? 'actif' : ''}`} onClick={() => { setModeFusions(true); setModeSpeciaux(false) }}>🧬 Fusions ({mesFusions.length})</button>
             </div>
 
-            {!modeSpeciaux && (
+            {!modeSpeciaux && !modeFusions && (
               <div className="pkx-sous-onglets">
                 <button className={`pkx-pilule ${filtre === 'tous' ? 'actif' : ''}`} onClick={() => setFiltre('tous')}>Tous</button>
                 <button className={`pkx-pilule ${filtre === 'obtenus' ? 'actif' : ''}`} onClick={() => setFiltre('obtenus')}>Obtenus</button>
@@ -160,7 +191,18 @@ function Pokedex({ pokedexVus, pokedexShiny, pokedexSpeciaux = [], recompensesRe
               </div>
             )}
 
-            {modeSpeciaux ? (
+            {modeFusions ? (
+              <div className="pkx-speciaux-zone">
+                <h3 className="pkx-section-titre">🧬 Mes fusions ({mesFusions.length})</h3>
+                {mesFusions.length === 0 ? (
+                  <p className="pkx-vide">Aucune fusion créée pour l'instant. Rendez-vous au Centre de Fusion !</p>
+                ) : (
+                  <div className="pkx-grille pkx-grille-speciaux">
+                    {mesFusions.map((f) => (<CaseFusion key={f.uid} f={f} />))}
+                  </div>
+                )}
+              </div>
+            ) : modeSpeciaux ? (
               <div className="pkx-speciaux-zone">
                 <h3 className="pkx-section-titre">⚔️ Champions d'Arène ({SPECIAUX.filter((s) => idsSpeciaux.has(s.id)).length}/{SPECIAUX.length})</h3>
                 <div className="pkx-grille pkx-grille-speciaux">
