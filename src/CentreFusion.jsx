@@ -16,33 +16,66 @@ const NOM_TYPE_FR = {
   dark: 'Tenebres', steel: 'Acier', fairy: 'Fee',
 }
 
+// ---- Styles inline de structure (immunises contre App.css) ----
+const S = {
+  overlay: {
+    position: 'fixed', inset: 0, zIndex: 900,
+    background: 'rgba(5, 8, 14, 0.78)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 16,
+  },
+  fenetre: {
+    width: 'min(96vw, 980px)', maxHeight: '92vh', overflow: 'auto',
+    boxSizing: 'border-box', padding: '18px 18px 22px',
+    background: 'linear-gradient(168deg, #1a1f2b, #141925)',
+    border: '1px solid rgba(252, 211, 77, 0.45)', borderRadius: 18,
+    boxShadow: '0 22px 70px rgba(0,0,0,0.65)',
+    color: '#e8edf7', fontFamily: "'Rubik', system-ui, sans-serif",
+  },
+  header: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 },
+  titre: { margin: 0, fontSize: 20, flex: 1 },
+  adn: { fontWeight: 700, color: '#7ee3a8', background: 'rgba(126,227,168,0.1)', border: '1px solid rgba(126,227,168,0.35)', borderRadius: 999, padding: '4px 12px', fontSize: 14 },
+  fermer: { background: 'none', border: 'none', color: '#9ca8bd', fontSize: 20, cursor: 'pointer', padding: 6 },
+  corps: { display: 'flex', flexDirection: 'column', gap: 14 },
+  slots: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' },
+  slot: { width: 120, minHeight: 120, border: '2px dashed #3a4356', borderRadius: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, position: 'relative', padding: 8, background: 'rgba(255,255,255,0.02)' },
+  slotSprite: { width: 72, height: 72, objectFit: 'contain', imageRendering: 'pixelated' },
+  resultat: { textAlign: 'center', minHeight: 90, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  fusionPreview: { display: 'flex', alignItems: 'center', gap: 16, justifyContent: 'center', flexWrap: 'wrap' },
+  fusionSprite: { width: 110, height: 110, objectFit: 'contain', imageRendering: 'pixelated' },
+  grille: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(86px, 1fr))', gap: 8, maxHeight: 300, overflow: 'auto', padding: 4 },
+  carte: { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'rgba(255,255,255,0.03)', border: '1px solid #2a3242', borderRadius: 10, padding: '8px 4px', cursor: 'pointer', color: '#dfe6f2', fontSize: 11 },
+  carteSprite: { width: 52, height: 52, objectFit: 'contain', imageRendering: 'pixelated' },
+  recherche: { width: '100%', boxSizing: 'border-box', background: '#10151f', border: '1px solid #2a3242', borderRadius: 10, padding: '9px 12px', color: '#e8edf7', fontSize: 13, marginBottom: 8 },
+  bouton: { background: 'linear-gradient(135deg, #fcd34d, #f59e0b)', border: 'none', borderRadius: 12, color: '#1a1205', fontWeight: 800, fontSize: 14, padding: '12px 22px', cursor: 'pointer' },
+}
+
 function PastilleType({ type }) {
   return (
-    <span className="cf-type" style={{ background: COULEUR_TYPE[type] || '#888' }}>
+    <span className="cf-type" style={{ background: COULEUR_TYPE[type] || '#888', color: '#0d1117', borderRadius: 999, padding: '2px 10px', fontSize: 11, fontWeight: 700, marginRight: 4 }}>
       {NOM_TYPE_FR[type] || type}
     </span>
   )
 }
 
 function CentreFusion({
-  collection = [],   // captures du joueur
-  adnFusion = 0,     // jetons ADN dispo
-  onFusionner,       // (pokeA, pokeB, fusion, cout) => void
+  collection = [],
+  adnFusion = 0,
+  onFusionner,
   onFermer,
 }) {
-  const [choixA, setChoixA] = useState(null) // uid
-  const [choixB, setChoixB] = useState(null) // uid
+  const [choixA, setChoixA] = useState(null)
+  const [choixB, setChoixB] = useState(null)
   const [recherche, setRecherche] = useState('')
-  const [apercu, setApercu] = useState(null)     // { url, teteId, corpsId } | null
+  const [apercu, setApercu] = useState(null)
   const [chargement, setChargement] = useState(false)
   const [erreurSprite, setErreurSprite] = useState(false)
-  const [inverse, setInverse] = useState(false)  // force l'inversion tete/corps
+  const [inverse, setInverse] = useState(false)
   const demandeRef = useRef(0)
 
   const pokeA = collection.find((p) => p.uid === choixA) || null
   const pokeB = collection.find((p) => p.uid === choixB) || null
 
-  // Quand les deux sont choisis (ou qu'on inverse), on cherche le sprite custom.
   useEffect(() => {
     if (!pokeA || !pokeB) { setApercu(null); setErreurSprite(false); return }
     const demande = ++demandeRef.current
@@ -50,7 +83,7 @@ function CentreFusion({
     const a = inverse ? pokeB : pokeA
     const b = inverse ? pokeA : pokeB
     trouverSpriteFusion(a.id, b.id).then((trouve) => {
-      if (demande !== demandeRef.current) return // resultat perime
+      if (demande !== demandeRef.current) return
       setChargement(false)
       if (trouve) setApercu(trouve)
       else { setApercu(null); setErreurSprite(true) }
@@ -61,7 +94,6 @@ function CentreFusion({
   const assezAdn = adnFusion >= cout
   const peutFusionner = pokeA && pokeB && apercu && !chargement && assezAdn
 
-  // Apercu calcule (nom, stats, types) selon le sens trouve.
   let apercuNom = '', apercuStats = null, apercuTypes = []
   if (apercu && pokeA && pokeB) {
     const tete  = apercu.teteId === pokeA.id ? pokeA : pokeB
@@ -76,7 +108,6 @@ function CentreFusion({
     if (uid === choixB) { setChoixB(null); return }
     if (!choixA) { setChoixA(uid); return }
     if (!choixB) { setChoixB(uid); return }
-    // Les deux pris : on remplace le premier.
     setChoixA(uid)
   }
 
@@ -89,81 +120,78 @@ function CentreFusion({
     setChargement(false)
     if (!fusion) { setErreurSprite(true); return }
     onFusionner && onFusionner(pokeA, pokeB, fusion, cout)
-    // Reset apres fusion.
     setChoixA(null); setChoixB(null); setApercu(null); setInverse(false)
   }
 
   const liste = collection
-    .filter((p) => p && !p.estFusion) // pas refusionner une fusion (option : autoriser plus tard)
+    .filter((p) => p && !p.estFusion)
     .filter((p) => !recherche || (p.nom || '').toLowerCase().includes(recherche.toLowerCase()))
 
   return (
-    <div className="cf-overlay" onClick={onFermer}>
-      <div className="cf-fenetre" onClick={(e) => e.stopPropagation()}>
-        <div className="cf-header">
-          <h2 className="cf-titre">🧬 Centre de Fusion</h2>
-          <div className="cf-adn">🧬 {adnFusion} ADN</div>
-          <button className="cf-fermer" onClick={onFermer}>✕</button>
+    <div className="cf-overlay" style={S.overlay} onClick={onFermer}>
+      <div className="cf-fenetre" style={S.fenetre} onClick={(e) => e.stopPropagation()}>
+        <div className="cf-header" style={S.header}>
+          <h2 className="cf-titre" style={S.titre}>🧬 Centre de Fusion</h2>
+          <div className="cf-adn" style={S.adn}>🧬 {adnFusion} ADN</div>
+          <button className="cf-fermer" style={S.fermer} onClick={onFermer}>✕</button>
         </div>
 
-        <p className="cf-intro">
+        <p className="cf-intro" style={{ fontSize: 13, color: '#9ca8bd', lineHeight: 1.5, marginTop: 0 }}>
           Fusionne deux Pokemon en un seul ! La fusion <strong>consomme les deux Pokemon</strong> et
           cree un nouvel etre unique (sprite dessine main, stats = le meilleur des deux, double-type).
         </p>
 
-        <div className="cf-corps">
-          {/* Zone d'apercu central */}
+        <div className="cf-corps" style={S.corps}>
           <div className="cf-apercu">
-            <div className="cf-slots">
-              <div className={`cf-slot ${pokeA ? 'rempli' : ''}`}>
+            <div className="cf-slots" style={S.slots}>
+              <div className="cf-slot" style={{ ...S.slot, borderStyle: pokeA ? 'solid' : 'dashed', borderColor: pokeA ? '#fcd34d' : '#3a4356' }}>
                 {pokeA ? (
                   <>
-                    <img src={pokeA.spriteNormal || pokeA.sprite} alt={pokeA.nom} className="cf-slot-sprite" />
-                    <span className="cf-slot-nom">{pokeA.nom}</span>
-                    <button className="cf-slot-retirer" onClick={() => setChoixA(null)}>✕</button>
+                    <img src={pokeA.spriteNormal || pokeA.sprite} alt={pokeA.nom} style={S.slotSprite} />
+                    <span style={{ fontSize: 12 }}>{pokeA.nom}</span>
+                    <button style={{ ...S.fermer, position: 'absolute', top: 2, right: 4, fontSize: 13 }} onClick={() => setChoixA(null)}>✕</button>
                   </>
-                ) : <span className="cf-slot-vide">Pokemon 1</span>}
+                ) : <span style={{ color: '#5b6575', fontSize: 12 }}>Pokemon 1</span>}
               </div>
 
               <button
-                className="cf-inverser"
+                style={{ ...S.fermer, fontSize: 24, opacity: (!pokeA || !pokeB) ? 0.35 : 1 }}
                 disabled={!pokeA || !pokeB}
                 onClick={() => setInverse((v) => !v)}
                 title="Inverser tete / corps (change le sprite)"
               >↔</button>
 
-              <div className={`cf-slot ${pokeB ? 'rempli' : ''}`}>
+              <div className="cf-slot" style={{ ...S.slot, borderStyle: pokeB ? 'solid' : 'dashed', borderColor: pokeB ? '#fcd34d' : '#3a4356' }}>
                 {pokeB ? (
                   <>
-                    <img src={pokeB.spriteNormal || pokeB.sprite} alt={pokeB.nom} className="cf-slot-sprite" />
-                    <span className="cf-slot-nom">{pokeB.nom}</span>
-                    <button className="cf-slot-retirer" onClick={() => setChoixB(null)}>✕</button>
+                    <img src={pokeB.spriteNormal || pokeB.sprite} alt={pokeB.nom} style={S.slotSprite} />
+                    <span style={{ fontSize: 12 }}>{pokeB.nom}</span>
+                    <button style={{ ...S.fermer, position: 'absolute', top: 2, right: 4, fontSize: 13 }} onClick={() => setChoixB(null)}>✕</button>
                   </>
-                ) : <span className="cf-slot-vide">Pokemon 2</span>}
+                ) : <span style={{ color: '#5b6575', fontSize: 12 }}>Pokemon 2</span>}
               </div>
             </div>
 
-            {/* Resultat de la fusion */}
-            <div className="cf-resultat">
+            <div className="cf-resultat" style={S.resultat}>
               {!pokeA || !pokeB ? (
-                <p className="cf-hint">Choisis deux Pokemon ci-dessous pour voir la fusion.</p>
+                <p style={{ color: '#7a87a0', fontSize: 13 }}>Choisis deux Pokemon ci-dessous pour voir la fusion.</p>
               ) : chargement ? (
-                <p className="cf-hint">Recherche du sprite de fusion...</p>
+                <p style={{ color: '#7a87a0', fontSize: 13 }}>Recherche du sprite de fusion...</p>
               ) : erreurSprite ? (
-                <div className="cf-erreur">
-                  <p>😕 Pas de sprite dessine pour cette fusion.</p>
-                  <p className="cf-erreur-sous">Essaie le bouton ↔ pour inverser, ou une autre paire.</p>
+                <div style={{ color: '#fca5a5', fontSize: 13 }}>
+                  <p style={{ margin: '4px 0' }}>😕 Pas de sprite dessine pour cette fusion.</p>
+                  <p style={{ margin: 0, opacity: 0.8 }}>Essaie le bouton ↔ pour inverser, ou une autre paire.</p>
                 </div>
               ) : apercu ? (
-                <div className="cf-fusion-preview">
-                  <img src={apercu.url} alt={apercuNom} className="cf-fusion-sprite" />
-                  <div className="cf-fusion-infos">
-                    <span className="cf-fusion-nom">{apercuNom}</span>
-                    <div className="cf-fusion-types">
+                <div className="cf-fusion-preview" style={S.fusionPreview}>
+                  <img src={apercu.url} alt={apercuNom} style={S.fusionSprite} />
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>{apercuNom}</div>
+                    <div style={{ marginBottom: 6 }}>
                       {apercuTypes.map((t) => <PastilleType key={t} type={t} />)}
                     </div>
                     {apercuStats && (
-                      <div className="cf-fusion-stats">
+                      <div style={{ display: 'flex', gap: 10, fontSize: 13, color: '#c3cde0' }}>
                         <span>❤️ {apercuStats.pvBase}</span>
                         <span>⚔️ {apercuStats.attaqueBase}</span>
                         <span>🛡️ {apercuStats.defBase}</span>
@@ -175,45 +203,43 @@ function CentreFusion({
               ) : null}
             </div>
 
-            {/* Bouton fusionner */}
             {pokeA && pokeB && (
-              <div className="cf-action">
-                <div className={`cf-cout ${assezAdn ? '' : 'manque'}`}>
-                  Cout : 🧬 {cout} ADN {!assezAdn && <span className="cf-cout-manque">(il t'en manque {cout - adnFusion})</span>}
+              <div style={{ textAlign: 'center', marginTop: 8 }}>
+                <div style={{ fontSize: 13, marginBottom: 8, color: assezAdn ? '#7ee3a8' : '#fca5a5' }}>
+                  Cout : 🧬 {cout} ADN {!assezAdn && <span>(il t'en manque {cout - adnFusion})</span>}
                 </div>
-                <button className="cf-bouton-fusion" disabled={!peutFusionner} onClick={lancerFusion}>
+                <button style={{ ...S.bouton, opacity: peutFusionner ? 1 : 0.45, cursor: peutFusionner ? 'pointer' : 'default' }} disabled={!peutFusionner} onClick={lancerFusion}>
                   ⚡ Fusionner
                 </button>
               </div>
             )}
           </div>
 
-          {/* Liste de la collection */}
           <div className="cf-collection">
             <input
-              className="cf-recherche"
+              style={S.recherche}
               type="text"
               placeholder="Rechercher un Pokemon..."
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
             />
-            <div className="cf-grille">
+            <div className="cf-grille" style={S.grille}>
               {liste.map((p) => {
                 const choisi = p.uid === choixA || p.uid === choixB
                 return (
                   <button
                     key={p.uid}
-                    className={`cf-carte ${choisi ? 'choisi' : ''}`}
+                    style={{ ...S.carte, borderColor: choisi ? '#fcd34d' : '#2a3242', background: choisi ? 'rgba(252,211,77,0.08)' : S.carte.background }}
                     onClick={() => choisir(p.uid)}
                   >
-                    <img src={p.spriteNormal || p.sprite} alt={p.nom} className="cf-carte-sprite" />
-                    <span className="cf-carte-nom">{p.nom}</span>
-                    <span className="cf-carte-niv">N.{p.niveau}</span>
-                    {choisi && <span className="cf-carte-check">✓</span>}
+                    <img src={p.spriteNormal || p.sprite} alt={p.nom} style={S.carteSprite} />
+                    <span>{p.nom}</span>
+                    <span style={{ color: '#7a87a0' }}>N.{p.niveau}</span>
+                    {choisi && <span style={{ position: 'absolute', top: 4, right: 6, color: '#fcd34d', fontWeight: 800 }}>✓</span>}
                   </button>
                 )
               })}
-              {liste.length === 0 && <p className="cf-vide">Aucun Pokemon trouve.</p>}
+              {liste.length === 0 && <p style={{ color: '#7a87a0', fontSize: 13, gridColumn: '1 / -1' }}>Aucun Pokemon trouve.</p>}
             </div>
           </div>
         </div>
