@@ -1,9 +1,17 @@
 // ============================================================
 // RÔLES DES POKÉMON (système enrichi : 4 rôles × passifs + Joker)
 // Passifs ÉQUILIBRÉS — aucun ne domine, valeurs pensées pour la boucle de tics.
+//
+// RÔLE FIXE PAR ESPÈCE : le rôle est déterminé par les STATS DE BASE
+// officielles du Pokémon (sa stat dominante = son physique). Comme les stats
+// de base ne changent jamais, le rôle est STABLE pour toujours :
+//   - Défense la plus haute  -> Tank      (ex : Rhinoféros)
+//   - Attaque la plus haute  -> DPS       (ex : Dracaufeu)
+//   - Vitesse la plus haute  -> Éclaireur (ex : Voltali)
+//   - PV les plus hauts      -> Soutien   (ex : Leveinard)
+// Égalité : priorité Défense > Attaque > Vitesse > PV.
+// Le parchemin (roleForce) garde la priorité absolue.
 // ============================================================
-
-import { roleParNumero } from './rolesPokemon'
 
 export const ROLES = {
   tank:       { nom: 'Tank',      emoji: '🛡️', couleur: '#5bc47f' },
@@ -27,15 +35,6 @@ export const MAX_SPECIAL = 1
 // Cadence du soin périodique du Guérisseur — désormais gérée en TICS dans le moteur.
 // (Conservée pour compatibilité, plus utilisée pour le timing.)
 export const PERIODE_SOIN_MS = 9300
-
-const TYPE_VERS_ROLE = {
-  rock: 'tank', steel: 'tank', ground: 'tank',
-  fighting: 'dps', dragon: 'dps', fire: 'dps', dark: 'dps',
-  flying: 'eclaireur', electric: 'eclaireur', bug: 'eclaireur',
-  psychic: 'soutien', fairy: 'soutien', grass: 'soutien',
-  water: 'soutien', normal: 'soutien', ghost: 'soutien',
-  poison: 'tank', ice: 'eclaireur',
-}
 
 export const ROLES_FORCES = {}
 
@@ -157,23 +156,43 @@ export function passifAppartientAuRole(clePassif, role) {
   return (PASSIFS_PAR_ROLE[role] || []).includes(clePassif)
 }
 
+// ============================================================
+// RÔLE PAR LES STATS DE BASE (le "physique" du Pokémon).
+// Déterministe pour toujours : les stats de base ne changent jamais.
+//   stat dominante : Défense -> tank | Attaque -> dps
+//                    Vitesse -> eclaireur | PV -> soutien
+// Égalité : Défense > Attaque > Vitesse > PV.
+// ============================================================
+export function roleDepuisStats(pokemon) {
+  const pv  = Number(pokemon?.pvBase) || 50
+  const att = Number(pokemon?.attaqueBase) || 50
+  const def = Number(pokemon?.defBase) || 50
+  const vit = Number(pokemon?.vitesseBase) || 50
+  // Ordre de priorité en cas d'égalité : def > att > vit > pv.
+  const candidats = [
+    { role: 'tank', valeur: def },
+    { role: 'dps', valeur: att },
+    { role: 'eclaireur', valeur: vit },
+    { role: 'soutien', valeur: pv },
+  ]
+  let meilleur = candidats[0]
+  for (const c of candidats) {
+    if (c.valeur > meilleur.valeur) meilleur = c
+  }
+  return meilleur.role
+}
+
 export function determinerRole(pokemon) {
   if (!pokemon) return 'dps'
+  // 1) Rôle forcé par parchemin (choix du joueur) : priorité absolue.
   if (pokemon.roleForce && (ROLES[pokemon.roleForce] || pokemon.roleForce === 'joker')) {
     return pokemon.roleForce
   }
+  // 2) Exceptions manuelles éventuelles (par nom).
   const nom = (pokemon.nom || pokemon.nomEspece || '').toLowerCase()
   if (ROLES_FORCES[nom]) return ROLES_FORCES[nom]
-  const num = pokemon.id || pokemon.numero || null
-  if (num) {
-    const r = roleParNumero(num)
-    if (r) return r
-  }
-  const types = pokemon.types || []
-  for (const t of types) {
-    if (TYPE_VERS_ROLE[t]) return TYPE_VERS_ROLE[t]
-  }
-  return 'dps'
+  // 3) Rôle FIXE déterminé par les stats de base (physique du Pokémon).
+  return roleDepuisStats(pokemon)
 }
 
 export function estJoker(pokemon) {

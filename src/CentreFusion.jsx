@@ -72,9 +72,56 @@ function CentreFusion({
   const [erreurSprite, setErreurSprite] = useState(false)
   const [inverse, setInverse] = useState(false)
   const demandeRef = useRef(0)
+  // Scan des fusions possibles avec le Pokemon selectionne.
+  // fusionnables : { [idEspece]: true|false } pour l'espece du choixA courant.
+  const [fusionnables, setFusionnables] = useState({})
+  const [scanEnCours, setScanEnCours] = useState(false)
+  const cachePairesRef = useRef({}) // cle "idA-idB" (ordre croissant) -> bool
+  const scanRef = useRef(0)
 
   const pokeA = collection.find((p) => p.uid === choixA) || null
   const pokeB = collection.find((p) => p.uid === choixB) || null
+
+  // Cle de cache d'une paire d'especes (ordre stable).
+  function clePaire(a, b) { return a < b ? `${a}-${b}` : `${b}-${a}` }
+
+  // Verifie si une paire a un sprite (avec cache).
+  async function paireFusionnable(idA, idB) {
+    const cle = clePaire(idA, idB)
+    if (cachePairesRef.current[cle] !== undefined) return cachePairesRef.current[cle]
+    const trouve = await trouverSpriteFusion(idA, idB)
+    const ok = !!trouve
+    cachePairesRef.current[cle] = ok
+    return ok
+  }
+
+  // SCAN AUTO : quand un 1er Pokemon est choisi, on teste toutes les especes
+  // de la collection par petits lots, et on grise les non-fusionnables.
+  useEffect(() => {
+    if (!pokeA) { setFusionnables({}); setScanEnCours(false); return }
+    const monScan = ++scanRef.current
+    setScanEnCours(true)
+    // Especes uniques de la collection (hors fusions et hors l'espece selectionnee).
+    const especes = [...new Set(collection.filter((p) => p && !p.estFusion && p.id !== pokeA.id).map((p) => p.id))]
+    const resultats = {}
+    let index = 0
+    const TAILLE_LOT = 8
+
+    async function lotSuivant() {
+      if (scanRef.current !== monScan) return // scan annule (autre selection)
+      const lot = especes.slice(index, index + TAILLE_LOT)
+      if (lot.length === 0) { setScanEnCours(false); return }
+      index += TAILLE_LOT
+      await Promise.all(lot.map(async (id) => {
+        resultats[id] = await paireFusionnable(pokeA.id, id)
+      }))
+      if (scanRef.current !== monScan) return
+      setFusionnables((f) => ({ ...f, ...resultats }))
+      lotSuivant()
+    }
+    setFusionnables({})
+    lotSuivant()
+  }, [choixA])
 
   useEffect(() => {
     if (!pokeA || !pokeB) { setApercu(null); setErreurSprite(false); return }
@@ -224,18 +271,38 @@ function CentreFusion({
               onChange={(e) => setRecherche(e.target.value)}
             />
             <div className="cf-grille" style={S.grille}>
+              {scanEnCours && pokeA && (
+                <p style={{ color: '#fcd34d', fontSize: 12, gridColumn: '1 / -1', margin: '2px 0' }}>
+                  🔎 Verification des fusions possibles avec {pokeA.nom}...
+                </p>
+              )}
               {liste.map((p) => {
                 const choisi = p.uid === choixA || p.uid === choixB
+                // Etat de fusionnabilite avec le Pokemon A selectionne :
+                // undefined = pas encore verifie | true = fusionnable | false = aucun sprite.
+                const etatFusion = pokeA && p.id !== pokeA.id ? fusionnables[p.id] : undefined
+                const grise = pokeA && !choisi && etatFusion === false
+                const enAttente = pokeA && !choisi && etatFusion === undefined && p.id !== pokeA.id
                 return (
                   <button
                     key={p.uid}
-                    style={{ ...S.carte, borderColor: choisi ? '#fcd34d' : '#2a3242', background: choisi ? 'rgba(252,211,77,0.08)' : S.carte.background }}
+                    style={{
+                      ...S.carte,
+                      borderColor: choisi ? '#fcd34d' : (pokeA && etatFusion === true ? '#7ee3a8' : '#2a3242'),
+                      background: choisi ? 'rgba(252,211,77,0.08)' : S.carte.background,
+                      opacity: grise ? 0.25 : enAttente ? 0.6 : 1,
+                      filter: grise ? 'grayscale(1)' : 'none',
+                      cursor: grise ? 'not-allowed' : 'pointer',
+                    }}
+                    disabled={grise}
+                    title={grise ? 'Aucun sprite de fusion avec ' + (pokeA ? pokeA.nom : '') : undefined}
                     onClick={() => choisir(p.uid)}
                   >
                     <img src={p.spriteNormal || p.sprite} alt={p.nom} style={S.carteSprite} />
                     <span>{p.nom}</span>
                     <span style={{ color: '#7a87a0' }}>N.{p.niveau}</span>
                     {choisi && <span style={{ position: 'absolute', top: 4, right: 6, color: '#fcd34d', fontWeight: 800 }}>✓</span>}
+                    {pokeA && etatFusion === true && !choisi && <span style={{ position: 'absolute', top: 4, right: 6, color: '#7ee3a8', fontWeight: 800 }}>🧬</span>}
                   </button>
                 )
               })}
