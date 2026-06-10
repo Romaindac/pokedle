@@ -157,23 +157,25 @@ export function passifAppartientAuRole(clePassif, role) {
 }
 
 // ============================================================
-// RÔLE PAR LES STATS DE BASE (le "physique" du Pokémon).
-// Déterministe pour toujours : les stats de base ne changent jamais.
+// RÔLE OFFICIEL FIGÉ : lu dans la table donneesPokemon (stats officielles
+// des jeux Pokémon, rôle précalculé une fois pour toutes et écrit en dur).
+// Fallback (fusions, ids inconnus) : rôle par les stats de base stockées.
 //   stat dominante : Défense -> tank | Attaque -> dps
 //                    Vitesse -> eclaireur | PV -> soutien
-// Égalité : Défense > Attaque > Vitesse > PV.
 // ============================================================
+import { roleOfficiel } from './donneesPokemon'
+
 export function roleDepuisStats(pokemon) {
   const pv  = Number(pokemon?.pvBase) || 50
   const att = Number(pokemon?.attaqueBase) || 50
   const def = Number(pokemon?.defBase) || 50
   const vit = Number(pokemon?.vitesseBase) || 50
-  // Ordre de priorité en cas d'égalité : def > att > vit > pv.
+  // Même pondération que la table officielle (def/pv légèrement favorisés).
   const candidats = [
-    { role: 'tank', valeur: def },
-    { role: 'dps', valeur: att },
+    { role: 'tank', valeur: def * 1.06 },
+    { role: 'soutien', valeur: pv * 1.06 },
+    { role: 'dps', valeur: att * 0.94 },
     { role: 'eclaireur', valeur: vit },
-    { role: 'soutien', valeur: pv },
   ]
   let meilleur = candidats[0]
   for (const c of candidats) {
@@ -191,7 +193,10 @@ export function determinerRole(pokemon) {
   // 2) Exceptions manuelles éventuelles (par nom).
   const nom = (pokemon.nom || pokemon.nomEspece || '').toLowerCase()
   if (ROLES_FORCES[nom]) return ROLES_FORCES[nom]
-  // 3) Rôle FIXE déterminé par les stats de base (physique du Pokémon).
+  // 3) Rôle OFFICIEL figé (table en dur basée sur les vraies stats des jeux).
+  const officiel = roleOfficiel(pokemon.id || pokemon.numero)
+  if (officiel) return officiel
+  // 4) Fallback (fusions, ids hors table) : stats de base stockées.
   return roleDepuisStats(pokemon)
 }
 

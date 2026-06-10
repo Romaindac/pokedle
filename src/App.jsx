@@ -12,6 +12,7 @@ import { statutsActifs, STATUTS } from './statuts'
 import { ULTIMES, ultimeDuRole, COUT_ULTIME } from './ultimes'
 import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise, normaliserIV } from './stats'
 import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole, passifPourMode, champPassifDuMode } from './roles'
+import { statsBaseOfficielles } from './donneesPokemon'
 import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
 import CartePokemon from './CartePokemon'
 import SpriteCombattant from './SpriteCombattant'
@@ -991,7 +992,7 @@ function App() {
       ajouterAuJournal(`${ennemi.nom} capture !${ennemi.shiny ? ' SHINY !' : ''}`, 'capture')
       marquerVu(ennemi.id); if (ennemi.shiny) marquerShiny(ennemi.id); montrerCapture(ennemi)
       const nouvelUidCapture = nouvelUid()
-      const captureBase = { uid: nouvelUidCapture, nom: ennemi.nom, id: ennemi.id, pvBase: ennemi.pvBase, attaqueBase: ennemi.attaqueBase, vitesseBase: ennemi.vitesseBase, defBase: ennemi.defBase ?? 50, types: ennemi.types, sprite: ennemi.sprite, iv: ennemi.iv, spriteNormal: ennemi.spriteNormal ?? ennemi.sprite, spriteShiny: ennemi.spriteShiny ?? null, shiny: ennemi.shiny ?? false, rarete: ennemi.rarete ?? 'commun', niveau: 1, xp: 0, evolueEn: ennemi.evolueEn ?? null, evolueNiveau: ennemi.evolueNiveau ?? null, evolutionsPierre: ennemi.evolutionsPierre ?? [], formeEvoluee: null, estEvolution: ennemi.estEvolution ?? false, familleId: ennemi.familleId ?? null }
+      const captureBase = { uid: nouvelUidCapture, nom: ennemi.nom, id: ennemi.id, pvBase: ennemi.pvBase, attaqueBase: ennemi.attaqueBase, vitesseBase: ennemi.vitesseBase, defBase: ennemi.defBase ?? 50, types: ennemi.types, sprite: ennemi.sprite, iv: ennemi.iv, spriteNormal: ennemi.spriteNormal ?? ennemi.sprite, spriteShiny: ennemi.spriteShiny ?? null, shiny: ennemi.shiny ?? false, rarete: ennemi.rarete ?? 'commun', niveau: 1, xp: 0, evolueEn: ennemi.evolueEn ?? null, evolueNiveau: ennemi.evolueNiveau ?? null, evolutionsPierre: ennemi.evolutionsPierre ?? [], formeEvoluee: null, estEvolution: ennemi.estEvolution ?? false, familleId: ennemi.familleId ?? null, ...(statsBaseOfficielles(ennemi.id) || {}) }
       const nouveau = { ...captureBase, ...statsFinales(captureBase, BONUS_STAT_NIVEAU) }
       capturesRef.current = [...capturesRef.current, nouveau]; setCaptures((liste) => [...liste, nouveau])
       if (ennemi.evolueEn) setTimeout(() => completerEvolution(nouvelUidCapture, ennemi.evolueEn), 0)
@@ -1081,7 +1082,7 @@ function App() {
           data.resetDepart = VERSION_RESET_DEPART
           setTimeout(() => ajouterAuJournal('Nouveau depart ! Tes Pokemon sont conserves, le reste repart a zero.', 'victoire'), 1800)
         }
-        let capturesRecalc = (data.captures || []).map((p) => p ? { ...p, iv: normaliserIV(p.iv), role: determinerRole(p), passif: determinerPassif(p) } : p)
+        let capturesRecalc = (data.captures || []).map((p) => { if (!p) return p; const off = statsBaseOfficielles(p.id); const base = off ? { ...p, ...off } : p; return { ...base, iv: normaliserIV(base.iv), role: determinerRole(base), passif: determinerPassif(base) } })
         for (let i = 0; i < capturesRecalc.length; i++) { const p = capturesRecalc[i]; if (p) capturesRecalc[i] = { ...p, ...statsFinales(p, BONUS_STAT_NIVEAU) } }
         const stockObjets = { ...(data.objets || {}) }; const compteObjet = {}; let nbDesequipes = 0
         for (let i = 0; i < capturesRecalc.length; i++) {
