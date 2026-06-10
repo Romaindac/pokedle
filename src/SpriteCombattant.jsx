@@ -4,6 +4,7 @@ import { nomShowdown } from './pokedexNoms'
 import { xpRequise } from './stats'
 import { XP_BASE_NIVEAU } from './config'
 import { statutsActifs } from './statuts'
+import AuraPokemon from './AuraPokemon'
 
 // ============================================================
 // Conversion d'un nom PokeAPI vers l'identifiant de sprite Showdown.
@@ -32,6 +33,7 @@ function nomSpriteShowdown(pokemon) {
 // - camp 'ennemi'  → sprite de FACE (ani → artwork HD → stocké)
 // Garde : barre de PV colorée, nom + niveau, liseré de jauge ATB, barre d'XP doree,
 // halo de rôle, flash de coup, badge d'ultime, ciblage Master Ball (ennemis).
+// AURA CANVAS : vraies particules par TYPE, transformees par STATUT (AuraPokemon).
 // plafond : niveau max (level cap prestige) — affiche "MAX" quand atteint.
 function SpriteCombattant({
   pokemon, pvActuels, jauge = 0, camp = 'joueur',
@@ -131,7 +133,7 @@ function SpriteCombattant({
 
   const role = pokemon.role || determinerRole(pokemon)
   const infoRole = ROLES[role]
-  // Statuts actifs (pour les particules). Lu à chaque rendu (l'objet est muté par le moteur).
+  // Statuts actifs (pour l'aura). Lu à chaque rendu (l'objet est muté par le moteur).
   const statuts = ko ? [] : statutsActifs(pokemon)
   // Pokemon rare de la Tour (mini-boss / boss) : marquage visuel.
   const estRare = !!pokemon.estRareTour
@@ -174,7 +176,7 @@ function SpriteCombattant({
       </div>
 
       {/* Sprite sur le terrain */}
-      <div className="cbt-sprite-zone">
+      <div className="cbt-sprite-zone" style={{ position: 'relative' }}>
         {/* Couronne du Pokemon rare (mini-boss / boss de la Tour) */}
         {estRare && !ko && <span className="cbt-couronne-rare" title="Pokemon rare">👑</span>}
         {/* Aura doree du rare */}
@@ -202,33 +204,27 @@ function SpriteCombattant({
           <button type="button"
             className={`cbt-cible-master ${marqueeMaster ? 'actif' : ''}`}
             title={marqueeMaster ? 'Master Ball ciblée (clic pour annuler)' : 'Cibler pour une Master Ball'}
-            onClick={(e) => { e.stopPropagation(); onCiblerMaster() }}>
+            onClick={(e) => { e.stopPropagation(); onCiblerMaster() }}
+            style={{ position: 'relative', zIndex: 3 }}>
             <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/master-ball.png"
               alt="Master Ball" className="cbt-cible-master-img"
               onError={(e) => { e.currentTarget.replaceWith(document.createTextNode('⚫')) }} />
           </button>
         )}
         <div className="cbt-sprite-bond" ref={bondRef}>
-          <img
-            src={sources[0]}
-            alt={pokemon.nom}
-            className="cbt-sprite"
-            data-etape="0"
-            onError={onError}
-          />
-          {/* Particules de statut autour du sprite */}
-          {!ko && statuts.length > 0 && (
-            <div className="cbt-particules" aria-hidden="true">
-              {statuts.includes('paralysie') && [0,1,2].map((n) => <span key={`p${n}`} className={`cbt-part cbt-part-elec cbt-part-elec-${n}`}>⚡</span>)}
-              {statuts.includes('brulure') && [0,1,2].map((n) => <span key={`b${n}`} className={`cbt-part cbt-part-feu cbt-part-feu-${n}`}>🔥</span>)}
-              {statuts.includes('gel') && [0,1,2].map((n) => <span key={`g${n}`} className={`cbt-part cbt-part-gel cbt-part-gel-${n}`}>❄️</span>)}
-              {statuts.includes('poison') && [0,1,2].map((n) => <span key={`v${n}`} className={`cbt-part cbt-part-poison cbt-part-poison-${n}`}>☠️</span>)}
-              {statuts.includes('rage') && [0,1].map((n) => <span key={`r${n}`} className={`cbt-part cbt-part-rage cbt-part-rage-${n}`}>💢</span>)}
-              {statuts.includes('garde') && [0,1].map((n) => <span key={`d${n}`} className={`cbt-part cbt-part-garde cbt-part-garde-${n}`}>🛡️</span>)}
-              {statuts.includes('hate') && [0,1].map((n) => <span key={`h${n}`} className={`cbt-part cbt-part-hate cbt-part-hate-${n}`}>🌀</span>)}
-            </div>
-          )}
+          {/* Boss : sprite agrandi (+28%), ancre au sol, presence massive */}
+          <div style={pokemon.estBoss ? { transform: 'scale(1.28)', transformOrigin: 'bottom center' } : undefined}>
+            <img
+              src={sources[0]}
+              alt={pokemon.nom}
+              className="cbt-sprite"
+              data-etape="0"
+              onError={onError}
+            />
+          </div>
         </div>
+        {/* AURA CANVAS : particules par type, transformees par statut, or si shiny, terrifiante si boss */}
+        <AuraPokemon types={pokemon.types || []} statuts={statuts} shiny={shiny} ko={ko} boss={!!pokemon.estBoss} />
       </div>
     </div>
   )

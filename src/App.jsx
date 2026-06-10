@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { VITESSE_COMBAT, PAUSE_RESPAWN, GAIN_PAR_VICTOIRE, GAIN_BASE_ENNEMI, BONUS_STAT_NIVEAU, XP_BASE_NIVEAU, XP_BASE_ENNEMI, TAUX_CAPTURE_RARETE, BALLS, BALL_AUTO_PAR_RARETE, TAUX_SHINY, PIERRES, BONBONS, prixDynamique, multiplicateurSurclassement } from './config'
 import { ticCombat, appliquerUltime } from './moteurCombat'
-import { statutsActifs, STATUTS } from './statuts'
+import { statutsActifs, STATUTS, reinitialiserStatuts } from './statuts'
 import { ULTIMES, ultimeDuRole, COUT_ULTIME } from './ultimes'
 import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise, normaliserIV } from './stats'
 import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole, passifPourMode, champPassifDuMode } from './roles'
@@ -1045,6 +1045,10 @@ function App() {
       } else { nouveaux = await chargerEquipeEnnemie(route); setCombatBoss(false); combatBossRef.current = false }
       if (!nouveaux || nouveaux.length === 0) { nouveaux = await chargerEquipeEnnemie(route); setCombatBoss(false); combatBossRef.current = false }
       setEquipeEnnemie(nouveaux); equipeEnnemieRef.current = nouveaux
+      // Purge les statuts entre les combats (l'equipe du joueur est persistante).
+      const eqAPurger = equipeIdsRef.current.map((uid) => capturesRef.current.find((p) => p.uid === uid)).filter(Boolean)
+      reinitialiserStatuts(eqAPurger)
+      reinitialiserStatuts(nouveaux)
       tentativesParEspeceRef.current = {}; debutCombatRef.current = Date.now()
       ultimeLanceRef.current = [false, false, false, false, false, false]
       ultimeLanceEnnemiRef.current = [false, false, false, false, false, false, false]
