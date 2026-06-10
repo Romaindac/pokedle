@@ -9,13 +9,13 @@ const cachePaires = {}
 
 function clePaire(a, b) { return a < b ? `${a}-${b}` : `${b}-${a}` }
 
+// Renvoie l'objet { url, teteId, corpsId } si un sprite existe, sinon false. Avec cache.
 async function paireFusionnable(idA, idB) {
   const cle = clePaire(idA, idB)
   if (cachePaires[cle] !== undefined) return cachePaires[cle]
   const trouve = await trouverSpriteFusion(idA, idB)
-  const ok = !!trouve
-  cachePaires[cle] = ok
-  return ok
+  cachePaires[cle] = trouve || false
+  return cachePaires[cle]
 }
 
 // Couleur par type (pour les pastilles de type).
@@ -99,6 +99,13 @@ function CentreFusion({
   const [scanA, setScanA] = useState(false)
   const scanGlobalRef = useRef(0)
   const scanARef = useRef(0)
+  // ===== Onglet Guide des fusions =====
+  const [onglet, setOnglet] = useState('fusion') // 'fusion' | 'guide'
+  const [guideListe, setGuideListe] = useState([]) // [{ cle, idA, idB, detail }]
+  const [guideScan, setGuideScan] = useState(false)
+  const [guideProgres, setGuideProgres] = useState(0)
+  const guideScanRef = useRef(0)
+  const guideFaitRef = useRef(false)
 
   const pokeA = collection.find((p) => p.uid === choixA) || null
   const pokeB = collection.find((p) => p.uid === choixB) || null
@@ -200,6 +207,58 @@ function CentreFusion({
     apercuTypes = typesFusion(tete, corps)
   }
 
+  // ===== SCAN EXHAUSTIF DU GUIDE : toutes les paires de la collection =====
+  function lancerScanGuide() {
+    const monScan = ++guideScanRef.current
+    const paires = []
+    for (let i = 0; i < especes.length; i++) {
+      for (let j = i + 1; j < especes.length; j++) paires.push([especes[i], especes[j]])
+    }
+    if (paires.length === 0) { setGuideScan(false); return }
+    setGuideScan(true); setGuideProgres(0)
+    let faites = 0
+    const trouvees = []
+    const file = [...paires]
+    async function ouvrier() {
+      while (file.length > 0) {
+        if (guideScanRef.current !== monScan) return
+        const [a, b] = file.shift()
+        const detail = await paireFusionnable(a, b)
+        if (guideScanRef.current !== monScan) return
+        faites += 1
+        if (detail) trouvees.push({ cle: clePaire(a, b), idA: a, idB: b, detail })
+        if (faites % 6 === 0 || file.length === 0) {
+          setGuideProgres(Math.round((faites / paires.length) * 100))
+          setGuideListe([...trouvees])
+        }
+      }
+    }
+    Promise.all([ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier()]).then(() => {
+      if (guideScanRef.current === monScan) { setGuideScan(false); setGuideProgres(100); setGuideListe([...trouvees]) }
+    })
+  }
+
+  function ouvrirGuide() {
+    setOnglet('guide')
+    if (!guideFaitRef.current) { guideFaitRef.current = true; lancerScanGuide() }
+  }
+
+  // Prepare une fusion depuis le guide : selectionne les deux Pokemon et revient a l'onglet Fusion.
+  function preparerFusion(idA, idB) {
+    const a = collection.find((p) => p && !p.estFusion && p.id === idA)
+    const b = collection.find((p) => p && !p.estFusion && p.id === idB)
+    if (!a || !b) return
+    setChoixA(a.uid); setChoixB(b.uid); setInverse(false); setOnglet('fusion')
+  }
+
+  // Premier Pokemon de la collection pour une espece (pour les sprites du guide).
+  function pokeDeLEspece(id) {
+    return collection.find((p) => p && !p.estFusion && p.id === id) || null
+  }
+
+  // Fusions deja possedees (galerie).
+  const mesFusions = collection.filter((p) => p && p.estFusion)
+
   function choisir(uid) {
     if (uid === choixA) { setChoixA(null); setChoixB(null); return }
     if (uid === choixB) { setChoixB(null); return }
@@ -252,12 +311,93 @@ function CentreFusion({
           ceux avec une fusion possible sont affiches.
         </p>
 
-        {scanGlobal && (
+        {/* Onglets : Fusionner / Guide */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <button onClick={() => setOnglet('fusion')}
+            style={{ flex: 1, padding: '9px 10px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              border: onglet === 'fusion' ? '1px solid #fcd34d' : '1px solid #2a3242',
+              background: onglet === 'fusion' ? 'rgba(252,211,77,0.12)' : 'rgba(255,255,255,0.03)', color: '#e8edf7' }}>
+            ⚡ Fusionner
+          </button>
+          <button onClick={ouvrirGuide}
+            style={{ flex: 1, padding: '9px 10px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              border: onglet === 'guide' ? '1px solid #fcd34d' : '1px solid #2a3242',
+              background: onglet === 'guide' ? 'rgba(252,211,77,0.12)' : 'rgba(255,255,255,0.03)', color: '#e8edf7' }}>
+            📖 Guide des fusions
+          </button>
+        </div>
+
+        {scanGlobal && onglet === 'fusion' && (
           <p style={{ fontSize: 12, color: '#fcd34d', margin: '0 0 6px' }}>
             🔎 Analyse des fusions possibles dans ta collection... {progres}%
           </p>
         )}
 
+        {/* ===== ONGLET GUIDE ===== */}
+        {onglet === 'guide' && (
+          <div>
+            {guideScan && (
+              <p style={{ fontSize: 12, color: '#fcd34d', margin: '0 0 8px' }}>
+                🔎 Recherche de toutes les fusions de ta collection... {guideProgres}%
+              </p>
+            )}
+            {!guideScan && guideListe.length === 0 && (
+              <p style={{ fontSize: 13, color: '#7a87a0' }}>Aucune fusion possible avec ta collection actuelle (gen 1-2). Capture plus de Pokemon !</p>
+            )}
+            {guideListe.length > 0 && (
+              <p style={{ fontSize: 12, color: '#9ca8bd', margin: '0 0 8px' }}>
+                {guideListe.length} fusion{guideListe.length > 1 ? 's' : ''} realisable{guideListe.length > 1 ? 's' : ''} avec ta collection — clique « Preparer » pour la lancer.
+              </p>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10, maxHeight: 380, overflow: 'auto', padding: 2 }}>
+              {guideListe.map(({ cle, idA, idB, detail }) => {
+                const pA = pokeDeLEspece(idA)
+                const pB = pokeDeLEspece(idB)
+                if (!pA || !pB) return null
+                const tete = detail.teteId === pA.id ? pA : pB
+                const corps = detail.teteId === pA.id ? pB : pA
+                const nom = nomFusion(tete.nom, corps.nom)
+                const cout = coutFusion(pA, pB)
+                return (
+                  <div key={cle} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #2a3242', borderRadius: 12, padding: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    <img src={detail.url} alt={nom} style={{ width: 84, height: 84, objectFit: 'contain', imageRendering: 'pixelated' }} loading="lazy" />
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>{nom}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9ca8bd' }}>
+                      <img src={pA.spriteNormal || pA.sprite} alt={pA.nom} style={{ width: 28, height: 28, objectFit: 'contain' }} loading="lazy" />
+                      <span>{pA.nom}</span>
+                      <span style={{ color: '#fcd34d' }}>+</span>
+                      <img src={pB.spriteNormal || pB.sprite} alt={pB.nom} style={{ width: 28, height: 28, objectFit: 'contain' }} loading="lazy" />
+                      <span>{pB.nom}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: adnFusion >= cout ? '#7ee3a8' : '#fca5a5' }}>Cout : 🧬 {cout} ADN</div>
+                    <button onClick={() => preparerFusion(idA, idB)}
+                      style={{ ...S.bouton, padding: '7px 14px', fontSize: 12 }}>
+                      Preparer
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+
+            {mesFusions.length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>🧬 Mes fusions ({mesFusions.length})</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+                  {mesFusions.map((f) => (
+                    <div key={f.uid} style={{ background: 'rgba(126,227,168,0.05)', border: '1px solid rgba(126,227,168,0.3)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <img src={f.sprite} alt={f.nom} style={{ width: 64, height: 64, objectFit: 'contain', imageRendering: 'pixelated' }} loading="lazy" />
+                      <span style={{ fontWeight: 700, fontSize: 12 }}>{f.nom}</span>
+                      <span style={{ fontSize: 10, color: '#9ca8bd' }}>{f.nomTete} + {f.nomCorps}</span>
+                      <span style={{ fontSize: 10, color: '#7a87a0' }}>N.{f.niveau}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {onglet === 'fusion' && (
         <div className="cf-corps" style={S.corps}>
           <div className="cf-apercu">
             <div className="cf-slots" style={S.slots}>
@@ -381,6 +521,7 @@ function CentreFusion({
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   )

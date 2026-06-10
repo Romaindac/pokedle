@@ -12,7 +12,7 @@ import { statutsActifs, STATUTS } from './statuts'
 import { ULTIMES, ultimeDuRole, COUT_ULTIME } from './ultimes'
 import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise, normaliserIV } from './stats'
 import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole, passifPourMode, champPassifDuMode } from './roles'
-import { statsBaseOfficielles } from './donneesPokemon'
+import { statsBaseOfficielles, niveauMinimalForme } from './donneesPokemon'
 import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
 import CartePokemon from './CartePokemon'
 import SpriteCombattant from './SpriteCombattant'
@@ -1082,7 +1082,7 @@ function App() {
           data.resetDepart = VERSION_RESET_DEPART
           setTimeout(() => ajouterAuJournal('Nouveau depart ! Tes Pokemon sont conserves, le reste repart a zero.', 'victoire'), 1800)
         }
-        let capturesRecalc = (data.captures || []).map((p) => { if (!p) return p; const off = statsBaseOfficielles(p.id); const base = off ? { ...p, ...off } : p; return { ...base, iv: normaliserIV(base.iv), role: determinerRole(base), passif: determinerPassif(base) } })
+        let capturesRecalc = (data.captures || []).map((p) => { if (!p) return p; const off = statsBaseOfficielles(p.id); const base = off ? { ...p, ...off } : p; const nivMin = niveauMinimalForme(base.id); const repare = (typeof base.id === 'number' && (base.niveau || 1) < nivMin) ? { ...base, niveau: nivMin, xp: 0 } : base; return { ...repare, iv: normaliserIV(repare.iv), role: determinerRole(repare), passif: determinerPassif(repare) } })
         for (let i = 0; i < capturesRecalc.length; i++) { const p = capturesRecalc[i]; if (p) capturesRecalc[i] = { ...p, ...statsFinales(p, BONUS_STAT_NIVEAU) } }
         const stockObjets = { ...(data.objets || {}) }; const compteObjet = {}; let nbDesequipes = 0
         for (let i = 0; i < capturesRecalc.length; i++) {
