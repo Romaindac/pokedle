@@ -6,9 +6,19 @@ import { OBJETS } from './objets'
 import { PARCHEMINS } from './parchemins'
 import { SYNERGIES, synergiesActives, manquePourSynergie } from './synergies'
 
+// Conversion d'un nom PokeAPI vers l'identifiant de sprite Showdown.
+// Les formes speciales (Mega, Primal...) : "mewtwo-mega-x" -> fichier "mewtwo-megax.gif"
+// (on garde le PREMIER tiret, on supprime les suivants). Inoffensif pour les noms simples.
+function nomSpriteShowdown(nomBrut) {
+  let n = (nomBrut || '').toLowerCase().replace(/[^a-z0-9-]/g, '')
+  const i = n.indexOf('-')
+  if (i !== -1) n = n.slice(0, i + 1) + n.slice(i + 1).replace(/-/g, '')
+  return n
+}
+
 // Sprite de Pokémon avec cascade : animé Showdown -> artwork HD -> sprite normal.
 function SpritePoke({ poke, classe = 'eqm-sprite', anime = true }) {
-  const nom = (poke.nom || '').toLowerCase().replace(/[^a-z0-9-]/g, '')
+  const nom = nomSpriteShowdown(poke.nom)
   const shiny = !!poke.shiny
   const dossierAnime = shiny ? 'ani-shiny' : 'ani'
   const urlAnime = `https://play.pokemonshowdown.com/sprites/${dossierAnime}/${nom}.gif`

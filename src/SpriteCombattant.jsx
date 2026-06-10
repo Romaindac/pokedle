@@ -5,6 +5,28 @@ import { xpRequise } from './stats'
 import { XP_BASE_NIVEAU } from './config'
 import { statutsActifs } from './statuts'
 
+// ============================================================
+// Conversion d'un nom PokeAPI vers l'identifiant de sprite Showdown.
+// Les formes speciales (Mega, Primal, Origin...) ont un nom PokeAPI du type
+// "mewtwo-mega-x" alors que le fichier Showdown s'appelle "mewtwo-megax.gif" :
+// on garde le PREMIER tiret (espece-forme) et on supprime les suivants.
+// Exemples : mewtwo-mega-x -> mewtwo-megax | charizard-mega-y -> charizard-megay
+//            kyogre-primal -> kyogre-primal (inchange) | gyarados-mega -> idem
+// ============================================================
+function nomSpriteShowdown(pokemon) {
+  const num = pokemon.id || pokemon.numero
+  // Numero national connu : la table officielle des noms.
+  if (typeof num === 'number' && num >= 1 && num <= 1025) {
+    const n = nomShowdown(num)
+    if (n) return n
+  }
+  // Forme speciale (Mega, Primal...) ou id inconnu : conversion du nom.
+  let n = (pokemon.nom || '').toLowerCase().replace(/[^a-z0-9-]/g, '')
+  const i = n.indexOf('-')
+  if (i !== -1) n = n.slice(0, i + 1) + n.slice(i + 1).replace(/-/g, '')
+  return n
+}
+
 // Sprite de combat "champ de bataille" : sprite animé sur le décor + plaque de combat.
 // - camp 'joueur'  → sprite de DOS (ani-back → back → ani → stocké)
 // - camp 'ennemi'  → sprite de FACE (ani → artwork HD → stocké)
@@ -34,25 +56,26 @@ function SpriteCombattant({
 
   // --- Cascade d'URLs de sprite selon le camp ---
   const num = pokemon.id || pokemon.numero
-  const nomSd = num ? nomShowdown(num) : (pokemon.nom || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const nomSd = nomSpriteShowdown(pokemon)
   const shiny = !!pokemon.shiny
   const dossierAni = shiny ? 'ani-shiny' : 'ani'
   const dossierAniBack = shiny ? 'ani-back-shiny' : 'ani-back'
   const base = 'https://play.pokemonshowdown.com/sprites/'
   const repoBase = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'
+  const numValide = typeof num === 'number'
 
   let sources
   if (estJoueur) {
     sources = [
       nomSd ? `${base}${dossierAniBack}/${nomSd}.gif` : null,
-      num ? `${repoBase}back/${shiny ? 'shiny/' : ''}${num}.png` : null,
+      numValide ? `${repoBase}back/${shiny ? 'shiny/' : ''}${num}.png` : null,
       nomSd ? `${base}${dossierAni}/${nomSd}.gif` : null,
       pokemon.shiny ? (pokemon.spriteShiny || pokemon.sprite) : pokemon.sprite,
     ].filter(Boolean)
   } else {
     sources = [
       nomSd ? `${base}${dossierAni}/${nomSd}.gif` : null,
-      num ? `${repoBase}other/${shiny ? 'official-artwork/shiny' : 'official-artwork'}/${num}.png` : null,
+      numValide ? `${repoBase}other/${shiny ? 'official-artwork/shiny' : 'official-artwork'}/${num}.png` : null,
       pokemon.shiny ? (pokemon.spriteShiny || pokemon.sprite) : pokemon.sprite,
     ].filter(Boolean)
   }

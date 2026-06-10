@@ -104,7 +104,11 @@ function CentreFusion({
   const pokeB = collection.find((p) => p.uid === choixB) || null
 
   // Especes uniques de la collection (hors fusions deja faites).
-  const especes = [...new Set(collection.filter((p) => p && !p.estFusion).map((p) => p.id))]
+  // LIMITE GEN 1-2 (ids <= 251) : le repo de sprites utilise le dex Infinite Fusion,
+  // qui ne correspond au dex national QUE pour les gen 1-2. Au-dela, risque de
+  // sprite d'une MAUVAISE paire. On garantit donc des fusions toujours correctes.
+  const ID_MAX_FUSION = 251
+  const especes = [...new Set(collection.filter((p) => p && !p.estFusion && p.id <= ID_MAX_FUSION).map((p) => p.id))]
 
   // ===== SCAN GLOBAL a l'ouverture : qui a au moins UN partenaire ? =====
   // Early-exit : des qu'un partenaire est trouve pour une espece, elle est validee.
@@ -221,7 +225,7 @@ function CentreFusion({
   // Avec un Pokemon A : on ne montre que A + ceux fusionnables avec A
   // (ceux pas encore verifies restent visibles, estompes).
   const liste = collection
-    .filter((p) => p && !p.estFusion)
+    .filter((p) => p && !p.estFusion && p.id <= ID_MAX_FUSION)
     .filter((p) => !recherche || (p.nom || '').toLowerCase().includes(recherche.toLowerCase()))
     .filter((p) => {
       if (pokeA) {
@@ -243,7 +247,9 @@ function CentreFusion({
 
         <p className="cf-intro" style={{ fontSize: 13, color: '#9ca8bd', lineHeight: 1.5, marginTop: 0 }}>
           Fusionne deux Pokemon en un seul ! La fusion <strong>consomme les deux Pokemon</strong> et
-          cree un nouvel etre unique. Seuls les Pokemon avec une fusion possible sont affiches.
+          cree un nouvel etre unique. Sprites dessines main (projet Infinite Fusion) :
+          seuls les Pokemon des <strong>generations 1 et 2</strong> peuvent fusionner, et seuls
+          ceux avec une fusion possible sont affiches.
         </p>
 
         {scanGlobal && (
