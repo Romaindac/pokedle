@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { creerFusion, trouverSpriteFusion, nomFusion, statsFusion, typesFusion, coutFusion } from './fusion'
+import { nomShowdown } from './pokedexNoms'
 
 // ============================================================
 // CACHE GLOBAL (niveau module) : persiste entre les ouvertures du panneau
@@ -106,6 +107,11 @@ function CentreFusion({
   const [guideProgres, setGuideProgres] = useState(0)
   const guideScanRef = useRef(0)
   const guideFaitRef = useRef(false)
+  // ===== Chasse : fusions a debloquer (il manque un Pokemon) =====
+  const [chasseListe, setChasseListe] = useState([]) // [{ cle, idPossede, idManquant, detail }]
+  const [chasseScan, setChasseScan] = useState(false)
+  const [chasseProgres, setChasseProgres] = useState(0)
+  const chasseScanRef = useRef(0)
 
   const pokeA = collection.find((p) => p.uid === choixA) || null
   const pokeB = collection.find((p) => p.uid === choixB) || null
@@ -235,6 +241,39 @@ function CentreFusion({
     }
     Promise.all([ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier()]).then(() => {
       if (guideScanRef.current === monScan) { setGuideScan(false); setGuideProgres(100); setGuideListe([...trouvees]) }
+    })
+  }
+
+  // ===== SCAN CHASSE : tes Pokemon x les especes gen 1-2 que tu n'as PAS =====
+  // Long (beaucoup de paires) : a la demande, progressif, avec cache partage.
+  function lancerScanChasse() {
+    const monScan = ++chasseScanRef.current
+    const possedees = new Set(especes)
+    const manquantes = []
+    for (let id = 1; id <= ID_MAX_FUSION; id++) { if (!possedees.has(id)) manquantes.push(id) }
+    const paires = []
+    for (const a of especes) { for (const b of manquantes) paires.push([a, b]) }
+    if (paires.length === 0) { setChasseScan(false); return }
+    setChasseScan(true); setChasseProgres(0)
+    let faites = 0
+    const trouvees = []
+    const file = [...paires]
+    async function ouvrier() {
+      while (file.length > 0) {
+        if (chasseScanRef.current !== monScan) return
+        const [a, b] = file.shift()
+        const detail = await paireFusionnable(a, b)
+        if (chasseScanRef.current !== monScan) return
+        faites += 1
+        if (detail) trouvees.push({ cle: clePaire(a, b), idPossede: a, idManquant: b, detail })
+        if (faites % 10 === 0 || file.length === 0) {
+          setChasseProgres(Math.round((faites / paires.length) * 100))
+          setChasseListe([...trouvees])
+        }
+      }
+    }
+    Promise.all([ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier(), ouvrier()]).then(() => {
+      if (chasseScanRef.current === monScan) { setChasseScan(false); setChasseProgres(100); setChasseListe([...trouvees]) }
     })
   }
 
@@ -377,6 +416,52 @@ function CentreFusion({
                   </div>
                 )
               })}
+            </div>
+
+            {/* ===== Section CHASSE : fusions a debloquer ===== */}
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 6 }}>🔍 Fusions a debloquer</div>
+              {chasseListe.length === 0 && !chasseScan && (
+                <button onClick={lancerScanChasse}
+                  style={{ ...S.bouton, padding: '9px 16px', fontSize: 13, background: 'linear-gradient(135deg, #60a5fa, #3b82f6)', color: '#0d1117' }}>
+                  🔍 Chercher les fusions a debloquer (scan long)
+                </button>
+              )}
+              {chasseScan && (
+                <p style={{ fontSize: 12, color: '#60a5fa', margin: '4px 0 8px' }}>
+                  🔎 Recherche des fusions avec les Pokemon qu'il te manque... {chasseProgres}%
+                  <span style={{ color: '#7a87a0' }}> (ca peut prendre quelques minutes, les resultats arrivent au fur et a mesure)</span>
+                </p>
+              )}
+              {chasseListe.length > 0 && (
+                <p style={{ fontSize: 12, color: '#9ca8bd', margin: '4px 0 8px' }}>
+                  {chasseListe.length} fusion{chasseListe.length > 1 ? 's' : ''} a debloquer — capture le Pokemon assombri pour la rendre possible !
+                </p>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 10, maxHeight: 340, overflow: 'auto', padding: 2 }}>
+                {chasseListe.map(({ cle, idPossede, idManquant, detail }) => {
+                  const pA = pokeDeLEspece(idPossede)
+                  if (!pA) return null
+                  const nomManquant = nomShowdown(idManquant) || ('N.' + idManquant)
+                  const spriteManquant = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + idManquant + '.png'
+                  return (
+                    <div key={cle} style={{ background: 'rgba(96,165,250,0.04)', border: '1px solid rgba(96,165,250,0.25)', borderRadius: 12, padding: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <img src={detail.url} alt="fusion a debloquer"
+                        style={{ width: 84, height: 84, objectFit: 'contain', imageRendering: 'pixelated', filter: 'brightness(0.18) saturate(0.3)' }} loading="lazy" />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9ca8bd' }}>
+                        <img src={pA.spriteNormal || pA.sprite} alt={pA.nom} style={{ width: 30, height: 30, objectFit: 'contain' }} loading="lazy" />
+                        <span>{pA.nom}</span>
+                        <span style={{ color: '#fcd34d' }}>+</span>
+                        <img src={spriteManquant} alt={nomManquant}
+                          style={{ width: 30, height: 30, objectFit: 'contain', filter: 'brightness(0.3) grayscale(1)' }} loading="lazy"
+                          onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                        <span style={{ color: '#60a5fa', fontWeight: 700 }}>{nomManquant} ?</span>
+                      </div>
+                      <span style={{ fontSize: 11, color: '#60a5fa' }}>🎯 A capturer : {nomManquant}</span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
 
             {mesFusions.length > 0 && (

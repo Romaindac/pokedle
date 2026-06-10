@@ -888,8 +888,11 @@ function App() {
         // Evolution par niveau : UN SEUL cran par montee (jamais de saut de stade).
         // On verifie que la forme evoluee chargee correspond bien a evolueEn (coherence),
         // pour eviter qu'un Pokemon saute directement au stade final.
+        // ANTI-DOUBLON : pas d'evolution si la forme cible (meme statut shiny) est
+        // deja possedee — ca permet de garder toute la lignee (ex Reptincel + Dracaufeu).
         if (pkm.evolueEn && pkm.evolueNiveau && pkm.niveau >= pkm.evolueNiveau
-            && pkm.formeEvoluee && pkm.formeEvoluee.nom === pkm.evolueEn) {
+            && pkm.formeEvoluee && pkm.formeEvoluee.nom === pkm.evolueEn
+            && !capturesRef.current.some((p) => p.uid !== pkm.uid && p.id === pkm.formeEvoluee.id && (p.shiny ?? false) === (pkm.shiny ?? false))) {
           const ancienNom = pkm.nom
           const niveauEvoAvant = pkm.evolueNiveau
           pkm = appliquerEvolution(pkm)
@@ -973,19 +976,32 @@ function App() {
     if (estCibleeMasterBall) { setCiblesMasterBall((liste) => { const maj = liste.filter((c) => c.cle !== cle); ciblesMasterBallRef.current = maj; return maj }) }
     const familleCible = ennemi.familleId ?? null
     const memeFamille = (p) => familleCible != null ? p.familleId === familleCible : p.id === ennemi.id
-    const existantMemeStatut = capturesRef.current.find((p) => memeFamille(p) && (p.shiny ?? false) === (ennemi.shiny ?? false))
+    // ANTI-DOUBLON PAR ESPECE : on bloque seulement si la MEME espece (meme id)
+    // avec le meme statut shiny est deja possedee. Les autres membres de la famille
+    // peuvent coexister (Salameche + Reptincel + Dracaufeu en meme temps).
+    const existantMemeStatut = capturesRef.current.find((p) => p.id === ennemi.id && (p.shiny ?? false) === (ennemi.shiny ?? false))
     const familleEnCollection = capturesRef.current.some((p) => memeFamille(p))
     if (ennemi.shiny && familleEnCollection && !existantMemeStatut) {
       ajouterAuJournal(`${ennemi.nom} SHINY capturé ! Famille dorée !`, 'capture')
       marquerVu(ennemi.id); marquerShiny(ennemi.id)
       const idsFamille = new Set(capturesRef.current.filter((p) => memeFamille(p)).map((p) => p.id))
       idsFamille.forEach((id) => { marquerVu(id); marquerShiny(id) }); montrerCapture(ennemi)
-      const majListe = capturesRef.current.map((p) => {
+      let majListe = capturesRef.current.map((p) => {
         if (!memeFamille(p)) return p
         const spriteShinyMembre = p.spriteShiny ?? (p.id === ennemi.id ? ennemi.spriteShiny : null) ?? p.sprite
         const maj = { ...p, shiny: true, iv: fusionnerIV(p.iv, ennemi.iv), sprite: spriteShinyMembre, spriteShiny: p.spriteShiny ?? (p.id === ennemi.id ? ennemi.spriteShiny : p.spriteShiny), spriteNormal: p.spriteNormal ?? (p.id === ennemi.id ? ennemi.spriteNormal : p.sprite) }
         return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
       })
+      // Si l'ESPECE exacte n'etait pas encore en collection, on l'ajoute aussi
+      // (sinon le Pokemon capture "disparaitrait" dans l'upgrade familial).
+      const especeEnCollection = capturesRef.current.some((p) => p.id === ennemi.id)
+      if (!especeEnCollection) {
+        const nouvelUidCapture = nouvelUid()
+        const captureBase = { uid: nouvelUidCapture, nom: ennemi.nom, id: ennemi.id, pvBase: ennemi.pvBase, attaqueBase: ennemi.attaqueBase, vitesseBase: ennemi.vitesseBase, defBase: ennemi.defBase ?? 50, types: ennemi.types, sprite: ennemi.sprite, iv: ennemi.iv, spriteNormal: ennemi.spriteNormal ?? ennemi.sprite, spriteShiny: ennemi.spriteShiny ?? null, shiny: true, rarete: ennemi.rarete ?? 'commun', niveau: 1, xp: 0, evolueEn: ennemi.evolueEn ?? null, evolueNiveau: ennemi.evolueNiveau ?? null, evolutionsPierre: ennemi.evolutionsPierre ?? [], formeEvoluee: null, estEvolution: ennemi.estEvolution ?? false, familleId: ennemi.familleId ?? null, ...(statsBaseOfficielles(ennemi.id) || {}) }
+        const nouveau = { ...captureBase, ...statsFinales(captureBase, BONUS_STAT_NIVEAU) }
+        majListe = [...majListe, nouveau]
+        if (ennemi.evolueEn) setTimeout(() => completerEvolution(nouvelUidCapture, ennemi.evolueEn), 0)
+      }
       capturesRef.current = majListe; setCaptures(majListe); return
     }
     if (!existantMemeStatut) {
@@ -1001,7 +1017,7 @@ function App() {
     {
       let auMoinsUnAmeliore = false
       const majListe = capturesRef.current.map((p) => {
-        if (!memeFamille(p) || (p.shiny ?? false) !== (ennemi.shiny ?? false)) return p
+        if (p.id !== ennemi.id || (p.shiny ?? false) !== (ennemi.shiny ?? false)) return p
         const nouveauxIV = fusionnerIV(p.iv, ennemi.iv)
         if (JSON.stringify(nouveauxIV) !== JSON.stringify(p.iv)) auMoinsUnAmeliore = true
         const maj = { ...p, iv: nouveauxIV }; return { ...maj, ...statsFinales(maj, BONUS_STAT_NIVEAU) }
