@@ -1116,7 +1116,7 @@ function App() {
         const famillesShiny = new Set()
         for (const p of capturesRecalc) { if (p && p.shiny) famillesShiny.add(cleFamille(p)) }
         let nbShinyRattrapes = 0; const idsShinyRattrapes = new Set()
-        if (famillesShiny.size > 0) {
+        if (false && famillesShiny.size > 0) {
           for (let i = 0; i < capturesRecalc.length; i++) {
             const p = capturesRecalc[i]; if (!p || p.shiny) continue
             if (famillesShiny.has(cleFamille(p))) {
@@ -1134,7 +1134,7 @@ function App() {
         let equipeRaidInit = data.equipeRaidIds || []
         let equipeDefenseInit = data.equipeDefenseIds || []
         let equipeAttaqueInit = data.equipeAttaqueIds || []
-        if (data.nettoyageDoublons !== VERSION_NETTOYAGE_DOUBLONS) {
+        if (true) {
           const res = fusionnerDoublonsCollection(capturesRecalc, {
             eq: equipeIdsInit, ar: equipeAreneInit, ra: equipeRaidInit,
             de: equipeDefenseInit, at: equipeAttaqueInit,

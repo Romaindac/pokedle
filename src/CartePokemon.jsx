@@ -4,6 +4,8 @@ import { xpRequise } from './stats'
 import { XP_BASE_NIVEAU } from './config'
 import { ROLES, determinerRole, passifDe } from './roles'
 import { ultimeDuRole } from './ultimes'
+import { statutsActifs } from './statuts'
+import AuraPokemon from './AuraPokemon'
 
 function CartePokemon({
   pokemon, pvActuels, jauge = 0, niveau, compact = false,
@@ -67,6 +69,9 @@ function CartePokemon({
   const infoRole = ROLES[role]
   const passif = passifDe(pokemon)
 
+  // Statuts actifs (pour l'aura). Lu à chaque rendu (objet muté par le moteur).
+  const statuts = ko ? [] : statutsActifs(pokemon)
+
   // Ultime du rôle. Affiché comme un petit badge ; s'illumine une fois l'ultime lancé.
   const ultime = ultimeDuRole(role)
   const afficheUltime = !!ultime && !ko
@@ -110,8 +115,11 @@ function CartePokemon({
         </div>
       )}
 
-      <div className="sprite-zone">
-        <img src={pokemon.sprite} alt={pokemon.nom} className="sprite" />
+      <div className="sprite-zone" style={{ position: 'relative' }}>
+        <img src={pokemon.sprite} alt={pokemon.nom} className="sprite"
+          style={pokemon.estBoss ? { transform: 'scale(1.22)', transformOrigin: 'bottom center' } : undefined} />
+        {/* AURA CANVAS : type / statut / shiny / boss (même moteur que le combat principal) */}
+        <AuraPokemon types={pokemon.types || []} statuts={statuts} shiny={!!pokemon.shiny} ko={ko} boss={!!pokemon.estBoss} />
       </div>
       <h2>
         {infoRole && <span className="role-inline" title={infoRole.nom}>{infoRole.emoji}</span>}
