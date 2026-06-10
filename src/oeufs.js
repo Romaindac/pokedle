@@ -18,32 +18,32 @@ export const TYPES_OEUF = {
   commun: {
     cle: 'commun', nom: 'Oeuf commun', emoji: '',
     couleur: '#9ca3af', accent: '#d1d5db',
-    combats: 1500, shiny: 0.02, ivMin: 8, prix: 40,
+    combats: 200, shiny: 0.02, ivMin: 8, prix: 40,
   },
   rare: {
     cle: 'rare', nom: 'Oeuf rare', emoji: '',
     couleur: '#3b82f6', accent: '#93c5fd',
-    combats: 2500, shiny: 0.03, ivMin: 16, prix: 100,
+    combats: 500, shiny: 0.03, ivMin: 16, prix: 100,
   },
   epique: {
     cle: 'epique', nom: 'Oeuf epique', emoji: '',
     couleur: '#a855f7', accent: '#d8b4fe',
-    combats: 4000, shiny: 0.05, ivMin: 24, prix: 250,
+    combats: 1200, shiny: 0.05, ivMin: 24, prix: 250,
   },
   chromatique: {
     cle: 'chromatique', nom: 'Oeuf Chromatique', emoji: 'CHROMA',
     couleur: '#f59e0b', accent: '#fde68a',
-    combats: 6000, shiny: 0.60, ivMin: 18, prix: 600,
+    combats: 2500, shiny: 0.60, ivMin: 18, prix: 600,
   },
   parfait: {
     cle: 'parfait', nom: 'Oeuf Parfait', emoji: 'PARFAIT',
     couleur: '#10b981', accent: '#6ee7b7',
-    combats: 8000, shiny: 0.08, ivMin: 28, prix: 800,
+    combats: 3500, shiny: 0.08, ivMin: 28, prix: 800,
   },
   mystere: {
     cle: 'mystere', nom: 'Oeuf Mystere', emoji: '?',
     couleur: '#ec4899', accent: '#f9a8d4',
-    combats: 7000, shiny: 0.10, ivMin: 20, prix: 1000, special: 'mystere',
+    combats: 3000, shiny: 0.10, ivMin: 20, prix: 1000, special: 'mystere',
   },
 }
 
@@ -245,5 +245,5 @@ export function bonusVitesse(am) { return (am?.vitesse || 0) * AMELIORATIONS_ELE
 export function bonusChaleur(am) { return (am?.chaleur || 0) * AMELIORATIONS_ELEVAGE.chaleur.effetParNiveau }
 export function bonusQualite(am) { return (am?.qualite || 0) * AMELIORATIONS_ELEVAGE.qualite.effetParNiveau }
 export function bonusChance(am) { return (am?.chance || 0) * AMELIORATIONS_ELEVAGE.chance.effetParNiveau }
-export function bonusRendement(am) { return (am?.rendement || 0) * AMELIORATIONS_ELEVAGE.rendement.effetParNiveau }
 export function nbIncubateurs(am) { return am?.incubateurs || NB_INCUBATEURS_DEPART }
+export function bonusRendement(am) { return (am?.rendement || 0) * AMELIORATIONS_ELEVAGE.rendement.effetParNiveau }
