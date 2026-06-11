@@ -1,4 +1,21 @@
 // Logique des IV + niveaux.
+//
+// ============================================================
+// SYSTÈME DE STATS REFONDU (v2)
+// stat = baseScalée(base_réelle) × facteurNiveau × (1 + IV/62) × mults
+//
+//  - baseScalée : garde les PROPORTIONS réelles des Pokémon (issues de
+//    PokeAPI : pvBase=hp, attaqueBase=attack, etc.) mais recalibrées pour
+//    des chiffres sains et un combat auto équilibré.
+//  - facteurNiveau : croissance INFINIE qui RALENTIT (puissance < 1).
+//    Pas de mur dur → on peut viser niveau 200, 500, 1000... sans explosion.
+//    La DÉFENSE scale volontairement peu (la formule de combat est
+//    100/(100+déf) : une défense trop haute rendrait les dégâts ridicules).
+//  - IV (0-31) : bonus % CONSTANT à tous les niveaux (max +50%), donc juste.
+//
+// Compatible avec moteurCombat.js SANS le modifier. La signature
+// statsFinales(pokemon, bonusNiveau) est conservée (2e arg ignoré).
+// ============================================================
 
 import { determinerRole, determinerPassif, bonusDuPassif } from './roles'
 import { bonusStatsObjet } from './objets'
@@ -6,8 +23,25 @@ import { bonusStatsObjet } from './objets'
 export const STAT_MAX_IV = 31
 
 // BONUS SHINY : multiplicateur applique a TOUTES les stats d'un Pokemon shiny.
-// 1.08 = +8%. Pour ajuster, change juste cette valeur (ex 1.05 = +5%, 1.10 = +10%).
 export const BONUS_SHINY = 1.08
+
+// ============================================================
+// BONUS PUISSANCE GLOBAL (prestige + amelioration boutique).
+// Variable module-level mise a jour par App.jsx via setBonusPuissance().
+// Integree dans statsFinales -> s'applique PARTOUT (Histoire, Arene, Tour,
+// PvP, Raids) ET s'affiche dans la fiche. Meme pattern que bonusShinyGlobal.
+// Booste PV / ATT / DEF / VIT.
+// ============================================================
+let _bonusPuissanceGlobal = 1
+
+export function setBonusPuissance(valeur) {
+  const v = Number(valeur)
+  _bonusPuissanceGlobal = Number.isFinite(v) && v > 0 ? v : 1
+}
+
+export function getBonusPuissance() {
+  return _bonusPuissanceGlobal
+}
 
 export function genererIV() {
   return {
@@ -36,22 +70,40 @@ export function normaliserIV(iv) {
   }
 }
 
-// Montée d'XP "marathon". Facteur progressif accentué (0.02 → 0.035) pour
-// un vrai mur de fin : le late game devient lent (philosophie idle).
+// Montée d'XP "marathon".
 function multiplicateurProgressif(niveau) {
   return 1 + niveau * 0.035
 }
 
 // XP nécessaire pour passer du niveau actuel au suivant.
-// Exposant relevé 1.55 → 1.7 : early fluide, mid qui ralentit, late grind.
 export function xpRequise(niveau, xpBase) {
   const n = nombreSur(niveau, 1)
   const base = nombreSur(xpBase, 20) * Math.pow(n, 1.7)
   return Math.max(1, Math.round(base * multiplicateurProgressif(n)))
 }
 
-// Calcule les stats finales : (base + IV) × multiplicateur de niveau, + bonus de PASSIF + objet.
-// Les Pokemon SHINY recoivent en plus le BONUS_SHINY (+8%) sur toutes les stats.
+// ============================================================
+// NOUVELLE FORMULE DE STATS
+// ============================================================
+
+// Bases scalées : conservent les proportions réelles Pokémon.
+// (base réelle PokeAPI : ~5 à ~255 selon la stat)
+function baseScaleePV(b)  { return 25 + nombreSur(b, 50) * 0.40 }
+function baseScaleeATT(b) { return 25 + nombreSur(b, 50) * 0.45 }
+function baseScaleeDEF(b) { return 15 + nombreSur(b, 50) * 0.14 }
+function baseScaleeVIT(b) { return 30 + nombreSur(b, 50) * 0.45 }
+
+// Facteurs de niveau (croissance sous-linéaire = ralentit, jamais de mur).
+// PV/ATT montent fort, DÉF très peu (équilibre avec 100/(100+déf)), VIT modérée.
+function facteurPuissance(niveau) { return Math.pow(Math.max(1, niveau), 0.72) }
+function facteurDefense(niveau)   { return Math.pow(Math.max(1, niveau), 0.32) }
+function facteurVitesse(niveau)   { return Math.pow(Math.max(1, niveau), 0.40) }
+
+// Bonus IV : pourcentage constant à tous niveaux (IV 0-31 -> +0% à +50%).
+function bonusIV(iv) { return 1 + nombreSur(iv, 0) / 62 }
+
+// Calcule les stats finales. (bonusNiveau conservé pour compat, non utilisé.)
+// Les Pokemon SHINY reçoivent BONUS_SHINY (+8%) sur toutes les stats.
 export function statsFinales(pokemon, bonusNiveau = 0.08) {
   const p = pokemon || {}
   const ivBrut = p.iv || {}
@@ -62,9 +114,8 @@ export function statsFinales(pokemon, bonusNiveau = 0.08) {
     defense: nombreSur(ivBrut.defense, 0),
   }
   const niveau = nombreSur(p.niveau, 1)
-  const mult = 1 + nombreSur(bonusNiveau, 0.08) * (niveau - 1)
 
-  // Bonus shiny : applique a toutes les stats si le Pokemon est shiny.
+  // Bonus shiny.
   const multShiny = p.shiny === true ? BONUS_SHINY : 1
 
   const pvBase = nombreSur(p.pvBase, 50)
@@ -84,16 +135,23 @@ export function statsFinales(pokemon, bonusNiveau = 0.08) {
   const pvMult = nombreSur(passif.pvMult, 1)
   const defMult = nombreSur(passif.defMult, 1)
 
+  const fP = facteurPuissance(niveau)
+  const fD = facteurDefense(niveau)
+  const fV = facteurVitesse(niveau)
+
+  // Bonus PUISSANCE global (prestige + boutique) : booste les 4 stats.
+  const mPuiss = _bonusPuissanceGlobal
+
   const finir = (v, min) => {
     const r = Math.round(v)
     return Number.isFinite(r) && r >= min ? r : min
   }
 
   return {
-    pvMax: finir((pvBase + iv.pv) * mult * multShiny * pvMult * objPv, 1),
-    attaque: finir((attaqueBase + iv.attaque) * mult * multShiny * objAtt, 1),
-    vitesse: finir((vitesseBase + iv.vitesse) * mult * multShiny * objVit, 1),
-    defense: finir((defBase + iv.defense) * mult * multShiny * defMult * objDef, 1),
+    pvMax:   finir(baseScaleePV(pvBase)   * fP * bonusIV(iv.pv)      * multShiny * mPuiss * pvMult * objPv, 1),
+    attaque: finir(baseScaleeATT(attaqueBase) * fP * bonusIV(iv.attaque) * multShiny * mPuiss * objAtt, 1),
+    vitesse: finir(baseScaleeVIT(vitesseBase) * fV * bonusIV(iv.vitesse) * multShiny * mPuiss * objVit, 1),
+    defense: finir(baseScaleeDEF(defBase) * fD * bonusIV(iv.defense) * multShiny * mPuiss * defMult * objDef, 1),
     role,
   }
 }

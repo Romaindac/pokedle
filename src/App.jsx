@@ -10,7 +10,7 @@ import { VITESSE_COMBAT, PAUSE_RESPAWN, GAIN_PAR_VICTOIRE, GAIN_BASE_ENNEMI, BON
 import { ticCombat, appliquerUltime } from './moteurCombat'
 import { statutsActifs, STATUTS, reinitialiserStatuts } from './statuts'
 import { ULTIMES, ultimeDuRole, COUT_ULTIME } from './ultimes'
-import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise, normaliserIV } from './stats'
+import { genererIV, statsFinales, fusionnerIV, ajouterXP, xpRequise, normaliserIV, setBonusPuissance } from './stats'
 import { ROLES, determinerRole, determinerPassif, bonusDuPassif, compositionValide, diagnostiqueComposition, compterRoles, COMPOSITION_REQUISE, trierIdsParRole, passifParDefautDuRole, passifPourMode, champPassifDuMode } from './roles'
 import { statsBaseOfficielles, niveauMinimalForme } from './donneesPokemon'
 import { urlFusionDepuisNational, reparerFusions, appliquerGeneDominant } from './fusion'
@@ -58,7 +58,7 @@ import PanneauNouveautes from './PanneauNouveautes'
 import { coutAmelioration, multiplicateur, niveauAmelioration, PALIER_MAX, facteurNegociateur, OBJETS_BOSS, BONBONS_IV, coutEndgame, peutPayerEndgame, endgameDebloque } from './ameliorations'
 import { recompensesDisponibles, PALIERS_GLOBAUX, PALIERS_GENERATION, GENERATIONS as GENS_RECOMP } from './recompenses'
 import { medaillesGagnables, multiplicateursPrestige, totalInvesti, BONUS_PRESTIGE, ORDRE_BONUS_PRESTIGE, plafondNiveau, estAuPlafond, conditionsPrestige, coutAmeliorationPrestige } from './prestige'
-import { multiplicateurDifficulte } from './difficulte'
+import { multiplicateurDifficulte, facteurStuffArene, facteurStuffRaid } from './difficulte'
 import { chargerInfosEspece, corrigerNom } from './evolution'
 import { SPECIAUX, specialDuBoss, estIdSpecial } from './speciaux'
 import Classement from './Classement'
@@ -311,7 +311,8 @@ async function chargerEquipeDresseur(dresseur) {
     const niveau = Math.max(1, niveauBase + Math.floor(Math.random() * 5) - 2)
     const avecNiveau = { ...p, niveau, rarete: estSpe ? 'special' : 'commun', shiny: false, sprite: p.spriteNormal }
     const finales = statsFinales(avecNiveau, BONUS_STAT_NIVEAU)
-    return { ...avecNiveau, ...finales, uid: `dre-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`, socleCarte: socleAleatoirePour(p.nom) }
+    const stuffArene = facteurStuffArene()
+    return { ...avecNiveau, ...finales, pvMax: Math.max(1, Math.round(finales.pvMax * stuffArene)), attaque: Math.max(1, Math.round(finales.attaque * stuffArene)), uid: `dre-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}` }
   })
 }
 
@@ -330,8 +331,9 @@ async function chargerEquipeRaid(raid) {
       niveau = Math.max(1, niveau + Math.floor(Math.random() * 5) - 2)
       const avecNiveau = { ...p, niveau, rarete: estVagueBoss ? 'legendaire' : (indexVague >= dernier - 1 ? 'tresRare' : 'commun'), shiny: false, sprite: p.spriteNormal, estBoss: estVagueBoss }
       const finales = statsFinales(avecNiveau, BONUS_STAT_NIVEAU)
-      if (estVagueBoss) return { ...avecNiveau, ...finales, pvMax: Math.max(1, Math.round(finales.pvMax * FORCE_BOSS_RAID_PV)), attaque: Math.max(1, Math.round(finales.attaque * FORCE_BOSS_RAID_ATK)) }
-      return { ...avecNiveau, ...finales }
+      const stuffRaid = facteurStuffRaid()
+      if (estVagueBoss) return { ...avecNiveau, ...finales, pvMax: Math.max(1, Math.round(finales.pvMax * FORCE_BOSS_RAID_PV * stuffRaid)), attaque: Math.max(1, Math.round(finales.attaque * FORCE_BOSS_RAID_ATK * stuffRaid)) }
+      return { ...avecNiveau, ...finales, pvMax: Math.max(1, Math.round(finales.pvMax * stuffRaid)), attaque: Math.max(1, Math.round(finales.attaque * stuffRaid)) }
     })
   }))
   return vagues
@@ -343,10 +345,12 @@ async function chargerBoss(route) {
   let boss
   try { boss = await chargerPokemon(nomBoss, false) } catch (err) { return null }
   const niveau = route.niveau + 5
+  const positionZoneBoss = ROUTES.findIndex((r) => r.id === route.id) + 1
+  const stuffZoneBoss = multiplicateurDifficulte(positionZoneBoss)
   const avecNiveau = { ...boss, niveau, rarete: 'legendaire', shiny: true, sprite: boss.spriteShiny || boss.spriteNormal, estBoss: true }
   const finales = statsFinales(avecNiveau, BONUS_STAT_NIVEAU)
   const handicap = route.handicapEnnemi || 1
-  return { ...avecNiveau, ...finales, pvMax: Math.max(1, Math.round(finales.pvMax * FORCE_BOSS * handicap)), attaque: Math.max(1, Math.round(finales.attaque * FORCE_BOSS * handicap)) }
+  return { ...avecNiveau, ...finales, pvMax: Math.max(1, Math.round(finales.pvMax * FORCE_BOSS * handicap * stuffZoneBoss)), attaque: Math.max(1, Math.round(finales.attaque * FORCE_BOSS * handicap * stuffZoneBoss)) }
 }
 
 // Calcule un resume leger d'un slot pour le menu titre, a partir de l'objet data
@@ -638,7 +642,7 @@ const [patchNoteVu, setPatchNoteVu] = useState(true) // true = on n'affiche pas 
 
   useEffect(() => { victoiresParRouteRef.current = victoiresParRoute }, [victoiresParRoute])
   useEffect(() => { bossVaincusRef.current = bossVaincus }, [bossVaincus])
-  useEffect(() => { ameliorationsRef.current = ameliorations; bonusShinyGlobal = multiplicateur(ameliorations, 'chroma') }, [ameliorations])
+  useEffect(() => { ameliorationsRef.current = ameliorations; bonusShinyGlobal = multiplicateur(ameliorations, 'chroma') * bonusPrestigeShiny; setBonusPuissance(multiplicateur(ameliorations, 'puissance') * bonusPrestigePuissance); setCaptures((liste) => liste.map((p) => p ? { ...p, ...statsFinales(p, BONUS_STAT_NIVEAU) } : p)) }, [ameliorations])
 
   useEffect(() => {
     let bonusXP = 0, bonusArgent = 0
@@ -669,6 +673,8 @@ const [patchNoteVu, setPatchNoteVu] = useState(true) // true = on n'affiche pas 
     investisPrestigeRef.current = investisPrestige
     const m = multiplicateursPrestige(investisPrestige)
     bonusPrestigeXP = m.xp; bonusPrestigeArgent = m.argent; bonusPrestigeShiny = m.shiny; bonusPrestigePuissance = m.puissance
+    setBonusPuissance(multiplicateur(ameliorationsRef.current, 'puissance') * m.puissance)
+    setCaptures((liste) => liste.map((p) => p ? { ...p, ...statsFinales(p, BONUS_STAT_NIVEAU) } : p))
     bonusShinyGlobal = multiplicateur(ameliorationsRef.current, 'chroma') * m.shiny
   }, [investisPrestige])
 
@@ -1416,9 +1422,7 @@ setPatchNoteVu(data.patchNoteVu === VERSION_PATCH_NOTE)
       if (modeJeuRef.current === 'arene') return
       if (modeJeuRef.current === 'raid') return
       if (vueOuverteRef.current !== null) return
-      const bonusPuissance = multiplicateur(ameliorationsRef.current, 'puissance') * bonusPrestigePuissance
-      let equipeJoueur = equipeIdsRef.current.map((uid) => capturesRef.current.find((p) => p.uid === uid)).filter(Boolean)
-        .map((p) => bonusPuissance === 1 ? p : { ...p, pvMax: Math.round(p.pvMax * bonusPuissance), attaque: Math.round(p.attaque * bonusPuissance), defense: Math.round((p.defense || 50) * bonusPuissance) })
+    let equipeJoueur = equipeIdsRef.current.map((uid) => capturesRef.current.find((p) => p.uid === uid)).filter(Boolean)
       equipeJoueur = preparerEquipe(equipeJoueur, 'principal'); equipeJoueur = appliquerBonusEquipe(equipeJoueur)
       const equipeEnnemie = equipeEnnemieRef.current
       if (equipeJoueur.length === 0 || equipeEnnemie.length === 0) return

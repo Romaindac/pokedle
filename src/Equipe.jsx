@@ -210,8 +210,8 @@ function CartePoke({ poke, onClick, retirable, indexRetrait, onRetirerMembre }) 
   return (
     <div className="eqp-carte" style={{
       position: 'relative', borderRadius: 14, padding: '10px 6px 8px', textAlign: 'center',
-      background: `linear-gradient(180deg, ${rgba(couleur, 0.18)}, rgba(15,20,35,0.6))`,
-      border: `2px solid ${couleur}`, boxShadow: `0 0 20px ${rgba(couleur, 0.35)}`,
+      background: `linear-gradient(180deg, ${rgba(couleur, 0.1)}, rgba(15,20,35,0.6))`,
+      border: `1.5px solid ${rgba(couleur, 0.6)}`, boxShadow: `0 0 8px ${rgba(couleur, 0.18)}`,
     }}>
       {infoRole && <span title={infoRole.nom} style={{ position: 'absolute', top: 6, left: 7 }}><IconeRole role={role} couleur={couleur} taille={15} /></span>}
       {poke.shiny && <span className="eqp-shiny-glow" style={{ position: 'absolute', top: 5, right: 7, fontSize: 12 }}>✨</span>}
@@ -380,7 +380,7 @@ function BarreStat({ label, valeur, pctMax, couleur }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
       <span style={{ fontSize: 11, fontWeight: 800, color: '#9aa6bd', width: 34 }}>{label}</span>
       <div style={{ flex: 1, height: 10, background: 'rgba(255,255,255,0.07)', borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="eqp-fill eqp-bar" style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg, ${rgba(couleur, 0.55)}, ${couleur})`, borderRadius: 6, boxShadow: `0 0 10px ${rgba(couleur, 0.6)}` }} />
+        <div className="eqp-fill eqp-bar" style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg, ${rgba(couleur, 0.55)}, ${couleur})`, borderRadius: 6, boxShadow: `0 0 5px ${rgba(couleur, 0.4)}` }} />
       </div>
       <span style={{ fontSize: 12, fontWeight: 800, color: '#e8ecf6', width: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{valeur}</span>
     </div>
@@ -490,15 +490,15 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, cartesTCG = [],
       {/* ===== HERO ===== */}
       <div className="eqp-rise" style={{
         position: 'relative', overflow: 'hidden', marginBottom: 16, padding: '20px 20px 18px', borderRadius: 18,
-        background: `radial-gradient(circle at 26% 40%, ${rgba(couleurRole, 0.32)} 0%, transparent 60%), linear-gradient(135deg, rgba(20,28,48,0.9), rgba(10,14,26,0.95))`,
-        border: `2px solid ${couleurRole}`, boxShadow: `0 0 36px ${rgba(couleurRole, 0.35)}`,
+        background: `radial-gradient(circle at 26% 40%, ${rgba(couleurRole, 0.16)} 0%, transparent 60%), linear-gradient(135deg, rgba(20,28,48,0.9), rgba(10,14,26,0.95))`,
+        border: `1.5px solid ${rgba(couleurRole, 0.7)}`, boxShadow: `0 0 16px ${rgba(couleurRole, 0.2)}`,
       }}>
         <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
           {/* Sprite + halo + anneau */}
           <div style={{ position: 'relative', width: 150, height: 150, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="eqp-hero-aura" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: `radial-gradient(circle, ${rgba(couleurRole, 0.5)} 0%, transparent 65%)` }} />
-            <div className="eqp-hero-ring" style={{ position: 'absolute', inset: 8, borderRadius: '50%', border: `2px dashed ${rgba(couleurRole, 0.55)}` }} />
-            <SpritePoke poke={pokemon} style={{ position: 'relative', maxWidth: 128, maxHeight: 128, objectFit: 'contain', imageRendering: 'pixelated', filter: `drop-shadow(0 6px 14px ${rgba(couleurRole, 0.6)})` }} />
+            <div className="eqp-hero-aura" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: `radial-gradient(circle, ${rgba(couleurRole, 0.25)} 0%, transparent 65%)` }} />
+            <div className="eqp-hero-ring" style={{ position: 'absolute', inset: 8, borderRadius: '50%', border: `1.5px dashed ${rgba(couleurRole, 0.35)}` }} />
+            <SpritePoke poke={pokemon} style={{ position: 'relative', maxWidth: 128, maxHeight: 128, objectFit: 'contain', imageRendering: 'pixelated', filter: `drop-shadow(0 4px 8px ${rgba(couleurRole, 0.35)})` }} />
             {pokemon.shiny && <span className="eqp-shiny-glow" style={{ position: 'absolute', top: 6, right: 10, fontSize: 22 }}>✨</span>}
           </div>
 

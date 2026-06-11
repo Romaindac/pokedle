@@ -51,10 +51,13 @@ export function tirerFinition(typeNiv) {
   return 'normale'
 }
 
-// Difficulté de la tour (handicap general applique aux ennemis).
-// RADOUCIE : montee plus progressive qu'avant (ancien exposant 1.8 -> 1.6, /10 -> /15).
+// Difficulté de la tour = petit handicap multiplicateur (PV/ATT) en PLUS du niveau.
+// ADOUCI FORTEMENT : avant, ce handicap explosait (x4 des l'etage 17, x10+ plus loin)
+// et se cumulait au niveau -> des ennemis bas niveau devenaient des murs injustes.
+// Maintenant le NIVEAU fait le gros du scaling ; ce handicap n'est qu'un leger
+// bonus progressif (x1 au depart -> ~x3.5 tres loin). Les boss gardent leur boost.
 export function difficulteNiveau(niveau) {
-  return Math.round(1 + (niveau - 1) * 0.10 + Math.pow(niveau / 15, 1.6))
+  return Math.round((1 + (niveau - 1) * 0.025) * 100) / 100
 }
 
 // Type de niveau : 'normal' | 'miniboss' | 'boss'
