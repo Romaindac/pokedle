@@ -20931,7 +20931,7 @@ a img,
 /* ---- Panneau principal ---- */
 .tcg-panneau {
   position: fixed; inset: 0; margin: auto;
-  width: min(900px, 96vw); max-height: 92vh;
+  width: min(1280px, 96vw); max-height: 92vh;
   background: linear-gradient(160deg, #0f1a2e, #1a1c2c);
   border: 2px solid #fcd34d; border-radius: 14px;
   display: flex; flex-direction: column; overflow: hidden;

@@ -9,6 +9,12 @@ function infoRareteDe(rarete) {
 }
 function cleDe(c) { return c.cleCollection || `${c.id}__${c.finition || 'normale'}` }
 
+// Petit rond coloré (remplace les emojis de rareté dans la pop-up taux).
+const PASTILLE = {
+  display: 'inline-block', width: 9, height: 9, borderRadius: '50%',
+  marginRight: 7, verticalAlign: 'middle',
+}
+
 // ---- Carte TCG visuelle ----
 function CarteTCG({ carte, possedee = true, onClick }) {
   const [imageOk, setImageOk] = useState(true)
@@ -50,48 +56,48 @@ function PopupTaux({ onFermer }) {
     <div className="tcg-apercu-overlay" onClick={onFermer}>
       <div className="tcg-taux-boite" onClick={(e) => e.stopPropagation()}>
         <button className="tcg-apercu-fermer" onClick={onFermer}>✕</button>
-        <p className="tcg-taux-titre">🎲 Taux de drop</p>
+        <p className="tcg-taux-titre">Taux de drop</p>
         <p className="tcg-taux-intro">Dans la Tour, tu gagnes des <strong>boosters</strong> (10 cartes chacun). Voici quand ils tombent et ce qu'ils contiennent :</p>
 
         <div className="tcg-taux-section">
-          <span className="tcg-taux-section-titre">📦 Obtenir des boosters</span>
+          <span className="tcg-taux-section-titre">Obtenir des boosters</span>
           <ul className="tcg-taux-liste">
             <li><span>Niveau normal</span><span>15%</span></li>
             <li><span>Tous les 5 niveaux</span><span>1 garanti</span></li>
             <li><span>Tous les 10 niveaux</span><span>1 garanti</span></li>
-            <li><span>🎁 God Pack (sur multiple de 10)</span><span>0,01% → 10 boosters</span></li>
+            <li><span>God Pack (sur multiple de 10)</span><span>0,01% → 10 boosters</span></li>
           </ul>
         </div>
 
         <div className="tcg-taux-section">
-          <span className="tcg-taux-section-titre">🃏 Contenu d'un booster (10 cartes)</span>
+          <span className="tcg-taux-section-titre">Contenu d'un booster (10 cartes)</span>
           <ul className="tcg-taux-liste">
-            <li><span>⚪ Commune (×6 cartes de base)</span><span>~70%</span></li>
-            <li><span>🟢 Peu commune (×6 cartes de base)</span><span>~30%</span></li>
+            <li><span><i style={{ ...PASTILLE, background: '#9ca3af' }} />Commune (×6 de base)</span><span>~70%</span></li>
+            <li><span><i style={{ ...PASTILLE, background: '#22c55e' }} />Peu commune (×6 de base)</span><span>~30%</span></li>
           </ul>
         </div>
 
         <div className="tcg-taux-section">
-          <span className="tcg-taux-section-titre">🔵 2 slots « rare »</span>
+          <span className="tcg-taux-section-titre">2 slots « rare »</span>
           <ul className="tcg-taux-liste">
-            <li><span>🔵 Rare</span><span>80%</span></li>
-            <li><span>🟣 Ultra Rare</span><span>16%</span></li>
-            <li><span>🌸 Illustration</span><span>3%</span></li>
-            <li><span>🌈 Chromatique</span><span>1%</span></li>
+            <li><span><i style={{ ...PASTILLE, background: '#3b82f6' }} />Rare</span><span>80%</span></li>
+            <li><span><i style={{ ...PASTILLE, background: '#a855f7' }} />Ultra Rare</span><span>16%</span></li>
+            <li><span><i style={{ ...PASTILLE, background: '#ec4899' }} />Illustration</span><span>3%</span></li>
+            <li><span><i style={{ ...PASTILLE, background: '#f59e0b' }} />Chromatique</span><span>1%</span></li>
           </ul>
         </div>
 
         <div className="tcg-taux-section">
-          <span className="tcg-taux-section-titre">✨ 2 slots « brillant » (plus généreux)</span>
+          <span className="tcg-taux-section-titre">2 slots « brillant » (plus généreux)</span>
           <ul className="tcg-taux-liste">
-            <li><span>🔵 Rare</span><span>45%</span></li>
-            <li><span>🟣 Ultra Rare</span><span>38%</span></li>
-            <li><span>🌸 Illustration</span><span>12%</span></li>
-            <li><span>🌈 Chromatique</span><span>5%</span></li>
+            <li><span><i style={{ ...PASTILLE, background: '#3b82f6' }} />Rare</span><span>45%</span></li>
+            <li><span><i style={{ ...PASTILLE, background: '#a855f7' }} />Ultra Rare</span><span>38%</span></li>
+            <li><span><i style={{ ...PASTILLE, background: '#ec4899' }} />Illustration</span><span>12%</span></li>
+            <li><span><i style={{ ...PASTILLE, background: '#f59e0b' }} />Chromatique</span><span>5%</span></li>
           </ul>
         </div>
 
-        <p className="tcg-taux-note">💰 <strong>Cote réelle :</strong> au sein d'une même rareté, plus une carte cote cher dans la vraie vie, plus elle est rare à drop. Un Dracaufeu peut être 100× plus dur à obtenir qu'une autre carte de même rareté ! Clique sur une carte de l'album pour voir sa cote et son taux estimé « 1 sur X ».</p>
+        <p className="tcg-taux-note"><strong>Cote réelle :</strong> au sein d'une même rareté, plus une carte cote cher dans la vraie vie, plus elle est rare à drop. Un Dracaufeu peut être 100× plus dur à obtenir qu'une autre carte de même rareté ! Clique sur une carte de l'album pour voir sa cote et son taux estimé « 1 sur X ».</p>
       </div>
     </div>
   )
@@ -245,52 +251,133 @@ function OngletAlbum({ collectionCartes }) {
 function OngletTour({ meilleurNiveau, onLancer, enCours }) {
   const [popupTaux, setPopupTaux] = useState(false)
   const etapes = [
-    { niveau: 1,  label: 'Niveau 1',  type: 'normal' },
-    { niveau: 5,  label: 'Mini-Boss', type: 'miniboss' },
-    { niveau: 10, label: 'Boss',      type: 'boss' },
-    { niveau: 30, label: 'Boss',      type: 'boss' },
+    { niveau: 1,  label: 'Niveau 1',  drop: '15% booster',     couleur: '#9ca3af' },
+    { niveau: 5,  label: 'Mini-Boss', drop: 'Booster garanti', couleur: '#3b82f6' },
+    { niveau: 10, label: 'Boss',      drop: 'Booster garanti', couleur: '#a855f7' },
+    { niveau: 30, label: 'Boss+',     drop: 'Booster garanti', couleur: '#ec4899' },
   ]
+  const T = TOUR_STYLES
   return (
-    <div className="tcg-tour">
-      <div className="tcg-tour-record">
-        <span className="tcg-tour-record-label">🏆 Meilleur niveau atteint</span>
-        <span className="tcg-tour-record-val">{meilleurNiveau}</span>
+    <div style={T.wrap}>
+      {/* Record */}
+      <div style={T.record}>
+        <div style={T.recordHalo} />
+        <span style={T.recordLabel}>Meilleur niveau atteint</span>
+        <span style={T.recordVal}>{meilleurNiveau}</span>
       </div>
-      <p className="tcg-tour-desc">Roguelike : chaque run repart du niveau 1, la difficulté monte sans fin. Tu gagnes des <strong>boosters</strong> en montant (garantis tous les 5 niveaux) — ouvre-les pour récolter des cartes et compléter tes sets !</p>
 
-      <button className="tcg-tour-aide-taux" onClick={() => setPopupTaux(true)} title="Voir les taux de drop des boosters et des cartes"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'center', margin: '0 auto 4px', padding: '6px 14px', borderRadius: 9, cursor: 'pointer', fontWeight: 800, fontSize: 13, border: '2px solid rgba(252,211,77,0.6)', background: 'rgba(252,211,77,0.12)', color: '#fcd34d' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', border: '2px solid currentColor', fontSize: 12 }}>?</span>
+      <p style={T.desc}>
+        Roguelike : chaque run repart du niveau 1, la difficulté monte sans fin.
+        Tu gagnes des <b style={{ color: '#fcd34d' }}>boosters</b> en montant
+        (garantis tous les 5 niveaux) — ouvre-les pour compléter tes sets !
+      </p>
+
+      {/* Bouton taux */}
+      <button onClick={() => setPopupTaux(true)} title="Voir les taux de drop" style={T.btnTaux}>
+        <span style={T.btnTauxRond}>?</span>
         Voir les taux de drop
       </button>
 
-      <div className="tcg-tour-etapes">
+      {/* Etapes (paliers) */}
+      <div style={T.etapes}>
         {etapes.map((e) => (
-          <div key={e.niveau} className={`tcg-etape tcg-etape-${e.type}`}>
-            <span className="tcg-etape-num">Niv. {e.niveau}</span>
-            <span className="tcg-etape-label">{e.label}</span>
-            <span className="tcg-etape-drop">{e.type === 'boss' ? '💎 Booster garanti' : e.type === 'miniboss' ? '📦 Booster garanti' : '⚪ 15% booster'}</span>
+          <div key={e.niveau} style={{ ...T.etape, borderColor: e.couleur, boxShadow: `0 0 14px ${rgbaT(e.couleur, 0.3)}` }}>
+            <span style={{ ...T.etapeNum, color: e.couleur }}>Niv. {e.niveau}</span>
+            <span style={T.etapeLabel}>{e.label}</span>
+            <span style={T.etapeDrop}>{e.drop}</span>
           </div>
         ))}
-        <div className="tcg-etape tcg-etape-infini">
-          <span className="tcg-etape-num">∞</span><span className="tcg-etape-label">Infini</span><span className="tcg-etape-drop">🎁 God Pack possible</span>
+        <div style={{ ...T.etape, borderColor: '#f59e0b', boxShadow: `0 0 18px ${rgbaT('#f59e0b', 0.4)}` }}>
+          <span style={{ ...T.etapeNum, color: '#f59e0b', fontSize: 20 }}>∞</span>
+          <span style={T.etapeLabel}>Infini</span>
+          <span style={{ ...T.etapeDrop, color: '#fcd34d' }}>God Pack possible</span>
         </div>
       </div>
-      <div className="tcg-tour-finitions">
-        <span className="tcg-tour-fin-titre">Raretés à collectionner :</span>
-        <div className="tcg-tour-fin-liste">
-          <span className="tcg-tour-fin fin-tag-normale">🔵 Rare</span>
-          <span className="tcg-tour-fin fin-tag-brillante">🟣 Ultra Rare</span>
-          <span className="tcg-tour-fin fin-tag-prismatique">🌈 Chromatique</span>
+
+      {/* Raretes a collectionner */}
+      <div style={T.raretes}>
+        <span style={T.raretesTitre}>Raretés à collectionner</span>
+        <div style={T.raretesListe}>
+          <span style={{ ...T.rareteTag, borderColor: '#3b82f6', color: '#3b82f6' }}>Rare</span>
+          <span style={{ ...T.rareteTag, borderColor: '#a855f7', color: '#c084fc' }}>Ultra Rare</span>
+          <span style={{ ...T.rareteTag, borderColor: '#ec4899', color: '#ec4899' }}>Illustration</span>
+          <span style={{ ...T.rareteTag, borderColor: '#f59e0b', color: '#fcd34d' }}>Chromatique</span>
         </div>
       </div>
-      <button className="tcg-btn-lancer" onClick={onLancer} disabled={enCours}>
-        {enCours ? '⏳ Combat en cours...' : '🗼 Lancer une run !'}
+
+      {/* Lancer */}
+      <button onClick={onLancer} disabled={enCours} style={{ ...T.btnLancer, ...(enCours ? T.btnLancerOff : {}) }}>
+        {enCours ? 'Combat en cours…' : 'Lancer une run !'}
       </button>
 
       {popupTaux && <PopupTaux onFermer={() => setPopupTaux(false)} />}
     </div>
   )
+}
+
+// Hex -> rgba pour les halos de l'onglet Tour.
+function rgbaT(hex, a) {
+  const h = (hex || '#888').replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16)
+  return `rgba(${r},${g},${b},${a})`
+}
+
+const TOUR_STYLES = {
+  wrap: { color: '#e8ecf6', fontFamily: "'Rubik',system-ui,sans-serif", padding: '8px 14px 16px' },
+  record: {
+    position: 'relative', textAlign: 'center', padding: '16px 12px', marginBottom: 14,
+    background: 'linear-gradient(180deg,rgba(120,90,40,0.35),rgba(40,30,15,0.5))',
+    border: '2px solid #fcd34d', borderRadius: 14, overflow: 'hidden',
+    boxShadow: '0 0 26px rgba(252,211,77,0.3)',
+  },
+  recordHalo: {
+    position: 'absolute', inset: 0,
+    background: 'radial-gradient(circle at 50% 30%, rgba(252,211,77,0.2) 0%, transparent 60%)', pointerEvents: 'none',
+  },
+  recordLabel: { display: 'block', fontSize: 11, letterSpacing: 2, color: '#d8c89a', fontWeight: 800, position: 'relative' },
+  recordVal: {
+    display: 'block', fontSize: 42, fontWeight: 900, color: '#fcd34d', lineHeight: 1.1, position: 'relative',
+    textShadow: '0 0 20px rgba(252,211,77,0.6)',
+  },
+  desc: { fontSize: 13.5, color: '#c3ccde', lineHeight: 1.55, textAlign: 'center', margin: '0 0 14px' },
+  btnTaux: {
+    display: 'flex', alignItems: 'center', gap: 7, margin: '0 auto 16px', padding: '8px 16px',
+    borderRadius: 10, cursor: 'pointer', fontWeight: 800, fontSize: 13,
+    border: '2px solid rgba(252,211,77,0.55)', background: 'rgba(252,211,77,0.12)', color: '#fcd34d',
+  },
+  btnTauxRond: {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    width: 18, height: 18, borderRadius: '50%', border: '2px solid currentColor', fontSize: 12, fontWeight: 900,
+  },
+  etapes: {
+    display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginBottom: 18,
+  },
+  etape: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '12px 8px',
+    background: 'rgba(255,255,255,0.04)', border: '2px solid', borderRadius: 12, textAlign: 'center',
+  },
+  etapeNum: { fontSize: 14, fontWeight: 900 },
+  etapeLabel: { fontSize: 12, fontWeight: 700, color: '#fff' },
+  etapeDrop: { fontSize: 10.5, color: '#9aa6bd', fontWeight: 600 },
+  raretes: {
+    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 12, padding: '12px 14px', marginBottom: 18,
+  },
+  raretesTitre: { display: 'block', fontSize: 12, fontWeight: 800, color: '#9aa6bd', marginBottom: 8, textAlign: 'center' },
+  raretesListe: { display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' },
+  rareteTag: {
+    fontSize: 11, fontWeight: 800, padding: '5px 13px', borderRadius: 20,
+    border: '1.5px solid', background: 'rgba(255,255,255,0.03)',
+  },
+  btnLancer: {
+    width: '100%', padding: '15px', borderRadius: 12, cursor: 'pointer',
+    fontWeight: 900, fontSize: 17, border: 'none',
+    background: 'linear-gradient(180deg,#fcd34d,#e0a82e)', color: '#3a2800',
+    boxShadow: '0 5px 0 #a87b1e', letterSpacing: 0.5,
+  },
+  btnLancerOff: {
+    background: 'rgba(255,255,255,0.1)', color: '#7a86a0', boxShadow: 'none', cursor: 'not-allowed',
+  },
 }
 
 function PanneauTour({ collectionCartes = [], meilleurNiveau = 0, onLancer, enCours = false, onFermer }) {
@@ -303,15 +390,15 @@ function PanneauTour({ collectionCartes = [], meilleurNiveau = 0, onLancer, enCo
       <div className="tcg-panneau" onClick={(e) => e.stopPropagation()}>
         <div className="tcg-entete">
           <div className="tcg-entete-titre">
-            <span className="tcg-titre">🗼 Tour Infinie</span>
+            <span className="tcg-titre">Tour Infinie</span>
             <span className="tcg-sous-titre">Roguelike · Album de cartes TCG</span>
           </div>
           {bonusTotalXP > 0 && <span className="tcg-bonus-actif" title="Bonus XP grâce à ta collection">+{Math.round(bonusTotalXP * 100)}% XP</span>}
           <button className="tcg-fermer" onClick={onFermer}>✕</button>
         </div>
         <div className="tcg-onglets">
-          <button className={`tcg-onglet ${onglet === 'tour' ? 'actif' : ''}`} onClick={() => setOnglet('tour')}>🗼 Tour</button>
-          <button className={`tcg-onglet ${onglet === 'sets' ? 'actif' : ''}`} onClick={() => setOnglet('sets')}>🎴 Sets TCG</button>
+          <button className={`tcg-onglet ${onglet === 'tour' ? 'actif' : ''}`} onClick={() => setOnglet('tour')}>Tour</button>
+          <button className={`tcg-onglet ${onglet === 'sets' ? 'actif' : ''}`} onClick={() => setOnglet('sets')}>Sets TCG</button>
         </div>
         {onglet === 'tour' && <OngletTour meilleurNiveau={meilleurNiveau} onLancer={onLancer} enCours={enCours} />}
 {onglet === 'sets' && <AlbumSetsTCG collection={collectionCartes} />}
