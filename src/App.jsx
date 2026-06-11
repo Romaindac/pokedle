@@ -75,7 +75,7 @@ import HudDuel from './HudDuel'
 import CombatTour from './CombatTour'
 import { dropCarteTour, difficulteNiveau, niveauPokemonTour, tailleEquipeTour, bonusCompletionSet, ORDRE_SETS, typeNiveau, multiplicateurRareTour, estimerTauxCarte } from './tour'
 import { dropBoosterTour, ajouterBooster, ajouterPlusieurs, nettoyerInventaire, totalBoosters, retirerBooster } from './inventaireBoosters'
-import { bonusXpCollection } from './boosters'
+import { bonusXpCollection, socleAleatoirePour } from './boosters'
 
 const CLE_SAUVEGARDE_BASE = 'pokedex-idle-save-v11'
 // Slot 1 = ancienne cle (migration auto). Slots 2 et 3 = cles dediees.
@@ -254,7 +254,7 @@ async function chargerEquipeEnnemie(route) {
     const estShiny = Math.random() < tauxShiny
     const avecNiveau = { ...p, niveau, rarete, shiny: estShiny, sprite: estShiny && p.spriteShiny ? p.spriteShiny : p.spriteNormal }
     const finales = statsFinales(avecNiveau, BONUS_STAT_NIVEAU)
-    return { ...avecNiveau, ...finales, uid: `enn-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`, pvMax: Math.max(1, Math.round(finales.pvMax * handicap * multiDiff)), attaque: Math.max(1, Math.round(finales.attaque * handicap * multiDiff)) }
+    return { ...avecNiveau, ...finales, uid: `enn-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`, socleCarte: socleAleatoirePour(p.nom), pvMax: Math.max(1, Math.round(finales.pvMax * handicap * multiDiff)), attaque: Math.max(1, Math.round(finales.attaque * handicap * multiDiff)) }
   })
   return appliquerBonusEquipe(equipeFinale)
 }
@@ -308,7 +308,7 @@ async function chargerEquipeDresseur(dresseur) {
     const niveau = Math.max(1, niveauBase + Math.floor(Math.random() * 5) - 2)
     const avecNiveau = { ...p, niveau, rarete: estSpe ? 'special' : 'commun', shiny: false, sprite: p.spriteNormal }
     const finales = statsFinales(avecNiveau, BONUS_STAT_NIVEAU)
-    return { ...avecNiveau, ...finales, uid: `dre-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}` }
+    return { ...avecNiveau, ...finales, uid: `dre-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`, socleCarte: socleAleatoirePour(p.nom) }
   })
 }
 

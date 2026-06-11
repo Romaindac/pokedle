@@ -299,3 +299,71 @@ export function bonusXpCollection(collection) {
   }
   return bonus;
 }
+
+// ------------------------------------------------------------
+// 9) SOCLE ALEATOIRE POUR UN POKEMON (ennemis de l'histoire)
+// Donne une carte-socle aleatoire correspondant a l'espece d'un
+// Pokemon, toutes series confondues. Matching tolerant sur le nom.
+// ------------------------------------------------------------
+
+// Index nom-d'espece -> liste de cartes (construit une seule fois).
+let _indexEspeces = null;
+
+// Normalise un nom pour le matching : minuscules, sans accents,
+// sans ponctuation, espaces/tirets supprimes. "Mr. Mime" -> "mrmime".
+function normaliserNom(nom) {
+  return (nom || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // enleve accents
+    .replace(/[^a-z0-9]/g, ''); // garde lettres+chiffres
+}
+
+// Suffixes TCG a retirer pour retrouver l'espece de base.
+// "Charizard ex" / "Pikachu V" / "Lugia VSTAR" -> charizard / pikachu / lugia.
+const SUFFIXES_TCG = ['vstar', 'vmax', 'ex', 'v', 'gx'];
+
+// Renvoie la "racine espece" d'un nom de carte TCG normalise.
+function racineEspece(nomNorm) {
+  let n = nomNorm;
+  for (const suf of SUFFIXES_TCG) {
+    if (n.endsWith(suf) && n.length > suf.length) {
+      n = n.slice(0, n.length - suf.length);
+      break;
+    }
+  }
+  return n;
+}
+
+// Construit l'index { racineEspece: [cartesBrutes...] } sur tous les sets.
+function construireIndexEspeces() {
+  if (_indexEspeces) return _indexEspeces;
+  const index = {};
+  for (const idSet of IDS_SETS) {
+    const set = SETS_CARTES[idSet];
+    if (!set || !set.cartes) continue;
+    for (const c of set.cartes) {
+      const racine = racineEspece(normaliserNom(c.nom));
+      if (!racine) continue;
+      if (!index[racine]) index[racine] = [];
+      index[racine].push({ carte: c, idSet });
+    }
+  }
+  _indexEspeces = index;
+  return index;
+}
+
+// Donne une carte-socle aleatoire pour un nom de Pokemon (PokeAPI ou autre).
+// Renvoie un objet compatible socleCarte (meme forme que fabriquerCarte),
+// ou null si aucune carte ne correspond a cette espece.
+export function socleAleatoirePour(nomPokemon) {
+  const index = construireIndexEspeces();
+  // Nom PokeAPI : on prend la partie avant le premier tiret ("mr-mime" -> "mr"? non).
+  // On normalise le nom complet ET la version "avant tiret" pour maximiser les matchs.
+  const nomNorm = normaliserNom(nomPokemon);
+  const candidats = index[nomNorm]
+    || index[racineEspece(nomNorm)]
+    || null;
+  if (!candidats || candidats.length === 0) return null;
+  const choix = candidats[Math.floor(Math.random() * candidats.length)];
+  return fabriquerCarte(choix.carte, choix.idSet);
+}
