@@ -3,7 +3,7 @@ import './App.css'
 import {
   BookOpen, Users, Map as MapIcon, BarChart3, ShoppingBag, Backpack,
   Trophy, Zap, Swords, Flame, Crosshair, Medal, Save, HelpCircle, Trash2,
-  Settings, Gauge, Boxes, ChevronLeft, ChevronRight, Coins, Target, Play, Pause,
+  Settings, Gauge, Boxes, Package, ChevronLeft, ChevronRight, Coins, Target, Play, Pause,
   Sparkles, Crown, Plus, Repeat, Egg, MoreHorizontal,
 } from 'lucide-react'
 import { VITESSE_COMBAT, PAUSE_RESPAWN, GAIN_PAR_VICTOIRE, GAIN_BASE_ENNEMI, BONUS_STAT_NIVEAU, XP_BASE_NIVEAU, XP_BASE_ENNEMI, TAUX_CAPTURE_RARETE, BALLS, BALL_AUTO_PAR_RARETE, TAUX_SHINY, PIERRES, BONBONS, prixDynamique, multiplicateurSurclassement } from './config'
@@ -66,12 +66,16 @@ import { chargerIdentite, envoyerScore, definirPseudo } from './apiClassement'
 import { chargerTableNoms } from './pokedexNoms'
 import { creerHorloge } from './horlogeWorker'
 import PanneauTour from './PanneauTour'
+import EcranBoosters from './EcranBoosters'
+import EncartBoosterDrop from './EncartBoosterDrop'
 import CentreFusion from './CentreFusion'
 import AmbianceCombat from './AmbianceCombat'
 import TapisDuel from './TapisDuel'
 import HudDuel from './HudDuel'
 import CombatTour from './CombatTour'
 import { dropCarteTour, difficulteNiveau, niveauPokemonTour, tailleEquipeTour, bonusCompletionSet, ORDRE_SETS, typeNiveau, multiplicateurRareTour, estimerTauxCarte } from './tour'
+import { dropBoosterTour, ajouterBooster, ajouterPlusieurs, nettoyerInventaire, totalBoosters, retirerBooster } from './inventaireBoosters'
+import { bonusXpCollection } from './boosters'
 
 const CLE_SAUVEGARDE_BASE = 'pokedex-idle-save-v11'
 // Slot 1 = ancienne cle (migration auto). Slots 2 et 3 = cles dediees.
@@ -402,6 +406,10 @@ function App() {
   const [equipeEnnemieTour, setEquipeEnnemieTour] = useState([])
   const [carteDrop, setCarteDrop] = useState(null)
   const carteDropTimer = useRef(null)
+  const [inventaireBoosters, setInventaireBoosters] = useState({})
+  const [boosterDrop, setBoosterDrop] = useState(null)
+  const [ecranBoostersOuvert, setEcranBoostersOuvert] = useState(false)
+  const boosterDropTimer = useRef(null)
 
   const [pokeDollars, setPokeDollars] = useState(0)
   const [balls, setBalls] = useState({ poke: 0, super: 0, hyper: 0, master: 0 })
@@ -659,7 +667,7 @@ function App() {
 
   // Bonus XP Tour (mis a jour quand la collection de cartes change)
   useEffect(() => {
-    bonusTourXP = 1 + ORDRE_SETS.reduce((total, sid) => total + bonusCompletionSet(collectionCartesTCG, sid).totalBonus, 0)
+    bonusTourXP = 1 + ORDRE_SETS.reduce((total, sid) => total + bonusCompletionSet(collectionCartesTCG, sid).totalBonus, 0) + bonusXpCollection(collectionCartesTCG)
   }, [collectionCartesTCG])
 
   useEffect(() => { chargerTableNoms().then((table) => setTableNoms(table)) }, [])
@@ -1204,6 +1212,7 @@ function App() {
         if (typeof data.meilleurNiveauTour === 'number') setMeilleurNiveauTour(data.meilleurNiveauTour)
         if (typeof data.adnFusion === 'number') setAdnFusion(data.adnFusion)
         if (Array.isArray(data.collectionCartesTCG)) setCollectionCartesTCG(data.collectionCartesTCG)
+          if (data.inventaireBoosters) setInventaireBoosters(nettoyerInventaire(data.inventaireBoosters))
         if (data.dresseursVaincus && !Array.isArray(data.dresseursVaincus)) setDresseursVaincus(data.dresseursVaincus)
         const histoireDejaReset = !RESET_HISTOIRE_ACTIF || data.resetHistoire === VERSION_RESET_HISTOIRE
         setVictoiresParRoute(histoireDejaReset ? (data.victoiresParRoute || {}) : {}); setBossVaincus(histoireDejaReset ? (data.bossVaincus || {}) : {})
@@ -1303,7 +1312,7 @@ function App() {
   useEffect(() => {
     if (!partieChargee || captures.length === 0) return
     if (!slotActifRef.current) return
-    const data = { resetHistoire: VERSION_RESET_HISTOIRE, nettoyageDoublons: VERSION_NETTOYAGE_DOUBLONS, resetDepart: VERSION_RESET_DEPART, pseudoSlot: pseudoSlotEnCours, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, nbPrestiges, raidsReussis, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, ciblesMasterBall, tutoVu, tutoPrestigeVu, raidsCooldowns, equipeRaidIds, reserveOeufs, oeufsIncubes, jetonsElevage, ameliorationsElevage, meilleurNiveauTour, collectionCartesTCG, adnFusion }
+    const data = { resetHistoire: VERSION_RESET_HISTOIRE, nettoyageDoublons: VERSION_NETTOYAGE_DOUBLONS, resetDepart: VERSION_RESET_DEPART, pseudoSlot: pseudoSlotEnCours, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, nbPrestiges, raidsReussis, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, ciblesMasterBall, tutoVu, tutoPrestigeVu, raidsCooldowns, equipeRaidIds, reserveOeufs, oeufsIncubes, jetonsElevage, ameliorationsElevage, meilleurNiveauTour, collectionCartesTCG, adnFusion, inventaireBoosters }
     donneesSauvegardeRef.current = data
     // Sauvegarde CLOUD debouncee : on n'ecrit pas a chaque micro-changement.
     // On garde une copie locale de secours, et on pousse au cloud au max toutes les 10s.
@@ -1317,7 +1326,7 @@ function App() {
       dernierePushCloudRef.current = Date.now()
       sauverSlotCloud(slot, donneesSauvegardeRef.current)
     }, delai)
-  }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, ciblesMasterBall, tutoVu, raidsCooldowns, equipeRaidIds, meilleurNiveauTour, collectionCartesTCG])
+  }, [partieChargee, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, ciblesMasterBall, tutoVu, raidsCooldowns, equipeRaidIds, meilleurNiveauTour, collectionCartesTCG, inventaireBoosters])
 
   // Sauvegarde de securite quand on quitte/recharge la page (push cloud immediat).
   useEffect(() => {
@@ -1781,20 +1790,24 @@ function App() {
     const typeNiv = typeNiveau(niveau)
     if (typeNiv === 'boss') { setAdnFusion((a) => a + 3); ajouterAuJournal(`Boss vaincu : +3 ADN de Fusion 🧬`, 'capture') }
     else if (typeNiv === 'miniboss') { setAdnFusion((a) => a + 1); ajouterAuJournal(`Mini-boss vaincu : +1 ADN de Fusion 🧬`, 'info') }
-    // Drop de carte EN ARRIERE-PLAN (ne bloque pas la transition vers le niveau suivant).
-    dropCarteTour(niveau).then((carte) => {
-      if (carte) {
-        setCollectionCartesTCG((c) => [...c, carte]); setCarteDrop(carte)
-        if (carteDropTimer.current) clearTimeout(carteDropTimer.current)
-        carteDropTimer.current = setTimeout(() => setCarteDrop(null), 3500)
-        const mentionFin = carte.finition === 'prismatique' ? ' [PRISMATIQUE]' : carte.finition === 'brillante' ? ' [Brillante]' : ''
-        const mentionCote = (carte.cote || 0) >= 100 ? ' *** GRAAL ***' : (carte.cote || 0) >= 20 ? ' (carte chere !)' : ''
-        const estRare = carte.finition !== 'normale' || (carte.cote || 0) >= 20
-        ajouterAuJournal(`Carte obtenue : ${carte.nom} (${carte.rarete})${mentionFin}${mentionCote} !`, estRare ? 'capture' : 'info')
+    // Drop de BOOSTERS (remplace l'ancien drop carte-par-carte).
+    const resultatDrop = dropBoosterTour(niveau)
+    if (resultatDrop.boosters.length > 0) {
+      if (resultatDrop.godPack) {
+        // GOD PACK : 10 boosters d'un coup.
+        setInventaireBoosters((inv) => ajouterPlusieurs(inv, resultatDrop.boosters))
+        setBoosterDrop({ godPack: true, nb: resultatDrop.boosters.length })
+        ajouterAuJournal(`GOD PACK !! ${resultatDrop.boosters.length} boosters d'un coup !!! 🌈`, 'capture')
       } else {
-        ajouterAuJournal(`Carte non recuperee (reseau). On continue !`, 'info')
+        // Drop normal : 1 booster.
+        const idSet = resultatDrop.boosters[0]
+        setInventaireBoosters((inv) => ajouterBooster(inv, idSet, 1))
+        setBoosterDrop({ godPack: false, idSet })
+        ajouterAuJournal(`Booster obtenu ! Va l'ouvrir dans ton inventaire 📦`, 'capture')
       }
-    }).catch((err) => { console.warn('Drop carte echoue', err) })
+      if (boosterDropTimer.current) clearTimeout(boosterDropTimer.current)
+      boosterDropTimer.current = setTimeout(() => setBoosterDrop(null), 4000)
+    }
     // Niveau suivant (immediat, sans attendre la carte).
     const prochainNiveau = niveau + 1; setNiveauTourActuel(prochainNiveau)
     if (prochainNiveau - 1 > meilleurNiveauTour) setMeilleurNiveauTour(prochainNiveau - 1)
@@ -2128,6 +2141,7 @@ function App() {
           <button className="tbm-item tbm-item-combat" onClick={() => setModeJeu('arene')} title="Mode Arene"><Swords size={17} /><span>Arene</span></button>
           <button className="tbm-item tbm-item-combat" onClick={() => setModeJeu('raid')} title="Raids (endgame)"><Flame size={17} /><span>Raids</span></button>
           <button className="tbm-item tbm-item-combat" onClick={() => setTourOuverte(true)} title="Tour Infinie - Cartes TCG"><Boxes size={17} /><span>Tour</span></button>
+          <button className="tbm-item" onClick={() => setEcranBoostersOuvert(true)} title="Mes Boosters TCG">{totalBoosters(inventaireBoosters) > 0 && <span className="tbm-pastille">{totalBoosters(inventaireBoosters)}</span>}<Package size={17} /><span>Boosters</span></button>
           <button className={`tbm-item ${nbPrestiges < 3 ? 'tbm-item-verrouille' : ''}`} onClick={() => { if (nbPrestiges < 3) { alert('Le Centre de Fusion se debloque apres 3 prestiges.'); return } setVueOuverte('fusion') }} title={nbPrestiges < 3 ? 'Centre de Fusion (debloque apres 3 prestiges)' : 'Centre de Fusion'}>{nbPrestiges < 3 && <span className="tbm-cadenas">🔒</span>}<Sparkles size={17} /><span>Fusion</span>{nbPrestiges >= 3 && adnFusion > 0 && <span className="tbm-pastille">{adnFusion}</span>}</button>
           <button className="tbm-item tbm-item-combat" data-tuto="pvp" onClick={() => setModeJeu('pvp')} title="Arene PvP en ligne"><Crosshair size={17} /><span>PvP</span></button>
           <button className="tbm-item" onClick={() => setVueOuverte('prestige')} title="Prestige"><Crown size={17} /><span>Prestige</span>{medailles > 0 && <span className="tbm-pastille">{medailles}</span>}</button>
@@ -2214,15 +2228,15 @@ function App() {
             <AmbianceCombat decor={routeParId(routeActive).decor} estBoss={combatBoss} />
             <TapisDuel decor={routeParId(routeActive).decor} estBoss={combatBoss} />
             <HudDuel equipeJoueur={equipeJoueur} equipeEnnemie={equipeEnnemie} pvJoueur={pvJoueur} pvEnnemis={pvEnnemis} journal={journal} pseudo={identiteJoueur?.pseudo || 'Toi'} nomZone={routeParId(routeActive).nom} estBoss={combatBoss} />
-            <div className="terrain-rangee terrain-ennemis" style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '84%', marginLeft: 'auto', marginRight: 'auto', transform: 'scale(0.9)', transformOrigin: 'top center' }}>
+            <div className="terrain-rangee terrain-ennemis" style={{ display: 'flex', justifyContent: 'space-evenly', gap: 6, marginTop: '2%', width: '100%', margin: '0 auto' }}>
               {equipeEnnemie.map((poke, i) => {
                 const marqueeMaster = ciblesMasterBall.some((c) => c.cle === `${poke.id}${poke.shiny ? '-shiny' : ''}`); const ciblable = !poke.estBoss && !poke.estEvolution
-                return (<div className="terrain-slot" key={`${poke.uid || 'enn'}-${i}`} style={{ position: 'relative', flex: '0 1 150px', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}><SpriteCombattant pokemon={poke} pvActuels={pvEnnemis[i]} jauge={jaugeEnnemis[i]} camp="ennemi" ultimeLance={ultimeLanceEnnemiAff[i] || false} ultimeEnnemi marqueeMaster={marqueeMaster} ciblableMaster={ciblable} onCiblerMaster={() => basculerCibleMasterBall(poke)} />{rendreBadgesStatut(poke)}<div className="chiffres-couche">{chiffresFlottants.filter((c) => c.camp === 'ennemi' && c.index === i).map((c) => rendreChiffre(c))}</div></div>)
+                return (<div className="terrain-slot" key={`${poke.uid || 'enn'}-${i}`} style={{ position: 'relative', flex: '0 0 16.6%', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}><SpriteCombattant pokemon={poke} pvActuels={pvEnnemis[i]} jauge={jaugeEnnemis[i]} camp="ennemi" ultimeLance={ultimeLanceEnnemiAff[i] || false} ultimeEnnemi marqueeMaster={marqueeMaster} ciblableMaster={ciblable} onCiblerMaster={() => basculerCibleMasterBall(poke)} />{rendreBadgesStatut(poke)}<div className="chiffres-couche">{chiffresFlottants.filter((c) => c.camp === 'ennemi' && c.index === i).map((c) => rendreChiffre(c))}</div></div>)
               })}
             </div>
             <div className="terrain-vs" style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center', padding: '4px 0' }}><img src={ICONE_COMBAT} alt="VS" className="vs-img" /></div>
-            <div className="terrain-rangee terrain-joueur" style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '98%', marginLeft: 'auto', marginRight: 'auto' }}>
-              {equipeJoueur.map((poke, i) => (<div className="terrain-slot" key={poke.uid} style={{ position: 'relative', flex: '0 1 188px', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}><SpriteCombattant pokemon={poke} pvActuels={pvJoueur[i]} jauge={jaugeJoueur[i]} camp="joueur" ultimeLance={ultimeLanceJoueur[i] || false} plafond={capActuel} />{rendreBadgesStatut(poke)}<div className="chiffres-couche">{chiffresFlottants.filter((c) => c.camp === 'joueur' && c.index === i).map((c) => rendreChiffre(c))}</div></div>))}
+            <div className="terrain-rangee terrain-joueur" style={{ display: 'flex', justifyContent: 'space-evenly', width: '100%' }}>
+              {equipeJoueur.map((poke, i) => (<div className="terrain-slot" key={poke.uid} style={{ position: 'relative', flex: '0 0 16.6%', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}><SpriteCombattant pokemon={poke} pvActuels={pvJoueur[i]} jauge={jaugeJoueur[i]} camp="joueur" ultimeLance={ultimeLanceJoueur[i] || false} plafond={capActuel} />{rendreBadgesStatut(poke)}<div className="chiffres-couche">{chiffresFlottants.filter((c) => c.camp === 'joueur' && c.index === i).map((c) => rendreChiffre(c))}</div></div>))}
             </div>
           </div>
           
@@ -2312,6 +2326,8 @@ function App() {
 
       {combatTourActif && equipeEnnemieTour.length > 0 && (<CombatTour key={niveauTourActuel} niveauTour={niveauTourActuel} equipeJoueur={equipeJoueur} equipeEnnemie={equipeEnnemieTour} vitesse={vitesse} onVictoire={victoireTour} onDefaite={defaiteTour} onQuitter={() => { setCombatTourActif(false); setNiveauTourActuel(1) }} />)}
       {tourOuverte && !combatTourActif && (<PanneauTour collectionCartes={collectionCartesTCG} meilleurNiveau={meilleurNiveauTour} onLancer={() => { setTourOuverte(false); lancerTour() }} enCours={combatTourActif} onFermer={() => setTourOuverte(false)} />)}
+        {ecranBoostersOuvert && (<EcranBoosters inventaire={inventaireBoosters} onRetirerBooster={(idSet) => setInventaireBoosters((inv) => retirerBooster(inv, idSet))} onCartesObtenues={(cartes) => setCollectionCartesTCG((c) => [...c, ...cartes])} onFermer={() => setEcranBoostersOuvert(false)} />)}
+      <EncartBoosterDrop drop={boosterDrop} onOuvrir={() => { setBoosterDrop(null); setEcranBoostersOuvert(true) }} />
       {vueOuverte === 'fusion' && (<CentreFusion collection={captures} adnFusion={adnFusion} onFusionner={fusionner} onChangerGene={changerGeneDominant} onFermer={() => setVueOuverte(null)} />)}
       {carteDrop && (<div className={`tcg-drop-encart fin-${carteDrop.finition || 'normale'}`}><div className="tcg-drop-carte-mini">{carteDrop.imageSmall && <img src={carteDrop.imageSmall} alt={carteDrop.nom} />}{carteDrop.finition === 'brillante' && <div className="tcg-fx-brillante" aria-hidden="true" />}{carteDrop.finition === 'prismatique' && <div className="tcg-fx-prismatique" aria-hidden="true" />}</div><div className="tcg-drop-texte"><span className="tcg-drop-titre">{carteDrop.finition === 'prismatique' ? '🌈 Carte PRISMATIQUE !' : carteDrop.finition === 'brillante' ? '✨ Carte brillante !' : 'Carte obtenue !'}</span><span className="tcg-drop-nom">{carteDrop.nom}</span><span className="tcg-drop-rarete">{carteDrop.rarete} - {carteDrop.setNom}</span></div></div>)}
 

@@ -24078,3 +24078,8 @@ a img,
 .cbt-ombre-sol, .cbt-aura-role, .cbt-rarete-aura, .cbt-aura-rare, .cbt-plaque {
   display: none !important;
 }
+/* Terrain : cartes réparties bord à bord (annule les margin auto / padding parasites) */
+.terrain-ennemis { padding-right: 0 !important; }
+.terrain-joueur { padding-left: 0 !important; }
+.terrain-ennemis .terrain-slot:first-child { margin-left: 0 !important; }
+.terrain-joueur .terrain-slot:last-child { margin-right: 0 !important; }

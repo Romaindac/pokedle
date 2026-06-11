@@ -221,6 +221,20 @@ function couleurFinition(finition) {
   return '#2a3242'
 }
 
+// Couleur du halo selon le palier de rarete (1 a 6). Nouvelles cartes booster.
+const COULEURS_PALIER = {
+  1: '#9ca3af', 2: '#22c55e', 3: '#3b82f6',
+  4: '#a855f7', 5: '#ec4899', 6: '#f59e0b',
+}
+const NOMS_PALIER = {
+  1: 'Commune', 2: 'Peu commune', 3: 'Rare',
+  4: 'Ultra Rare', 5: 'Illustration', 6: 'Chromatique',
+}
+function couleurPalier(c) {
+  if (c && c.palier && COULEURS_PALIER[c.palier]) return COULEURS_PALIER[c.palier]
+  return couleurFinition(c && c.finition) // fallback anciennes cartes
+}
+
 function BarreStat({ label, valeur, pctMax, couleur }) {
   const pct = Math.max(8, Math.min(100, pctMax))
   return (
@@ -529,16 +543,17 @@ function Fiche({ pokemon, pierres, objets = {}, parchemins = {}, cartesTCG = [],
                       title={`${nomCarte(c)}${c.setNom ? ' — ' + c.setNom : ''}`}
                       style={{
                         width: 84, cursor: 'pointer', borderRadius: 8, padding: 4,
-                        border: choisie ? '2px solid #fcd34d' : `1px solid ${couleurFinition(c.finition)}`,
+                        border: choisie ? '2px solid #fcd34d' : `2px solid ${couleurPalier(c)}`,
+boxShadow: choisie ? '0 0 10px #fcd34d' : (c.palier >= 4 ? `0 0 9px ${couleurPalier(c)}` : 'none'),
                         background: '#141a26', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                       }}>
                       <img src={urlCarte(c)} alt={nomCarte(c)}
                         style={{ width: 72, height: 100, objectFit: 'cover', borderRadius: 5, display: 'block' }}
                         loading="lazy"
                         onError={(e) => { const b = e.currentTarget.closest('button'); if (b) b.style.display = 'none' }} />
-                      <span style={{ fontSize: 9, color: c.finition === 'prismatique' ? '#c084fc' : c.finition === 'brillante' ? '#cfd8e3' : '#9ca8bd', textAlign: 'center', lineHeight: 1.2 }}>
-                        {choisie ? '✓ Choisie' : (c.finition === 'prismatique' ? '🌈 Prisma' : c.finition === 'brillante' ? '✨ Brillante' : nomCarte(c).slice(0, 14))}
-                      </span>
+                      <span style={{ fontSize: 9, color: couleurPalier(c), textAlign: 'center', lineHeight: 1.2, fontWeight: 700 }}>
+  {choisie ? '✓ Choisie' : (c.palier ? NOMS_PALIER[c.palier] : nomCarte(c).slice(0, 14))}
+</span>
                     </button>
                   )
                 })

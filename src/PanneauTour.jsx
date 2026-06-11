@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { SETS_TCG, ORDRE_SETS, RARETE_TCG, FINITIONS, bonusCompletionSet, estimerTauxCarte, formaterTaux, formaterPrix } from './tour'
+import AlbumSetsTCG from './AlbumSetsTCG'
 
 const ORDRE_RARETE = ['Common', 'Uncommon', 'Rare', 'Rare Holo', 'Rare Holo EX']
 function rangRarete(r) { const idx = ORDRE_RARETE.indexOf(r); return idx === -1 ? 99 : idx }
@@ -295,10 +296,11 @@ function PanneauTour({ collectionCartes = [], meilleurNiveau = 0, onLancer, enCo
         <div className="tcg-onglets">
           <button className={`tcg-onglet ${onglet === 'tour' ? 'actif' : ''}`} onClick={() => setOnglet('tour')}>🗼 Tour</button>
           <button className={`tcg-onglet ${onglet === 'album' ? 'actif' : ''}`} onClick={() => setOnglet('album')}>📖 Album ({nbCartes})</button>
+          <button className={`tcg-onglet ${onglet === 'sets' ? 'actif' : ''}`} onClick={() => setOnglet('sets')}>🎴 Sets TCG</button>
         </div>
-        {onglet === 'tour'
-          ? <OngletTour meilleurNiveau={meilleurNiveau} onLancer={onLancer} enCours={enCours} />
-          : <OngletAlbum collectionCartes={collectionCartes} />}
+        {onglet === 'tour' && <OngletTour meilleurNiveau={meilleurNiveau} onLancer={onLancer} enCours={enCours} />}
+{onglet === 'album' && <OngletAlbum collectionCartes={collectionCartes} />}
+{onglet === 'sets' && <AlbumSetsTCG collection={collectionCartes} />}
       </div>
     </div>
   )

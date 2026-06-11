@@ -4,6 +4,7 @@ import { nomShowdown } from './pokedexNoms'
 import { xpRequise } from './stats'
 import { XP_BASE_NIVEAU } from './config'
 import { statutsActifs } from './statuts'
+import { COULEURS_TYPES } from './types'
 import AuraPokemon from './AuraPokemon'
 import SocleCarte from './SocleCarte'
 
@@ -16,6 +17,19 @@ import SocleCarte from './SocleCarte'
 //   nom + niveau + role + shiny | barre PV | jauge ATB | barre XP
 // K.O. : sprite estompe gris + carte retournee grisee.
 // ============================================================
+
+
+// Corrections de centrage pour les sprites mal cadres dans leur PNG Showdown.
+// Cle = nom (minuscule, sans accent), valeur = decalage horizontal en px
+// (negatif = gauche, positif = droite). Ajoute ici tout sprite decale.
+const DECALAGE_SPRITE = {
+  mewtwo: -26,
+  entei: -14,
+}
+function decalageSprite(nom) {
+  const n = (nom || '').toLowerCase().split('-')[0]
+  return DECALAGE_SPRITE[n] || 0
+}
 
 function nomSpriteShowdown(pokemon) {
   const num = pokemon.id || pokemon.numero
@@ -128,23 +142,13 @@ function SpriteCombattant({
   const statuts = ko ? [] : statutsActifs(pokemon)
   const estRare = !!pokemon.estRareTour
   const estBoss = !!pokemon.estBoss
+  const auraContour = estBoss ? '#ff2d2d' : (shiny ? '#fcd34d' : (COULEURS_TYPES[(pokemon.types || [])[0]] || '#9099a1'))
 
-  // Mini-plaque (ennemis) : nom + niveau + barre fine.
-  const miniPlaque = (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, marginBottom: 2, pointerEvents: 'none', position: 'relative', zIndex: 3 }}>
-      <span style={{ fontSize: 11.5, fontWeight: 800, color: ko ? '#6b7383' : '#eef2fb', textShadow: '0 1px 3px rgba(0,0,0,0.9)', whiteSpace: 'nowrap', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {estBoss ? '👑 ' : ''}{infoRole ? infoRole.emoji + ' ' : ''}{pokemon.nom} <span style={{ color: '#9ca8bd', fontWeight: 600 }}>N.{niveau}</span>{pokemon.shiny ? ' ✨' : ''}
-      </span>
-      <div style={{ width: 104, height: 6, borderRadius: 3, background: 'rgba(10,14,22,0.7)', border: '1px solid rgba(255,255,255,0.12)' }}>
-        <div style={{ width: pourcentageVie + '%', height: '100%', borderRadius: 3, background: couleurPv, transition: 'width 0.3s ease' }}></div>
-      </div>
-    </div>
-  )
-
-  // Panneau de vie complet (joueur) : sous la carte.
-  const panneauJoueur = (
+  // Panneau de vie complet — IDENTIQUE pour joueur et ennemi, sous la carte.
+  // (La barre XP doree n'a de sens que pour le joueur.)
+  const panneauInfos = (
     <div style={{
-      marginTop: 8, width: '94%', maxWidth: 168,
+      marginTop: 22, width: '94%', maxWidth: 168,
       background: 'rgba(8,12,20,0.85)',
       border: prendCoup ? '1px solid rgba(239,68,68,0.7)' : '1px solid rgba(255,255,255,0.14)',
       borderRadius: 10, padding: '5px 9px 7px',
@@ -152,6 +156,7 @@ function SpriteCombattant({
       fontFamily: "'Rubik', system-ui, sans-serif",
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+        {estBoss && <span style={{ fontSize: 10 }}>👑</span>}
         {infoRole && <span style={{ fontSize: 10 }} title={infoRole.nom}>{infoRole.emoji}</span>}
         <span style={{ fontSize: 11, fontWeight: 800, color: '#eef2fb', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{pokemon.nom}</span>
         <span style={{ fontSize: 9.5, fontWeight: 700, color: auMax ? '#fcd34d' : '#9ca8bd' }}>{auMax ? `N.${niveau} MAX` : `N.${niveau}`}</span>
@@ -165,10 +170,12 @@ function SpriteCombattant({
       <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 3 }}>
         <div style={{ height: '100%', width: (ko ? 0 : jauge) + '%', background: '#38bdf8', borderRadius: 2 }}></div>
       </div>
-      {/* XP doree */}
-      <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 3 }} title={auMax ? 'Niveau maximum' : `XP : ${xpAct} / ${xpReq}`}>
-        <div style={{ height: '100%', width: pourcentageXp + '%', background: 'linear-gradient(to right, #b8860b, #fcd34d)', borderRadius: 2, transition: 'width 0.4s ease' }}></div>
-      </div>
+      {/* XP doree (joueur seulement) */}
+      {estJoueur && (
+        <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginTop: 3 }} title={auMax ? 'Niveau maximum' : `XP : ${xpAct} / ${xpReq}`}>
+          <div style={{ height: '100%', width: pourcentageXp + '%', background: 'linear-gradient(to right, #b8860b, #fcd34d)', borderRadius: 2, transition: 'width 0.4s ease' }}></div>
+        </div>
+      )}
       <div style={{ textAlign: 'right', fontSize: 9.5, fontWeight: 700, color: '#9ca8bd', marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>
         {Math.max(0, pvActuels)} / {pvMax}
       </div>
@@ -180,13 +187,10 @@ function SpriteCombattant({
       className={`cbt-slot ${estJoueur ? 'cbt-joueur' : 'cbt-ennemi'} ${ko ? 'cbt-ko' : ''} ${prendCoup ? 'cbt-coup' : ''} ${pokemon.shiny ? 'cbt-shiny' : ''} ${estRare ? 'cbt-rare' : ''}`}
       style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', position: 'relative' }}
     >
-      {/* ENNEMI : mini-plaque au-dessus */}
-      {!estJoueur && miniPlaque}
-
       {/* Sprite sur sa carte */}
       <div className="cbt-sprite-zone" style={{
         position: 'relative', width: '100%',
-        height: estJoueur ? 152 : 128,
+        height: 152,
         display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
       }}>
         {estRare && !ko && <span className="cbt-couronne-rare" title="Pokemon rare" style={{ position: 'absolute', top: -14, zIndex: 4 }}>👑</span>}
@@ -201,9 +205,10 @@ function SpriteCombattant({
               onError={(e) => { e.currentTarget.replaceWith(document.createTextNode('⚫')) }} />
           </button>
         )}
-        {/* SOCLE-CARTE : dos par defaut, carte choisie, retournee grisee si K.O. */}
-        <SocleCarte carte={pokemon.socleCarte || null} shiny={shiny} boss={estBoss} ko={ko} camp={camp} />
-        <div className="cbt-sprite-bond" ref={bondRef} style={{ position: 'relative', zIndex: 2, marginBottom: estJoueur ? 58 : 34 }}>
+        {/* aura geree par le Canvas AuraPokemon (mode invocation) ci-dessous */}
+        {/* SOCLE-CARTE : dos par defaut, carte choisie, retournee grisee si K.O. ; cadre reagit au statut */}
+        <SocleCarte carte={pokemon.socleCarte || null} shiny={shiny} boss={estBoss} ko={ko} camp={camp} statuts={statuts} />
+        <div className="cbt-sprite-bond" ref={bondRef} style={{ position: 'relative', zIndex: 2, marginBottom: 58, display: 'flex', justifyContent: 'center', width: '100%' }}>
           <div style={{ transform: estBoss ? 'scale(1.28)' : undefined, transformOrigin: 'bottom center', filter: ko ? 'grayscale(1) opacity(0.35)' : undefined }}>
             <img
               src={sources[0]}
@@ -211,16 +216,18 @@ function SpriteCombattant({
               className="cbt-sprite"
               data-etape="0"
               onError={onError}
-              style={{ maxHeight: estJoueur ? 108 : 92, display: 'block' }}
+              style={{ maxHeight: 108, maxWidth: '100%', display: 'block', margin: '0 auto', objectFit: 'contain', transform: `translateX(${decalageSprite(pokemon.nom)}px)` }}
             />
           </div>
         </div>
         {/* AURA CANVAS : type / statut / shiny / boss */}
-        <AuraPokemon types={pokemon.types || []} statuts={statuts} shiny={shiny} ko={ko} boss={estBoss} />
+        <div style={{ position: 'absolute', left: '50%', bottom: 10, transform: 'translateX(-50%)', width: 200, height: 230, zIndex: 1, pointerEvents: 'none' }}>
+          <AuraPokemon types={pokemon.types || []} statuts={statuts} shiny={shiny} ko={ko} boss={estBoss} special={!!pokemon.estFusion} legendaire={pokemon.rarete === 'special' || pokemon.rarete === 'legendaire'} />
+        </div>
       </div>
 
-      {/* JOUEUR : panneau de vie complet en dessous */}
-      {estJoueur && panneauJoueur}
+      {/* Panneau de vie complet en dessous (joueur ET ennemi) */}
+      {panneauInfos}
     </div>
   )
 }

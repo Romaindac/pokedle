@@ -1,11 +1,10 @@
 // ============================================================
-// HUD DE DUEL — la couche d'interface au-dessus de l'arene.
-// Barres de vie FACON JEU POKEMON (boitier GBA classique) :
-//   cadre creme arrondi, etiquette PV orange, barre qui passe
-//   du vert au jaune puis au rouge, chiffres en style retro.
-//   - En haut a gauche : TON boitier (pseudo).
-//   - En haut a droite : boitier ennemi (mode BOSS : rouge + 👑).
-//   - En bas a droite : le TICKER (2 derniers evenements).
+// HUD DE DUEL — v4 : LA BARRE DE DUEL.
+// Une longue barre fine stylisee qui traverse le milieu de
+// l'arene : tes PV (bleu) remplissent depuis la gauche, les PV
+// ennemis (rouge) depuis la droite, epees croisees au centre.
+// Pseudo + total a gauche, nom de zone + total a droite.
+// + le TICKER (2 derniers evenements) en bas a droite.
 // 100% styles inline, pointer-events none — zero App.css.
 // ============================================================
 
@@ -29,62 +28,6 @@ const COULEUR_TICKER = {
   info: '#9ca8bd',
 }
 
-// Couleur de la barre PV selon le pourcentage (codes des jeux Pokemon).
-function couleurPv(pct) {
-  if (pct > 50) return '#58d068'   // vert
-  if (pct > 20) return '#f8d030'   // jaune
-  return '#f05868'                  // rouge
-}
-
-// Boitier de PV facon Pokemon GBA.
-function BoitierPokemon({ titre, pv, pvMax, boss = false }) {
-  const pct = pvMax > 0 ? Math.max(0, Math.min(100, (pv / pvMax) * 100)) : 0
-  return (
-    <div style={{
-      background: '#f8f0d0',
-      border: `3px solid ${boss ? '#a3001b' : '#5a5a73'}`,
-      borderRadius: 10,
-      boxShadow: boss
-        ? '0 0 14px 2px rgba(170, 0, 35, 0.45), inset 0 0 0 2px #fffbe8'
-        : '0 4px 10px rgba(0,0,0,0.45), inset 0 0 0 2px #fffbe8',
-      padding: '5px 12px 7px',
-      minWidth: 215,
-      fontFamily: "'Rubik', system-ui, sans-serif",
-    }}>
-      {/* Nom (pseudo / zone) */}
-      <div style={{
-        fontSize: 13, fontWeight: 800, color: boss ? '#a3001b' : '#3a3a52',
-        letterSpacing: 0.5, marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>
-        {titre}
-      </div>
-      {/* Ligne PV : etiquette orange + barre */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{
-          fontSize: 10, fontWeight: 900, color: '#f8f0d0',
-          background: '#f8a030', borderRadius: 4, padding: '1px 5px',
-          letterSpacing: 1,
-        }}>PV</span>
-        <div style={{
-          flex: 1, height: 10,
-          background: '#5a5a73', borderRadius: 6, padding: 2,
-        }}>
-          <div style={{
-            height: '100%', width: `${pct}%`,
-            background: couleurPv(pct),
-            borderRadius: 4,
-            transition: 'width 0.45s ease, background 0.45s ease',
-          }}></div>
-        </div>
-      </div>
-      {/* Chiffres */}
-      <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 800, color: '#3a3a52', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
-        {Math.round(pv).toLocaleString('fr-FR')} <span style={{ fontWeight: 600, color: '#8a8aa0' }}>/ {Math.round(pvMax).toLocaleString('fr-FR')}</span>
-      </div>
-    </div>
-  )
-}
-
 function HudDuel({
   equipeJoueur = [], equipeEnnemie = [],
   pvJoueur = [], pvEnnemis = [],
@@ -97,25 +40,69 @@ function HudDuel({
   const maxJ = sommeMax(equipeJoueur)
   const pvE = somme(pvEnnemis)
   const maxE = sommeMax(equipeEnnemie)
+  const pctJ = maxJ > 0 ? Math.max(0, Math.min(100, (pvJ / maxJ) * 100)) : 0
+  const pctE = maxE > 0 ? Math.max(0, Math.min(100, (pvE / maxE) * 100)) : 0
 
-  // Les 2 derniers evenements du journal (le plus recent en bas).
   const dernieres = (journal || []).slice(-2)
+  const accentE = estBoss ? '#f43f5e' : '#f87171'
 
   return (
-    <div aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}>
+    <div aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5, fontFamily: "'Rubik', system-ui, sans-serif" }}>
 
-      {/* ===== Ton boitier : en haut a gauche ===== */}
-      <div style={{ position: 'absolute', top: '44%', left: 12 }}>
-        <BoitierPokemon titre={pseudo} pv={pvJ} pvMax={maxJ} />
-      </div>
-
-      {/* ===== Boitier ennemi : en haut a droite ===== */}
-      <div style={{ position: 'absolute', top: '44%', right: 12 }}>
-        <BoitierPokemon
-          titre={estBoss ? `👑 BOSS — ${nomZone}` : `Ennemis — ${nomZone}`}
-          pv={pvE} pvMax={maxE}
-          boss={estBoss}
-        />
+      {/* ===== LA BARRE DE DUEL : fine, sur toute la largeur, au milieu ===== */}
+      <div style={{ position: 'absolute', top: '46%', left: 24, right: 24 }}>
+        {/* Etiquettes au-dessus */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+          <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1.5, color: '#7cb8ff', textTransform: 'uppercase', textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}>
+            {pseudo} <span style={{ color: '#dfe8f7', fontWeight: 800 }}>{Math.round(pvJ).toLocaleString('fr-FR')}</span>
+            <span style={{ color: '#7a87a0', fontWeight: 600, fontSize: 10 }}> / {Math.round(maxJ).toLocaleString('fr-FR')}</span>
+          </span>
+          <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1.5, color: accentE, textTransform: 'uppercase', textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}>
+            <span style={{ color: '#7a87a0', fontWeight: 600, fontSize: 10 }}>{Math.round(maxE).toLocaleString('fr-FR')} / </span>
+            <span style={{ color: '#ffe2e2', fontWeight: 800 }}>{Math.round(pvE).toLocaleString('fr-FR')}</span> {estBoss ? '👑 BOSS — ' : ''}{nomZone}
+          </span>
+        </div>
+        {/* La piste */}
+        <div style={{
+          position: 'relative', height: 12, borderRadius: 7,
+          background: 'rgba(6,10,18,0.78)',
+          border: '1px solid rgba(255,255,255,0.16)',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.5), inset 0 1px 2px rgba(0,0,0,0.6)',
+          overflow: 'hidden',
+        }}>
+          {/* Moitie gauche : TES PV (remplit depuis la gauche) */}
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '50%', padding: 2, boxSizing: 'border-box' }}>
+            <div style={{
+              height: '100%', width: pctJ + '%', borderRadius: 5,
+              background: 'linear-gradient(to right, #1d4ed8, #60a5fa)',
+              boxShadow: '0 0 8px rgba(96,165,250,0.55)',
+              transition: 'width 0.45s ease',
+            }}></div>
+          </div>
+          {/* Moitie droite : PV ENNEMIS (remplit depuis la droite) */}
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%', padding: 2, boxSizing: 'border-box', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{
+              height: '100%', width: pctE + '%', borderRadius: 5,
+              background: estBoss
+                ? 'linear-gradient(to left, #7a1024, #f43f5e)'
+                : 'linear-gradient(to left, #b91c1c, #f87171)',
+              boxShadow: estBoss ? '0 0 10px rgba(244,63,94,0.7)' : '0 0 8px rgba(248,113,113,0.5)',
+              transition: 'width 0.45s ease',
+            }}></div>
+          </div>
+          {/* Separateur central lumineux */}
+          <div style={{
+            position: 'absolute', left: '50%', top: -2, bottom: -2, width: 2,
+            transform: 'translateX(-50%)',
+            background: 'rgba(255,255,255,0.55)',
+            boxShadow: '0 0 8px rgba(255,255,255,0.5)',
+          }}></div>
+        </div>
+        {/* Epees croisees au centre, posees sur la barre */}
+        <div style={{
+          position: 'absolute', left: '50%', top: 14, transform: 'translate(-50%, -50%)',
+          fontSize: 17, textShadow: '0 0 8px rgba(0,0,0,0.9)',
+        }}>⚔️</div>
       </div>
 
       {/* ===== Ticker : les 2 derniers evenements, en bas a droite ===== */}
@@ -127,7 +114,6 @@ function HudDuel({
           border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: 10,
           padding: '6px 12px',
-          fontFamily: "'Rubik', system-ui, sans-serif",
         }}>
           {dernieres.map((ligne, i) => (
             <div key={ligne.id || i} style={{
