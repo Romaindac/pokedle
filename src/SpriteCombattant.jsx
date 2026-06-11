@@ -209,14 +209,14 @@ function SpriteCombattant({
         {/* SOCLE-CARTE : dos par defaut, carte choisie, retournee grisee si K.O. ; cadre reagit au statut */}
         <SocleCarte carte={pokemon.socleCarte || null} shiny={shiny} boss={estBoss} ko={ko} camp={camp} statuts={statuts} />
         <div className="cbt-sprite-bond" ref={bondRef} style={{ position: 'relative', zIndex: 2, marginBottom: 58, display: 'flex', justifyContent: 'center', width: '100%' }}>
-          <div style={{ transform: estBoss ? 'scale(1.28)' : undefined, transformOrigin: 'bottom center', filter: ko ? 'grayscale(1) opacity(0.35)' : undefined }}>
+          <div style={{ transform: estBoss ? 'scale(1.1)' : undefined, transformOrigin: 'bottom center', filter: ko ? 'grayscale(1) opacity(0.35)' : undefined }}>
             <img
               src={sources[0]}
               alt={pokemon.nom}
               className="cbt-sprite"
               data-etape="0"
               onError={onError}
-              style={{ maxHeight: 108, maxWidth: '100%', display: 'block', margin: '0 auto', objectFit: 'contain', transform: `translateX(${decalageSprite(pokemon.nom)}px)` }}
+              style={{ maxHeight: estBoss ? 96 : 108, maxWidth: '100%', display: 'block', margin: '0 auto', objectFit: 'contain', transform: `translateX(${decalageSprite(pokemon.nom)}px)` }}
             />
           </div>
         </div>

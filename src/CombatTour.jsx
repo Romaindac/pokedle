@@ -17,6 +17,9 @@ function nombreSur(v, repli) {
   return Number.isFinite(v) ? v : repli
 }
 
+// Vitesse mémorisée pendant la session (persiste entre les niveaux de Tour, revient à 1 au F5).
+let vitesseTourSession = 1
+
 function CombatTour({
   niveauTour,
   equipeJoueur,
@@ -29,9 +32,10 @@ function CombatTour({
   const type = typeNiveau(niveauTour)
   const labelType = type === 'boss' ? '👑 BOSS' : type === 'miniboss' ? '⚔️ Mini-Boss' : '⚡ Niveau'
 
-  // Vitesse PROPRE à la tour (repart à x1 à chaque combat).
-  const [vitesse, setVitesse] = useState(1)
-  const vitesseRef = useRef(1)
+  // Vitesse PROPRE à la tour, mémorisée pendant la session (revient à x1 au F5).
+  const [vitesse, setVitesseEtat] = useState(vitesseTourSession)
+  const vitesseRef = useRef(vitesseTourSession)
+  const setVitesse = (v) => { vitesseTourSession = v; setVitesseEtat(v) }
   useEffect(() => { vitesseRef.current = vitesse }, [vitesse])
 
   const [pvJoueur, setPvJoueur] = useState(equipeJoueur.map((p) => p.pvMax))

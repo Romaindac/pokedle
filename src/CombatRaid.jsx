@@ -13,10 +13,14 @@ function nombreSur(v, repli) {
   return Number.isFinite(v) ? v : repli
 }
 
+// Vitesse mémorisée pendant la session (persiste entre les raids, revient à 1 au F5).
+let vitesseRaidSession = 1
+
 function CombatRaid({ raid, equipeJoueur, vagues, vitesse: _vitesseIgnoree = 1, onTermine, onQuitter }) {
-  // Vitesse PROPRE au raid (repart à x1 à chaque combat).
-  const [vitesse, setVitesse] = useState(1)
-  const vitesseRef = useRef(1)
+  // Vitesse PROPRE au raid, mémorisée pendant la session (revient à x1 au F5).
+  const [vitesse, setVitesseEtat] = useState(vitesseRaidSession)
+  const vitesseRef = useRef(vitesseRaidSession)
+  const setVitesse = (v) => { vitesseRaidSession = v; setVitesseEtat(v) }
   useEffect(() => { vitesseRef.current = vitesse }, [vitesse])
 
   const [indexVague, setIndexVague] = useState(0)

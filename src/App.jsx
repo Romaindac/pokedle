@@ -2222,7 +2222,7 @@ setPatchNoteVu(data.patchNoteVu === VERSION_PATCH_NOTE)
             <span className="bandeau-zone-nom">{routeParId(routeActive).nom}</span>
             <span className="bandeau-zone-num">
               <span className="bandeau-zone-numtxt">Zone {numZone}-{combatActuel}</span>
-              {combatBoss ? (<span className="bandeau-badge bandeau-badge-boss">BOSS</span>) : (
+              {combatBoss ? (<><span className="bandeau-badge bandeau-badge-boss">BOSS</span><span style={{ marginLeft: 8, fontWeight: 800, fontSize: 14, fontVariantNumeric: 'tabular-nums', color: tempsBossZone <= 10 ? '#ff5252' : '#fcd34d', background: 'rgba(0,0,0,0.35)', borderRadius: 8, padding: '2px 9px', border: tempsBossZone <= 10 ? '1px solid #ff5252' : '1px solid rgba(252,211,77,0.45)' }}>⏱️ {Math.floor(Math.max(0, tempsBossZone) / 60)}:{String(Math.floor(Math.max(0, tempsBossZone) % 60)).padStart(2, '0')}</span></>) : (
                 <span className="boss-jauge" title={bossOk ? `Le boss revient tous les ${seuilBoss} combats` : `Victoires avant le boss : ${Math.min(victoiresZone, seuilBoss)}/${seuilBoss}`}>
                   <span className="boss-jauge-piste"><span className="boss-jauge-fill" style={{ width: `${progression}%` }}><span className="boss-jauge-brillance"></span></span></span>
                   <span className="boss-jauge-txt">{Math.min(victoiresZone, seuilBoss)}/{seuilBoss} <span className="boss-jauge-couronne">👑</span></span>
@@ -2230,7 +2230,7 @@ setPatchNoteVu(data.patchNoteVu === VERSION_PATCH_NOTE)
               )}
             </span>
           </div>
-          {combatBoss && (<div className="bandeau-boss-timer"><p className="bandeau-boss">COMBAT DE BOSS</p><TimerAnneau tempsRestant={tempsBossZone} tempsTotal={45} taille={58} /></div>)}
+          
           {!compoValide && (<div className="alerte-compo"><p className="alerte-compo-titre">Composition d'equipe invalide</p><p className="alerte-compo-sous">Le combat est en pause. Compo : 1 a 2 par role, les 4 roles, 1 special max.</p><ul className="alerte-compo-liste">{compoDiagnostic.map((m, i) => <li key={i}>{m}</li>)}</ul></div>)}
           {equipeAuPlafond && (<div className="alerte-plafond"><p className="alerte-plafond-titre">👑 Plafond de niveau atteint (Niv. {capActuel})</p><p className="alerte-plafond-sous">Ton equipe ne peut plus monter de niveau. Pour devenir plus fort et franchir les zones suivantes, fais un PRESTIGE et investis en Puissance pour debloquer plus de niveaux.</p><button className="alerte-plafond-btn" onClick={() => setVueOuverte('prestige')}>Ouvrir le Prestige</button></div>)}
           <div className={`arene arene-terrain ${combatBoss ? 'arene-boss' : ''}`} style={{ position: 'relative', overflow: 'hidden', borderRadius: 14, minHeight: '74vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '64px 14px 16px', backgroundImage: `url(${routeParId(routeActive).decor})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>

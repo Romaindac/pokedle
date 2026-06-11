@@ -19,12 +19,17 @@ function nombreSur(v, repli) {
 
 const TEMPS_BOSS = 45 // secondes pour battre un boss d'arène (sinon défaite)
 
+// Vitesse mémorisée pendant la session (persiste entre les combats d'arène,
+// revient à 1 au rechargement de page / F5). Propre à l'arène.
+let vitesseAreneSession = 1
+
 function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse: _vitesseIgnoree = 1, onTermine, onQuitter }) {
   const estBoss = !!(dresseur && dresseur.estBoss)
 
-  // Vitesse PROPRE à l'arène (repart à x1 à chaque combat, boutons dans l'écran).
-  const [vitesse, setVitesse] = useState(1)
-  const vitesseRef = useRef(1)
+  // Vitesse PROPRE à l'arène, mémorisée pendant la session (revient à x1 au F5).
+  const [vitesse, setVitesseEtat] = useState(vitesseAreneSession)
+  const vitesseRef = useRef(vitesseAreneSession)
+  const setVitesse = (v) => { vitesseAreneSession = v; setVitesseEtat(v) }
   useEffect(() => { vitesseRef.current = vitesse }, [vitesse])
 
   // PV / jauges de TOUTE l'équipe (6v6 simultané).
