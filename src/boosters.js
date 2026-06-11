@@ -30,25 +30,34 @@ export const PALIERS = {
 };
 
 // Table de correspondance rarete reelle -> numero de palier.
-// Verifiee exhaustive sur les 16 libelles presents dans les 15 sets.
+// REEQUILIBRE : mapping complet (plus aucune rarete non rangee), et
+// les grosses cartes (VMAX/VSTAR) remontent en palier 5 (Illustration).
 const RARETE_VERS_PALIER = {
+  // Palier 1 — Commune
   'Common': 1,
 
+  // Palier 2 — Peu commune
   'Uncommon': 2,
 
+  // Palier 3 — Rare
   'Rare': 3,
   'Rare Holo': 3,
 
+  // Palier 4 — Ultra Rare (les "V" et assimiles, GX, doubles)
   'Double Rare': 4,
   'Ultra Rare': 4,
   'Rare Ultra': 4,
   'Rare Holo V': 4,
-  'Rare Holo VMAX': 4,
-  'Rare Holo VSTAR': 4,
+  'Rare Holo GX': 4,
   'Radiant Rare': 4,
+  'Amazing Rare': 4,
 
+  // Palier 5 — Illustration (belles cartes : VMAX, VSTAR, Illustration Rare)
   'Illustration Rare': 5,
+  'Rare Holo VMAX': 5,
+  'Rare Holo VSTAR': 5,
 
+  // Palier 6 — Chromatique (le top : full-art, arc-en-ciel, secretes)
   'Special Illustration Rare': 6,
   'Hyper Rare': 6,
   'Rare Rainbow': 6,
@@ -82,20 +91,21 @@ export function libellePalier(palier) {
 // Probabilites de montee de palier pour les 4 slots speciaux.
 // ------------------------------------------------------------
 
-// Slot "rare classique" (x2) : surtout palier 3.
+// Slot "rare classique" (x2) : surtout palier 3, montee tres rare.
 const TABLE_RARE_CLASSIQUE = [
-  [3, 0.80],
-  [4, 0.16],
-  [5, 0.03],
-  [6, 0.01],
+  [3, 0.92],
+  [4, 0.07],
+  [5, 0.009],
+  [6, 0.001],
 ];
 
-// Slot "brillant" (x2) : plus genereux vers 4/5/6.
+// Slot "brillant" (x2) : plus genereux mais durci (les belles cartes
+// restent un vrai evenement). Chromatique = exploit (1 booster sur ~46).
 const TABLE_BRILLANT = [
-  [3, 0.45],
-  [4, 0.38],
-  [5, 0.12],
-  [6, 0.05],
+  [3, 0.68],
+  [4, 0.26],
+  [5, 0.05],
+  [6, 0.01],
 ];
 
 // Tirage pondere d'un palier dans une table [[palier, proba], ...].
