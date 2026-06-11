@@ -19,12 +19,27 @@ export function coutAmeliorationPrestige(niveauActuel) {
 }
 
 export const NIVEAU_MAX_BASE = 36
-export const NIVEAUX_PAR_PUISSANCE = 12
+export const NIVEAUX_PAR_PUISSANCE = 12 // gain de base (avant le palier 100)
+export const NIVEAU_MAX_ABSOLU = 200    // plafond ultime
 
+// Plafond de niveau selon les achats "Puissance".
+// Montée RAPIDE jusqu'à 100 (+12/achat, comme avant), puis DEGRESSIVE
+// vers 200 pour faire de la fin un objectif long terme (sans bloquer).
+// IMPORTANT : identique a l'ancienne formule tant que cap < 100,
+// donc les achats deja faits gardent exactement le meme plafond.
 export function plafondNiveau(investis) {
   const i = investis || {}
   const puissance = i.puissance || 0
-  return NIVEAU_MAX_BASE + puissance * NIVEAUX_PAR_PUISSANCE
+  let cap = NIVEAU_MAX_BASE
+  for (let k = 0; k < puissance; k++) {
+    let gain
+    if (cap < 100) gain = 12
+    else if (cap < 140) gain = 9
+    else if (cap < 170) gain = 7
+    else gain = 5
+    cap += gain
+  }
+  return Math.min(NIVEAU_MAX_ABSOLU, cap)
 }
 
 export function estAuPlafond(niveau, investis) {
@@ -32,7 +47,7 @@ export function estAuPlafond(niveau, investis) {
 }
 
 export const BONUS_PRESTIGE = {
-  puissance: { nom: 'Puissance', emoji: '⚔️', valeur: 0.03, desc: '+3% stats équipe ET +12 niveaux max (franchit les murs)' },
+  puissance: { nom: 'Puissance', emoji: '⚔️', valeur: 0.03, desc: '+3% stats équipe ET niveau max plus haut (franchit les murs, jusqu\'à 200)' },
   xp: { nom: 'XP', emoji: '📈', valeur: 0.04, desc: '+4% XP par niveau (re-farm plus vite)' },
   argent: { nom: 'Argent', emoji: '💰', valeur: 0.04, desc: '+4% argent par niveau' },
   shiny: { nom: 'Shiny', emoji: '✨', valeur: 0.01, desc: '+1% chance shiny par niveau' },

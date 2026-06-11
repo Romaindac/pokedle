@@ -1789,7 +1789,8 @@ setPatchNoteVu(data.patchNoteVu === VERSION_PATCH_NOTE)
     const route = routeParId(routeActiveRef.current)
     setNiveauTourActuel(1); setCombatTourActif(true)
     try {
-      const ennemis = await chargerEquipeTour({ ...route, niveau: niveauPokemonTour(1), handicapEnnemi: difficulteNiveau(1), pool: route.pool }, 1, typeNiveau(1))
+      const ennemis = await chargerEquipeTour({ ...route, niveau: niveauPokemonTour(1, plafondNiveau(investisPrestigeRef.current)), handicapEnnemi: difficulteNiveau(1), pool: route.pool }, 1, typeNiveau(1))
+ 
       setEquipeEnnemieTour(ennemis.slice(0, 6))
     } catch (err) { console.warn('Erreur chargement tour', err); setCombatTourActif(false) }
   }
@@ -1822,7 +1823,9 @@ setPatchNoteVu(data.patchNoteVu === VERSION_PATCH_NOTE)
     if (prochainNiveau - 1 > meilleurNiveauTour) setMeilleurNiveauTour(prochainNiveau - 1)
     try {
       const route = routeParId(routeActiveRef.current)
-      const ennemis = await chargerEquipeTour({ ...route, niveau: niveauPokemonTour(prochainNiveau), handicapEnnemi: difficulteNiveau(prochainNiveau), pool: route.pool }, prochainNiveau, typeNiveau(prochainNiveau))
+      const ennemis = await chargerEquipeTour({ ...route, niveau: niveauPokemonTour(prochainNiveau, plafondNiveau(investisPrestigeRef.current)), handicapEnnemi: difficulteNiveau(prochainNiveau), pool: route.pool }, prochainNiveau, typeNiveau(prochainNiveau))
+ 
+
       setEquipeEnnemieTour(ennemis.slice(0, 6))
     } catch (err) { console.warn('Erreur niveau suivant', err); setCombatTourActif(false) }
   }

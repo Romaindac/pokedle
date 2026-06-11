@@ -51,9 +51,10 @@ export function tirerFinition(typeNiv) {
   return 'normale'
 }
 
-// Difficulté exponentielle de la tour
+// Difficulté de la tour (handicap general applique aux ennemis).
+// RADOUCIE : montee plus progressive qu'avant (ancien exposant 1.8 -> 1.6, /10 -> /15).
 export function difficulteNiveau(niveau) {
-  return Math.round(1 + (niveau - 1) * 0.12 + Math.pow(niveau / 10, 1.8))
+  return Math.round(1 + (niveau - 1) * 0.10 + Math.pow(niveau / 15, 1.6))
 }
 
 // Type de niveau : 'normal' | 'miniboss' | 'boss'
@@ -63,11 +64,22 @@ export function typeNiveau(niveau) {
   return 'normal'
 }
 
-// Niveau du boss de la tour (pokemon niveau)
-export function niveauPokemonTour(niveauTour) {
-  const base = 5
-  const multi = difficulteNiveau(niveauTour)
-  return Math.min(100, Math.round(base * multi))
+// ============================================================
+// NIVEAU DES POKEMON ENNEMIS
+// Scale sur le PLAFOND de niveau du joueur (passe en 2e argument) :
+// la Tour grandit avec ta progression Prestige.
+//  - etage 1   -> ~niveau 4
+//  - etage ~60 -> atteint TON plafond (cap)
+//  - au-dela   -> reste au cap : c'est l'optimisation (objets, compo,
+//    passifs) et les boss qui font la difference, pas le niveau brut.
+// Retro-compatible : si cap absent, on retombe sur un cap de 100.
+// ============================================================
+export function niveauPokemonTour(niveauTour, cap) {
+  const plafond = (typeof cap === 'number' && cap > 4) ? cap : 100
+  const ETAGE_PLAFOND = 60 // etage ou les ennemis atteignent ton niveau max
+  const frac = Math.min(1, (niveauTour - 1) / (ETAGE_PLAFOND - 1))
+  const niv = 4 + (plafond - 4) * Math.pow(frac, 0.92)
+  return Math.min(plafond, Math.max(1, Math.round(niv)))
 }
 
 // Nombre de Pokémon ennemis : TOUJOURS 6 (combats 6v6 complets).
@@ -78,10 +90,13 @@ export function tailleEquipeTour(niveauTour) {
 // ============================================================
 // MULTIPLICATEUR DU POKEMON RARE (mini-boss / boss)
 // Un des 6 ennemis devient "rare" : stats et niveau boostes.
+// REEQUILIBRE : boost de stats reduit (avant 2.4/1.7 -> 1.55/1.3) pour
+// que les boss soient DURS mais pas absurdes. Le bonus de niveau reste
+// pour qu'ils restent un vrai mur en fin de Tour.
 // ============================================================
 export function multiplicateurRareTour(typeNiv) {
-  if (typeNiv === 'boss')     return { stats: 2.4, niveauBonus: 12, rarete: 'legendaire' }
-  if (typeNiv === 'miniboss') return { stats: 1.7, niveauBonus: 6,  rarete: 'tresRare' }
+  if (typeNiv === 'boss')     return { stats: 1.55, niveauBonus: 8, rarete: 'legendaire' }
+  if (typeNiv === 'miniboss') return { stats: 1.30, niveauBonus: 4, rarete: 'tresRare' }
   return null
 }
 
