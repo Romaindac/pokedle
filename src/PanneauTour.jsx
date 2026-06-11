@@ -42,50 +42,56 @@ function CarteTCG({ carte, possedee = true, onClick }) {
   )
 }
 
-// ---- Popup explicatif des taux de drop ----
+// ---- Popup explicatif des taux de drop (SYSTEME BOOSTERS) ----
+// Valeurs synchronisees avec inventaireBoosters.js (dropBoosterTour) et
+// boosters.js (ouvrirBooster + TABLE_RARE_CLASSIQUE / TABLE_BRILLANT).
 function PopupTaux({ onFermer }) {
   return (
     <div className="tcg-apercu-overlay" onClick={onFermer}>
       <div className="tcg-taux-boite" onClick={(e) => e.stopPropagation()}>
         <button className="tcg-apercu-fermer" onClick={onFermer}>✕</button>
         <p className="tcg-taux-titre">🎲 Taux de drop</p>
-        <p className="tcg-taux-intro">Tu gagnes 1 carte à chaque niveau. Comme dans un vrai booster, la rareté dépend du type de niveau :</p>
+        <p className="tcg-taux-intro">Dans la Tour, tu gagnes des <strong>boosters</strong> (10 cartes chacun). Voici quand ils tombent et ce qu'ils contiennent :</p>
 
         <div className="tcg-taux-section">
-          <span className="tcg-taux-section-titre">⚪ Niveau normal</span>
+          <span className="tcg-taux-section-titre">📦 Obtenir des boosters</span>
           <ul className="tcg-taux-liste">
-            <li><span>Commune</span><span>72%</span></li>
-            <li><span>Peu commune</span><span>24%</span></li>
-            <li><span>Rare (non-holo)</span><span>4%</span></li>
-          </ul>
-        </div>
-        <div className="tcg-taux-section">
-          <span className="tcg-taux-section-titre">🔵 Mini-boss (tous les 5 niv.)</span>
-          <ul className="tcg-taux-liste">
-            <li><span>Peu commune</span><span>60%</span></li>
-            <li><span>Rare</span><span>34%</span></li>
-            <li><span>Holo Rare</span><span>6%</span></li>
-          </ul>
-        </div>
-        <div className="tcg-taux-section">
-          <span className="tcg-taux-section-titre">💎 Boss (tous les 10 niv.)</span>
-          <ul className="tcg-taux-liste">
-            <li><span>Peu commune</span><span>30%</span></li>
-            <li><span>Rare</span><span>40%</span></li>
-            <li><span>Holo Rare</span><span>22%</span></li>
-            <li><span>Holo EX (niv. 30+)</span><span>8%</span></li>
+            <li><span>Niveau normal</span><span>15%</span></li>
+            <li><span>Tous les 5 niveaux</span><span>1 garanti</span></li>
+            <li><span>Tous les 10 niveaux</span><span>1 garanti</span></li>
+            <li><span>🎁 God Pack (sur multiple de 10)</span><span>0,01% → 10 boosters</span></li>
           </ul>
         </div>
 
         <div className="tcg-taux-section">
-          <span className="tcg-taux-section-titre">✨ Finitions (bonus, toutes raretés)</span>
+          <span className="tcg-taux-section-titre">🃏 Contenu d'un booster (10 cartes)</span>
           <ul className="tcg-taux-liste">
-            <li><span>✨ Brillante (normal / boss)</span><span>~5% / 18%</span></li>
-            <li><span>🌈 Prismatique (normal / boss)</span><span>~0,4% / 4%</span></li>
+            <li><span>⚪ Commune (×6 cartes de base)</span><span>~70%</span></li>
+            <li><span>🟢 Peu commune (×6 cartes de base)</span><span>~30%</span></li>
           </ul>
         </div>
 
-        <p className="tcg-taux-note">💰 <strong>Cote réelle :</strong> au sein d'une même rareté, plus une carte cote cher dans la vraie vie, plus elle est rare à drop. Un Dracaufeu peut être 100× plus dur à obtenir qu'une autre Holo ! Clique sur une carte pour voir sa cote et son taux estimé "1 sur X".</p>
+        <div className="tcg-taux-section">
+          <span className="tcg-taux-section-titre">🔵 2 slots « rare »</span>
+          <ul className="tcg-taux-liste">
+            <li><span>🔵 Rare</span><span>80%</span></li>
+            <li><span>🟣 Ultra Rare</span><span>16%</span></li>
+            <li><span>🌸 Illustration</span><span>3%</span></li>
+            <li><span>🌈 Chromatique</span><span>1%</span></li>
+          </ul>
+        </div>
+
+        <div className="tcg-taux-section">
+          <span className="tcg-taux-section-titre">✨ 2 slots « brillant » (plus généreux)</span>
+          <ul className="tcg-taux-liste">
+            <li><span>🔵 Rare</span><span>45%</span></li>
+            <li><span>🟣 Ultra Rare</span><span>38%</span></li>
+            <li><span>🌸 Illustration</span><span>12%</span></li>
+            <li><span>🌈 Chromatique</span><span>5%</span></li>
+          </ul>
+        </div>
+
+        <p className="tcg-taux-note">💰 <strong>Cote réelle :</strong> au sein d'une même rareté, plus une carte cote cher dans la vraie vie, plus elle est rare à drop. Un Dracaufeu peut être 100× plus dur à obtenir qu'une autre carte de même rareté ! Clique sur une carte de l'album pour voir sa cote et son taux estimé « 1 sur X ».</p>
       </div>
     </div>
   )
@@ -237,6 +243,7 @@ function OngletAlbum({ collectionCartes }) {
 
 // ---- Onglet Tour ----
 function OngletTour({ meilleurNiveau, onLancer, enCours }) {
+  const [popupTaux, setPopupTaux] = useState(false)
   const etapes = [
     { niveau: 1,  label: 'Niveau 1',  type: 'normal' },
     { niveau: 5,  label: 'Mini-Boss', type: 'miniboss' },
@@ -249,30 +256,39 @@ function OngletTour({ meilleurNiveau, onLancer, enCours }) {
         <span className="tcg-tour-record-label">🏆 Meilleur niveau atteint</span>
         <span className="tcg-tour-record-val">{meilleurNiveau}</span>
       </div>
-      <p className="tcg-tour-desc">Roguelike : chaque run repart du niveau 1, la difficulté monte sans fin. Tu gagnes une carte à chaque niveau — mais comme dans un vrai booster, la plupart sont communes ! Les Holo et les finitions brillantes/prismatiques sont rares.</p>
+      <p className="tcg-tour-desc">Roguelike : chaque run repart du niveau 1, la difficulté monte sans fin. Tu gagnes des <strong>boosters</strong> en montant (garantis tous les 5 niveaux) — ouvre-les pour récolter des cartes et compléter tes sets !</p>
+
+      <button className="tcg-tour-aide-taux" onClick={() => setPopupTaux(true)} title="Voir les taux de drop des boosters et des cartes"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'center', margin: '0 auto 4px', padding: '6px 14px', borderRadius: 9, cursor: 'pointer', fontWeight: 800, fontSize: 13, border: '2px solid rgba(252,211,77,0.6)', background: 'rgba(252,211,77,0.12)', color: '#fcd34d' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', border: '2px solid currentColor', fontSize: 12 }}>?</span>
+        Voir les taux de drop
+      </button>
+
       <div className="tcg-tour-etapes">
         {etapes.map((e) => (
           <div key={e.niveau} className={`tcg-etape tcg-etape-${e.type}`}>
             <span className="tcg-etape-num">Niv. {e.niveau}</span>
             <span className="tcg-etape-label">{e.label}</span>
-            <span className="tcg-etape-drop">{e.type === 'boss' ? '💎 Holo possible' : e.type === 'miniboss' ? '🔵 Rare' : '⚪ Commune'}</span>
+            <span className="tcg-etape-drop">{e.type === 'boss' ? '💎 Booster garanti' : e.type === 'miniboss' ? '📦 Booster garanti' : '⚪ 15% booster'}</span>
           </div>
         ))}
         <div className="tcg-etape tcg-etape-infini">
-          <span className="tcg-etape-num">∞</span><span className="tcg-etape-label">Infini</span><span className="tcg-etape-drop">⭐ Holo EX (niv. 30+)</span>
+          <span className="tcg-etape-num">∞</span><span className="tcg-etape-label">Infini</span><span className="tcg-etape-drop">🎁 God Pack possible</span>
         </div>
       </div>
       <div className="tcg-tour-finitions">
-        <span className="tcg-tour-fin-titre">Finitions à collectionner :</span>
+        <span className="tcg-tour-fin-titre">Raretés à collectionner :</span>
         <div className="tcg-tour-fin-liste">
-          <span className="tcg-tour-fin fin-tag-normale">Normale</span>
-          <span className="tcg-tour-fin fin-tag-brillante">✨ Brillante (rare)</span>
-          <span className="tcg-tour-fin fin-tag-prismatique">🌈 Prismatique (ultra rare)</span>
+          <span className="tcg-tour-fin fin-tag-normale">🔵 Rare</span>
+          <span className="tcg-tour-fin fin-tag-brillante">🟣 Ultra Rare</span>
+          <span className="tcg-tour-fin fin-tag-prismatique">🌈 Chromatique</span>
         </div>
       </div>
       <button className="tcg-btn-lancer" onClick={onLancer} disabled={enCours}>
         {enCours ? '⏳ Combat en cours...' : '🗼 Lancer une run !'}
       </button>
+
+      {popupTaux && <PopupTaux onFermer={() => setPopupTaux(false)} />}
     </div>
   )
 }
@@ -295,11 +311,9 @@ function PanneauTour({ collectionCartes = [], meilleurNiveau = 0, onLancer, enCo
         </div>
         <div className="tcg-onglets">
           <button className={`tcg-onglet ${onglet === 'tour' ? 'actif' : ''}`} onClick={() => setOnglet('tour')}>🗼 Tour</button>
-          <button className={`tcg-onglet ${onglet === 'album' ? 'actif' : ''}`} onClick={() => setOnglet('album')}>📖 Album ({nbCartes})</button>
           <button className={`tcg-onglet ${onglet === 'sets' ? 'actif' : ''}`} onClick={() => setOnglet('sets')}>🎴 Sets TCG</button>
         </div>
         {onglet === 'tour' && <OngletTour meilleurNiveau={meilleurNiveau} onLancer={onLancer} enCours={enCours} />}
-{onglet === 'album' && <OngletAlbum collectionCartes={collectionCartes} />}
 {onglet === 'sets' && <AlbumSetsTCG collection={collectionCartes} />}
       </div>
     </div>
