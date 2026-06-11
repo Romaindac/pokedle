@@ -1,33 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { ticCombat } from './moteurCombat'
-import CartePokemon from './CartePokemon'
+import SpriteCombattant from './SpriteCombattant'
 import TimerAnneau from './TimerAnneau'
 import { VITESSE_COMBAT } from './config'
 import { creerHorloge } from './horlogeWorker'
+import AmbianceMode from './AmbianceMode'
 
 // ============================================================
-// COMBAT D'ARÈNE — combat 6 contre 6 SIMULTANÉ (refonte : avant c'était du 1v1).
-//
-// Composant ISOLÉ : sa PROPRE boucle (horloge worker) + son propre état (en refs),
-// séparé de la boucle principale (mise en pause via modeJeuRef === 'arene' côté App).
-// Réutilise ticCombat (même moteur que le combat principal / PvP) sur les ÉQUIPES
-// COMPLÈTES → tous les passifs d'équipe (soin, buffs, malus) fonctionnent vraiment.
-//
-// La boucle est pilotée par un Web Worker (horlogeWorker) → continue à cadence
-// normale même quand l'onglet est en arrière-plan (pas de throttling navigateur).
-//
-// Spécificités arène conservées :
-//   - Timer de boss (dresseur.estBoss) : 45s pour gagner, sinon défaite.
-//   - Overlay 🏆 VICTOIRE / 💀 DÉFAITE + callback onTermine.
-//   - Journal des K.O.
-//
-// Props :
-//   - dresseur       : le dresseur affronté (peut avoir estBoss = true → timer).
-//   - equipeJoueur   : tableau de Pokémon du joueur (équipe complète).
-//   - equipeDresseur : tableau de Pokémon du dresseur (équipe complète).
-//   - vitesse        : multiplicateur de vitesse (×1/×2/×4/×8).
-//   - onTermine(res) : 'victoire' | 'defaite' à la fin.
-//   - onQuitter()    : si le joueur quitte manuellement.
+// COMBAT D'ARÈNE — combat 6 contre 6 SIMULTANÉ.
+// Rendu unifié : utilise SpriteCombattant (carte-socle + aura + sprite dos/face),
+// EXACTEMENT comme le combat de l'histoire. Mécaniques d'arène conservées :
+// timer de boss, journal, boucle worker, overlay victoire/défaite.
 // ============================================================
 
 function nombreSur(v, repli) {
@@ -36,8 +19,13 @@ function nombreSur(v, repli) {
 
 const TEMPS_BOSS = 45 // secondes pour battre un boss d'arène (sinon défaite)
 
-function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse = 1, onTermine, onQuitter }) {
+function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse: _vitesseIgnoree = 1, onTermine, onQuitter }) {
   const estBoss = !!(dresseur && dresseur.estBoss)
+
+  // Vitesse PROPRE à l'arène (repart à x1 à chaque combat, boutons dans l'écran).
+  const [vitesse, setVitesse] = useState(1)
+  const vitesseRef = useRef(1)
+  useEffect(() => { vitesseRef.current = vitesse }, [vitesse])
 
   // PV / jauges de TOUTE l'équipe (6v6 simultané).
   const [pvJ, setPvJ] = useState(() => (equipeJoueur || []).map((p) => nombreSur(p?.pvMax, 1)))
@@ -97,11 +85,11 @@ function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse = 1, onTe
   // ===== BOUCLE DE COMBAT 6v6 (isolée, pilotée par worker) =====
   useEffect(() => {
     let dernierTic = Date.now()
-    const intervalleCombat = VITESSE_COMBAT / Math.max(1, vitesse)
 
     const horloge = creerHorloge(() => {
       if (fini.current) return
       const maintenant = Date.now()
+      const intervalleCombat = VITESSE_COMBAT / Math.max(1, vitesseRef.current)
       if (maintenant - dernierTic < intervalleCombat) return
       dernierTic = maintenant
 
@@ -135,7 +123,7 @@ function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse = 1, onTe
 
     return () => horloge.detruire()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vitesse])
+  }, [])
 
   // Quand le résultat est posé, prévient le parent après un court délai (affiche l'overlay).
   useEffect(() => {
@@ -157,51 +145,55 @@ function CombatArene({ dresseur, equipeJoueur, equipeDresseur, vitesse = 1, onTe
       </header>
 
       <div className="arene-combat">
-        {/* Bandeau dresseur + timer si boss */}
+        {/* Bandeau dresseur + vitesse + timer si boss */}
         <div className="arene-combat-entete">
           <span className="arene-combat-titre">
             {dresseur?.emoji ? `${dresseur.emoji} ` : ''}{dresseur?.nom}
             {estBoss && <span className="bandeau-badge bandeau-badge-boss"> ★ BOSS</span>}
           </span>
+          <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
+            {[1, 2, 4].map((v) => (
+              <button key={v} onClick={() => setVitesse(v)}
+                style={{
+                  padding: '4px 10px', borderRadius: 7, cursor: 'pointer', fontWeight: 800, fontSize: 13,
+                  border: vitesse === v ? '2px solid #fcd34d' : '1px solid rgba(255,255,255,0.2)',
+                  background: vitesse === v ? 'rgba(252,211,77,0.18)' : 'rgba(255,255,255,0.05)',
+                  color: vitesse === v ? '#fcd34d' : '#cfd8e3',
+                }}>x{v}</button>
+            ))}
+          </div>
           {estBoss && !resultat && (
             <TimerAnneau tempsRestant={tempsBoss} tempsTotal={TEMPS_BOSS} taille={58} />
           )}
         </div>
 
-        {/* Zone de combat 6v6 : équipe dresseur en haut, équipe joueur en bas */}
-        <div className="arene-combat-zone arene-combat-6v6">
-          <div className="arene-combat-cote">
-            <span className="arene-combat-restants">{dresseur?.nom} — {restantsE} restant{restantsE > 1 ? 's' : ''}</span>
-            <div className="arene-combat-equipe">
-              {equipeDresseur.map((poke, i) => (
-                <CartePokemon
-                  key={i}
-                  pokemon={poke}
-                  pvActuels={nombreSur(pvE[i], 0)}
-                  jauge={jaugeE[i]}
-                  niveau={poke.niveau}
-                  compact
-                />
-              ))}
-            </div>
+        {/* Zone de combat 6v6 : terrain identique à l'histoire (SpriteCombattant) */}
+        <div className={`arene arene-terrain ${estBoss ? 'arene-boss' : ''}`} style={{ minHeight: '54vh', paddingBottom: '40px', position: 'relative', overflow: 'hidden' }}>
+          <AmbianceMode mode="arene" boss={estBoss} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+          <div className="arene-combat-restants" style={{ textAlign: 'center', marginBottom: 4 }}>
+            {dresseur?.nom} — {restantsE} restant{restantsE > 1 ? 's' : ''}
+          </div>
+          <div className="terrain-rangee terrain-ennemis" style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: '2%', width: '92%', margin: '0 auto' }}>
+            {equipeDresseur.map((poke, i) => (
+              <div className="terrain-slot" key={`${poke.uid || 'enn'}-${i}`}>
+                <SpriteCombattant pokemon={poke} pvActuels={nombreSur(pvE[i], 0)} jauge={jaugeE[i]} camp="ennemi" ultimeEnnemi />
+              </div>
+            ))}
           </div>
 
-          <div className="vs"><span className="vs-texte">VS</span></div>
+          <div className="terrain-vs"><span className="vs-texte">VS</span></div>
 
-          <div className="arene-combat-cote">
-            <span className="arene-combat-restants">Ton équipe — {restantsJ} restant{restantsJ > 1 ? 's' : ''}</span>
-            <div className="arene-combat-equipe">
-              {equipeJoueur.map((poke, i) => (
-                <CartePokemon
-                  key={poke.uid || i}
-                  pokemon={poke}
-                  pvActuels={nombreSur(pvJ[i], 0)}
-                  jauge={jaugeJ[i]}
-                  niveau={poke.niveau}
-                  compact
-                />
-              ))}
-            </div>
+          <div className="terrain-rangee terrain-joueur" style={{ display: 'flex', justifyContent: 'center', gap: 24, width: '92%', margin: '0 auto' }}>
+            {equipeJoueur.map((poke, i) => (
+              <div className="terrain-slot" key={poke.uid || i}>
+                <SpriteCombattant pokemon={poke} pvActuels={nombreSur(pvJ[i], 0)} jauge={jaugeJ[i]} camp="joueur" />
+              </div>
+            ))}
+          </div>
+          <div className="arene-combat-restants" style={{ textAlign: 'center', marginTop: 4 }}>
+            Ton équipe — {restantsJ} restant{restantsJ > 1 ? 's' : ''}
+          </div>
           </div>
         </div>
 

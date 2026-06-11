@@ -1,12 +1,24 @@
 import { useState, useEffect, useRef } from 'react'
-import CartePokemon from './CartePokemon'
+import SpriteCombattant from './SpriteCombattant'
 import { ticCombat } from './moteurCombat'
+import AmbianceMode from './AmbianceMode'
 
-// Combat de RAID isolé : l'équipe du joueur affronte N vagues d'affilée.
-// - Les PV du joueur sont CONSERVÉS entre les vagues (soin partiel seulement).
-// - Vague 1 (6 petits) → ... → dernière vague (1 gros boss).
-// - Boucle setInterval + état en refs (totalement isolé du combat principal).
-function CombatRaid({ raid, equipeJoueur, vagues, vitesse = 1, onTermine, onQuitter }) {
+// ============================================================
+// COMBAT DE RAID — N vagues d'affilée, PV joueur conservés entre vagues.
+// Rendu unifié via SpriteCombattant (carte-socle + aura + sprite dos/face),
+// comme l'histoire. Mécaniques de raid conservées (vagues, soin, overlay).
+// ============================================================
+
+function nombreSur(v, repli) {
+  return Number.isFinite(v) ? v : repli
+}
+
+function CombatRaid({ raid, equipeJoueur, vagues, vitesse: _vitesseIgnoree = 1, onTermine, onQuitter }) {
+  // Vitesse PROPRE au raid (repart à x1 à chaque combat).
+  const [vitesse, setVitesse] = useState(1)
+  const vitesseRef = useRef(1)
+  useEffect(() => { vitesseRef.current = vitesse }, [vitesse])
+
   const [indexVague, setIndexVague] = useState(0)
   const [equipeEnnemie, setEquipeEnnemie] = useState(vagues[0] || [])
 
@@ -100,10 +112,10 @@ function CombatRaid({ raid, equipeJoueur, vagues, vitesse = 1, onTermine, onQuit
           passerVagueSuivante()
         }
       }
-    }, Math.max(60, 400 / vitesse))
+    }, Math.max(60, 400 / vitesseRef.current))
     return () => clearInterval(intervalle)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vitesse, resultat])
+  }, [resultat, vitesse])
 
   useEffect(() => {
     if (!resultat) return
@@ -112,10 +124,25 @@ function CombatRaid({ raid, equipeJoueur, vagues, vitesse = 1, onTermine, onQuit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultat])
 
+  const restantsE = pvEnnemis.filter((pv) => nombreSur(pv, 0) > 0).length
+  const restantsJ = pvJoueur.filter((pv) => nombreSur(pv, 0) > 0).length
+  const estVagueBoss = indexVague === NB_VAGUES - 1
+
   return (
     <div className="app app-layout">
       <header className="arn-topbar">
         <div className="arn-topbar-titre">{raid.emoji} {raid.nom}</div>
+        <div style={{ display: 'flex', gap: 4, marginLeft: 'auto', marginRight: 12 }}>
+          {[1, 2, 4].map((v) => (
+            <button key={v} onClick={() => setVitesse(v)}
+              style={{
+                padding: '4px 10px', borderRadius: 7, cursor: 'pointer', fontWeight: 800, fontSize: 13,
+                border: vitesse === v ? '2px solid #fcd34d' : '1px solid rgba(255,255,255,0.2)',
+                background: vitesse === v ? 'rgba(252,211,77,0.18)' : 'rgba(255,255,255,0.05)',
+                color: vitesse === v ? '#fcd34d' : '#cfd8e3',
+              }}>x{v}</button>
+          ))}
+        </div>
         <button className="arn-retour" onClick={() => onQuitter && onQuitter()}>← Abandonner</button>
       </header>
 
@@ -130,22 +157,34 @@ function CombatRaid({ raid, equipeJoueur, vagues, vitesse = 1, onTermine, onQuit
 
         {messageVague && <div className="raid-message-vague">{messageVague}</div>}
 
-        <h3 className="combat-arene-titre">
-          {indexVague === NB_VAGUES - 1 ? `Boss : ${raid.boss.nomFr}` : `Vague ${indexVague + 1}`}
-        </h3>
-        <div className="combat-arene-rangee">
-          {equipeEnnemie.map((p, i) => (
-            <CartePokemon key={`e-${i}`} pokemon={p} pvActuels={pvEnnemis[i] ?? 0} jauge={jaugeEnnemis[i] ?? 0} niveau={p.niveau} compact />
-          ))}
-        </div>
+        {/* Terrain identique à l'histoire (SpriteCombattant) */}
+        <div className={`arene arene-terrain ${estVagueBoss ? 'arene-boss' : ''}`} style={{ minHeight: '54vh', paddingBottom: '40px', position: 'relative', overflow: 'hidden' }}>
+          <AmbianceMode mode="raid" boss={estVagueBoss} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+          <div className="arene-combat-restants" style={{ textAlign: 'center', marginBottom: 4 }}>
+            {estVagueBoss ? `Boss : ${raid.boss?.nomFr || ''}` : `Vague ${indexVague + 1}`} — {restantsE} restant{restantsE > 1 ? 's' : ''}
+          </div>
+          <div className="terrain-rangee terrain-ennemis" style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: '2%', width: '92%', margin: '0 auto' }}>
+            {equipeEnnemie.map((poke, i) => (
+              <div className="terrain-slot" key={`e-${poke.uid || i}`}>
+                <SpriteCombattant pokemon={poke} pvActuels={nombreSur(pvEnnemis[i], 0)} jauge={jaugeEnnemis[i]} camp="ennemi" ultimeEnnemi />
+              </div>
+            ))}
+          </div>
 
-        <div className="combat-arene-vs">⚔️</div>
+          <div className="terrain-vs"><span className="vs-texte">VS</span></div>
 
-        <h3 className="combat-arene-titre">Ton équipe</h3>
-        <div className="combat-arene-rangee">
-          {equipeJoueur.map((p, i) => (
-            <CartePokemon key={`j-${i}`} pokemon={p} pvActuels={pvJoueur[i] ?? 0} jauge={jaugeJoueur[i] ?? 0} niveau={p.niveau} compact />
-          ))}
+          <div className="terrain-rangee terrain-joueur" style={{ display: 'flex', justifyContent: 'center', gap: 24, width: '92%', margin: '0 auto' }}>
+            {equipeJoueur.map((poke, i) => (
+              <div className="terrain-slot" key={`j-${poke.uid || i}`}>
+                <SpriteCombattant pokemon={poke} pvActuels={nombreSur(pvJoueur[i], 0)} jauge={jaugeJoueur[i]} camp="joueur" />
+              </div>
+            ))}
+          </div>
+          <div className="arene-combat-restants" style={{ textAlign: 'center', marginTop: 4 }}>
+            Ton équipe — {restantsJ} restant{restantsJ > 1 ? 's' : ''}
+          </div>
+          </div>
         </div>
 
         {resultat && (
@@ -154,7 +193,7 @@ function CombatRaid({ raid, equipeJoueur, vagues, vitesse = 1, onTermine, onQuit
               {resultat === 'victoire' ? (
                 <>
                   <div className="combat-arene-overlay-titre">🏆 RAID RÉUSSI !</div>
-                  <div className="combat-arene-overlay-sous">Tu peux tenter de capturer {raid.boss.nomFr}…</div>
+                  <div className="combat-arene-overlay-sous">Tu peux tenter de capturer {raid.boss?.nomFr}…</div>
                 </>
               ) : (
                 <>

@@ -20,6 +20,7 @@ import SpriteCombattant from './SpriteCombattant'
 import TutoFenetre from './TutoFenetre'
 import { reinitialiserTutos } from './tuto'
 import GuideInteractif from './GuideInteractif'
+import PatchNote from './PatchNote'
 import { guideEstVu, reinitialiserGuides } from './guides'
 import EcranConnexion from './EcranConnexion'
 import { sessionActuelle, surChangementAuth, deconnecter } from './apiAuth'
@@ -70,6 +71,8 @@ import EcranBoosters from './EcranBoosters'
 import EncartBoosterDrop from './EncartBoosterDrop'
 import CentreFusion from './CentreFusion'
 import AmbianceCombat from './AmbianceCombat'
+import { AmbianceBiomeMax } from './AmbianceMode'
+import { AmbianceBiome } from './AmbianceMode'
 import TapisDuel from './TapisDuel'
 import HudDuel from './HudDuel'
 import CombatTour from './CombatTour'
@@ -441,6 +444,10 @@ function App() {
   const [modeJeu, setModeJeu] = useState('principal')
   const [tutoVu, setTutoVu] = useState(false)
   const [tutoPrestigeVu, setTutoPrestigeVu] = useState(false)
+  // Version du dernier patch note. Incrémente ce numéro à chaque MAJ
+// pour ré-afficher le patch note à tous les joueurs.
+const VERSION_PATCH_NOTE = 1
+const [patchNoteVu, setPatchNoteVu] = useState(true) // true = on n'affiche pas tant que la save n'est pas chargée
   const [tutoPrestigeOuvert, setTutoPrestigeOuvert] = useState(false)
   const [tutoMode, setTutoMode] = useState(null)
   const [equipeDefenseIds, setEquipeDefenseIds] = useState([])
@@ -1209,6 +1216,8 @@ function App() {
         setEquipeAttaqueIds(nettoyerEquipe(equipeAttaqueInit))
         if (data.tutoVu) setTutoVu(true)
         if (data.tutoPrestigeVu) setTutoPrestigeVu(true)
+          // Patch note : affiché si la version vue est différente de la version actuelle.
+setPatchNoteVu(data.patchNoteVu === VERSION_PATCH_NOTE)
         if (typeof data.meilleurNiveauTour === 'number') setMeilleurNiveauTour(data.meilleurNiveauTour)
         if (typeof data.adnFusion === 'number') setAdnFusion(data.adnFusion)
         if (Array.isArray(data.collectionCartesTCG)) setCollectionCartesTCG(data.collectionCartesTCG)
@@ -1312,7 +1321,7 @@ function App() {
   useEffect(() => {
     if (!partieChargee || captures.length === 0) return
     if (!slotActifRef.current) return
-    const data = { resetHistoire: VERSION_RESET_HISTOIRE, nettoyageDoublons: VERSION_NETTOYAGE_DOUBLONS, resetDepart: VERSION_RESET_DEPART, pseudoSlot: pseudoSlotEnCours, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, nbPrestiges, raidsReussis, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, ciblesMasterBall, tutoVu, tutoPrestigeVu, raidsCooldowns, equipeRaidIds, reserveOeufs, oeufsIncubes, jetonsElevage, ameliorationsElevage, meilleurNiveauTour, collectionCartesTCG, adnFusion, inventaireBoosters }
+    const data = { resetHistoire: VERSION_RESET_HISTOIRE, nettoyageDoublons: VERSION_NETTOYAGE_DOUBLONS, resetDepart: VERSION_RESET_DEPART, pseudoSlot: pseudoSlotEnCours, captures, equipeIds, pokedexVus, pokedexShiny, pokedexSpeciaux, vaincus, pokeDollars, balls, pierres, bonbons, objets, objetsBoss, parchemins, achatsItems, recompensesReclamees, medailles, nbPrestiges, raidsReussis, investisPrestige, equipeAreneIds, equipeDefenseIds, equipeAttaqueIds, dresseursVaincus, routeActive, victoiresParRoute, bossVaincus, succesDebloques, ameliorations, vitesse, reglesCapture, ciblesMasterBall, tutoVu, tutoPrestigeVu, patchNoteVu: patchNoteVu ? VERSION_PATCH_NOTE : 0, raidsCooldowns, equipeRaidIds, reserveOeufs, oeufsIncubes, jetonsElevage, ameliorationsElevage, meilleurNiveauTour, collectionCartesTCG, adnFusion, inventaireBoosters }
     donneesSauvegardeRef.current = data
     // Sauvegarde CLOUD debouncee : on n'ecrit pas a chaque micro-changement.
     // On garde une copie locale de secours, et on pousse au cloud au max toutes les 10s.
@@ -2226,6 +2235,8 @@ function App() {
           {equipeAuPlafond && (<div className="alerte-plafond"><p className="alerte-plafond-titre">👑 Plafond de niveau atteint (Niv. {capActuel})</p><p className="alerte-plafond-sous">Ton equipe ne peut plus monter de niveau. Pour devenir plus fort et franchir les zones suivantes, fais un PRESTIGE et investis en Puissance pour debloquer plus de niveaux.</p><button className="alerte-plafond-btn" onClick={() => setVueOuverte('prestige')}>Ouvrir le Prestige</button></div>)}
           <div className={`arene arene-terrain ${combatBoss ? 'arene-boss' : ''}`} style={{ position: 'relative', overflow: 'hidden', borderRadius: 14, minHeight: '74vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '64px 14px 16px', backgroundImage: `url(${routeParId(routeActive).decor})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
             <AmbianceCombat decor={routeParId(routeActive).decor} estBoss={combatBoss} />
+        <AmbianceBiomeMax decor={routeParId(routeActive).decor} boss={combatBoss} />
+        <AmbianceBiome decor={routeParId(routeActive).decor} boss={combatBoss} />
             <TapisDuel decor={routeParId(routeActive).decor} estBoss={combatBoss} />
             <HudDuel equipeJoueur={equipeJoueur} equipeEnnemie={equipeEnnemie} pvJoueur={pvJoueur} pvEnnemis={pvEnnemis} journal={journal} pseudo={identiteJoueur?.pseudo || 'Toi'} nomZone={routeParId(routeActive).nom} estBoss={combatBoss} />
             <div className="terrain-rangee terrain-ennemis" style={{ display: 'flex', justifyContent: 'space-evenly', gap: 6, marginTop: '2%', width: '100%', margin: '0 auto' }}>
@@ -2333,8 +2344,11 @@ function App() {
 
       <GuideInteractif id={guideActif} actif={!!guideActif} onTermine={() => setGuideActif(null)} />
 
-      {renduTutoriel}
-    </div>
+  {renduTutoriel}
+  {partieChargee && !patchNoteVu && (
+    <PatchNote onFermer={() => setPatchNoteVu(true)} />
+  )}
+</div>
   )
 }
 
