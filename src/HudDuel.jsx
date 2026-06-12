@@ -1,11 +1,10 @@
 // ============================================================
-// HUD DE DUEL — v4 : LA BARRE DE DUEL.
-// Une longue barre fine stylisee qui traverse le milieu de
-// l'arene : tes PV (bleu) remplissent depuis la gauche, les PV
-// ennemis (rouge) depuis la droite, epees croisees au centre.
-// Pseudo + total a gauche, nom de zone + total a droite.
-// + le TICKER (2 derniers evenements) en bas a droite.
-// 100% styles inline, pointer-events none — zero App.css.
+// HUD DE DUEL — v5 : BARRE DE DUEL + HUD DE ZONE FONDU.
+// - Une longue barre fine au milieu : tes PV (bleu) à gauche,
+//   PV ennemis (rouge) à droite, épées au centre.
+// - HUD DE ZONE en haut-centre : nom + compteur + barre de
+//   progression + flèches Préc/Suiv (fondu dans l'arène).
+// 100% styles inline — zéro App.css.
 // ============================================================
 
 function somme(liste) {
@@ -35,6 +34,10 @@ function HudDuel({
   pseudo = 'Toi',
   nomZone = '',
   estBoss = false,
+  onZonePrec = null, onZoneSuiv = null,
+  zonePrecDispo = false, zoneSuivDispo = false,
+  indexZone = null, totalZones = null,
+  progressionZone = null,
 }) {
   const pvJ = somme(pvJoueur)
   const maxJ = sommeMax(equipeJoueur)
@@ -49,6 +52,51 @@ function HudDuel({
   return (
     <div aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5, fontFamily: "'Rubik', system-ui, sans-serif" }}>
 
+      {/* ===== HUD DE ZONE (fondu, en haut-centre) ===== */}
+      <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 14, pointerEvents: 'auto' }}>
+        {onZonePrec && (
+          <button onClick={onZonePrec} disabled={!zonePrecDispo} title="Zone précédente"
+            style={{
+              width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 19, fontWeight: 900, lineHeight: 1, borderRadius: 8, padding: 0,
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(94,234,212,0.18)',
+              color: 'rgba(94,234,212,0.85)', cursor: zonePrecDispo ? 'pointer' : 'not-allowed',
+              opacity: zonePrecDispo ? 1 : 0.25, backdropFilter: 'blur(3px)', transition: 'all 0.15s',
+              fontFamily: 'inherit',
+            }}
+            onMouseEnter={(e) => { if (zonePrecDispo) { e.currentTarget.style.background = 'rgba(94,234,212,0.15)'; e.currentTarget.style.color = '#5eead4'; e.currentTarget.style.transform = 'scale(1.1)' } }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(94,234,212,0.85)'; e.currentTarget.style.transform = 'scale(1)' }}
+          >‹</button>
+        )}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 8.5, fontWeight: 700, color: '#8b96b5', letterSpacing: 2.5, textTransform: 'uppercase' }}>
+            {indexZone != null && totalZones != null ? `Zone ${indexZone} / ${totalZones}` : 'Zone'}
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: estBoss ? '#f43f5e' : '#fcd34d', textShadow: estBoss ? '0 0 12px rgba(244,63,94,0.6)' : '0 0 12px rgba(252,211,77,0.5)', marginTop: 1, maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {estBoss ? '👑 ' : ''}{nomZone}
+          </div>
+          {progressionZone != null && (
+            <div style={{ width: 90, height: 3, background: 'rgba(0,0,0,0.4)', borderRadius: 2, overflow: 'hidden', margin: '4px auto 0' }}>
+              <div style={{ height: '100%', width: Math.max(0, Math.min(100, progressionZone)) + '%', background: 'linear-gradient(90deg, #fcd34d, #f59e0b)', borderRadius: 2, boxShadow: '0 0 6px rgba(252,211,77,0.5)', transition: 'width 0.4s ease' }}></div>
+            </div>
+          )}
+        </div>
+        {onZoneSuiv && (
+          <button onClick={onZoneSuiv} disabled={!zoneSuivDispo} title="Zone suivante"
+            style={{
+              width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 19, fontWeight: 900, lineHeight: 1, borderRadius: 8, padding: 0,
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(94,234,212,0.18)',
+              color: 'rgba(94,234,212,0.85)', cursor: zoneSuivDispo ? 'pointer' : 'not-allowed',
+              opacity: zoneSuivDispo ? 1 : 0.25, backdropFilter: 'blur(3px)', transition: 'all 0.15s',
+              fontFamily: 'inherit',
+            }}
+            onMouseEnter={(e) => { if (zoneSuivDispo) { e.currentTarget.style.background = 'rgba(94,234,212,0.15)'; e.currentTarget.style.color = '#5eead4'; e.currentTarget.style.transform = 'scale(1.1)' } }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(94,234,212,0.85)'; e.currentTarget.style.transform = 'scale(1)' }}
+          >›</button>
+        )}
+      </div>
+
       {/* ===== LA BARRE DE DUEL : fine, sur toute la largeur, au milieu ===== */}
       <div style={{ position: 'absolute', top: '46%', left: 24, right: 24 }}>
         {/* Etiquettes au-dessus */}
@@ -59,7 +107,7 @@ function HudDuel({
           </span>
           <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1.5, color: accentE, textTransform: 'uppercase', textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}>
             <span style={{ color: '#7a87a0', fontWeight: 600, fontSize: 10 }}>{Math.round(maxE).toLocaleString('fr-FR')} / </span>
-            <span style={{ color: '#ffe2e2', fontWeight: 800 }}>{Math.round(pvE).toLocaleString('fr-FR')}</span> {estBoss ? '👑 BOSS — ' : ''}{nomZone}
+            <span style={{ color: '#ffe2e2', fontWeight: 800 }}>{Math.round(pvE).toLocaleString('fr-FR')}</span> {estBoss ? '👑 BOSS' : 'SAUVAGE'}
           </span>
         </div>
         {/* La piste */}

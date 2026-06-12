@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
+import './refonte.css'
+import BarreAction from './BarreAction'
+import PanneauRessources from './PanneauRessources'
 import {
   BookOpen, Users, Map as MapIcon, BarChart3, ShoppingBag, Backpack,
   Trophy, Zap, Swords, Flame, Crosshair, Medal, Save, HelpCircle, Trash2,
@@ -17,6 +20,8 @@ import { urlFusionDepuisNational, reparerFusions, appliquerGeneDominant } from '
 import { ROUTES, routeParId, tirerPokemon, MULTI_XP_RARETE, bossDeLaRoute, COMBATS_AVANT_BOSS, FORCE_BOSS, routeDebloquee } from './routes'
 import CartePokemon from './CartePokemon'
 import SpriteCombattant from './SpriteCombattant'
+import ArenePremium from './ArenePremium'
+import FlashCombat from './FlashCombat'
 import TutoFenetre from './TutoFenetre'
 import { reinitialiserTutos } from './tuto'
 import GuideInteractif from './GuideInteractif'
@@ -71,8 +76,6 @@ import EcranBoosters from './EcranBoosters'
 import EncartBoosterDrop from './EncartBoosterDrop'
 import CentreFusion from './CentreFusion'
 import AmbianceCombat from './AmbianceCombat'
-import { AmbianceBiomeMax } from './AmbianceMode'
-import { AmbianceBiome } from './AmbianceMode'
 import TapisDuel from './TapisDuel'
 import HudDuel from './HudDuel'
 import CombatTour from './CombatTour'
@@ -482,6 +485,7 @@ const [patchNoteVu, setPatchNoteVu] = useState(true) // true = on n'affiche pas 
   const [succesDebloques, setSuccesDebloques] = useState([])
   const [ameliorations, setAmeliorations] = useState({})
   const [combatBoss, setCombatBoss] = useState(false)
+  const [flashCombat, setFlashCombat] = useState(null)
   const [tempsBossZone, setTempsBossZone] = useState(45)
   const [autoZone, setAutoZone] = useState(false)
   const [autoArene, setAutoArene] = useState(false)
@@ -1488,6 +1492,7 @@ setPatchNoteVu(data.patchNoteVu === VERSION_PATCH_NOTE)
             const bossDejaVaincu = !!bossVaincusRef.current[routeGagnee]
             const gainBoss = Math.round((boss?.niveau || 1) * 30 * multiplicateur(ameliorationsRef.current, 'fortune') * bonusCompletionArgent * bonusPrestigeArgent * bonusArgentObjets * bonusSuccesArgent)
             setPokeDollars((a) => a + gainBoss); setBossVaincus((b) => ({ ...b, [routeGagnee]: true }))
+            setFlashCombat({ type: 'boss', texte: 'BOSS VAINCU', sousTexte: routeParId(routeGagnee)?.nom || '' })
             setVictoiresParRoute((v) => { const maj = { ...v, [routeGagnee]: 0 }; victoiresParRouteRef.current = maj; return maj })
             setAchatsItems((a) => { const reduit = {}; for (const k in a) reduit[k] = Math.max(0, a[k] - 1); return reduit })
             const chanceBonbon = 0.10 * multiplicateur(ameliorationsRef.current, 'gourmandise')
@@ -1950,38 +1955,39 @@ setPatchNoteVu(data.patchNoteVu === VERSION_PATCH_NOTE)
   const capActuel = plafondNiveau(investisPrestige)
   const equipeAuPlafond = equipeJoueur.length > 0 && equipeJoueur.every((p) => (p.niveau || 1) >= capActuel)
 
-  // Rendu des badges de statut actifs au-dessus d'un combattant.
   function rendreBadgesStatut(poke) {
-    const actifs = statutsActifs(poke)
-    if (!actifs || actifs.length === 0) return null
-    return (
-      <div className="statuts-badges">
-        {actifs.map((cle) => {
-          const def = STATUTS[cle]
-          if (!def) return null
-          return <span key={cle} className={`statut-badge statut-${def.type}`} title={`${def.nom} : ${def.description}`} style={{ '--c-statut': def.couleur }}>{def.emoji}</span>
-        })}
-      </div>
-    )
+    return null
   }
 
   // Rendu d'un chiffre flottant (dégâts, soin, crit, statut, application de statut).
   function rendreChiffre(c) {
-    let texte, classe = c.type
-    if (c.type === 'applique-statut') {
-      // Apparition d'un statut sur la cible : on montre juste l'icône.
-      const emojiStatut = { brulure: '🔥', poison: '☠️', gel: '❄️', paralysie: '⚡', rage: '💢', garde: '🛡️', hate: '🌀' }
-      texte = emojiStatut[c.statut] || '✦'
-    } else if (c.type === 'statut') {
-      texte = `${c.emoji || ''} ${c.montant}`.trim()
-    } else if (c.type === 'crit') {
-      texte = `${c.montant} !`
-    } else if (c.type === 'soin') {
-      texte = `+${c.montant}`
-    } else {
-      texte = c.montant
+    const GLY_STATUT = {
+      gel: '#7fd9f5', brulure: '#ff7a1a', poison: '#cf6bf0',
+      paralysie: '#ffe93c', rage: '#ff4d4d', garde: '#3da9e0', hate: '#34d399',
     }
-    return (<span key={c.id} className={`chiffre-flottant ${classe}`} style={{ left: `calc(50% + ${c.dx}px)` }}>{texte}</span>)
+    const baseStyle = {
+      position: 'absolute', bottom: 175, left: `calc(50% + ${c.dx}px)`,
+      transform: 'translateX(-50%)', pointerEvents: 'none', zIndex: 20,
+      fontWeight: 900, fontStyle: 'italic', whiteSpace: 'nowrap',
+      textShadow: '0 2px 6px rgba(0,0,0,0.9)',
+      animation: 'chiffreJaillit 1.1s ease-out forwards',
+      fontFamily: "'Rubik', system-ui, sans-serif",
+    }
+    if (c.type === 'applique-statut') {
+      const couleur = GLY_STATUT[c.statut] || '#fff'
+      return <span key={c.id} style={{ ...baseStyle, fontSize: '1.3rem', color: couleur, textShadow: `0 0 8px ${couleur}, 0 2px 4px rgba(0,0,0,0.9)` }}>✦</span>
+    }
+    if (c.type === 'statut') {
+      return <span key={c.id} style={{ ...baseStyle, fontSize: '0.95rem', color: '#ffb86b', textShadow: '0 0 6px rgba(255,107,53,0.7), 0 1px 2px rgba(0,0,0,0.9)' }}>{`${c.emoji || ''} ${c.montant}`.trim()}</span>
+    }
+    if (c.type === 'crit') {
+      return <span key={c.id} style={{ ...baseStyle, fontSize: '1.6rem', color: '#fff', textShadow: '0 0 12px #ff5a78, 0 0 6px #ff5a78, 0 2px 6px rgba(0,0,0,0.9)' }}>{c.montant} !</span>
+    }
+    if (c.type === 'soin') {
+      return <span key={c.id} style={{ ...baseStyle, fontSize: '1.2rem', color: '#4ade80', textShadow: '0 0 8px rgba(74,222,128,0.8), 0 2px 4px rgba(0,0,0,0.9)' }}>+{c.montant}</span>
+    }
+    // dégâts normaux
+    return <span key={c.id} style={{ ...baseStyle, fontSize: '1.3rem', color: '#ff5a78', textShadow: '0 0 8px rgba(255,90,120,0.6), 0 2px 6px rgba(0,0,0,0.9)' }}>{c.montant}</span>
   }
 
   const renduTutoriel = tutoMode ? (
@@ -2198,15 +2204,7 @@ setPatchNoteVu(data.patchNoteVu === VERSION_PATCH_NOTE)
             </div>
             <button className="bouton-gerer" onClick={() => setVueOuverte('equipe')}>Gerer l'equipe</button>
           </div>
-          <div className="panneau">
-            <div className="panneau-titre"><img src="/icons/routes.png" alt="" className="panneau-icone" /> Zone rapide</div>
-            <div className="zone-rapide-nom">{routeParId(routeActive).emoji} {routeParId(routeActive).nom}</div>
-            <div className="zone-rapide-nav">
-              <button className="zone-rapide-btn" onClick={() => changerZoneRapide(-1)} disabled={indexZoneActive <= 0}>Prec.</button>
-              <span className="zone-rapide-compteur">{indexZoneActive + 1}/{zonesDebloquees.length}</span>
-              <button className="zone-rapide-btn" onClick={() => changerZoneRapide(1)} disabled={indexZoneActive >= zonesDebloquees.length - 1}>Suiv.</button>
-            </div>
-          </div>
+          
           <div className="panneau" data-tuto="achat">
             <div className="panneau-titre"><img src="/icons/boutique.png" alt="" className="panneau-icone" /> Achat rapide</div>
             {['poke', 'super', 'hyper', 'master'].map((type) => (
@@ -2225,37 +2223,38 @@ setPatchNoteVu(data.patchNoteVu === VERSION_PATCH_NOTE)
         </aside>
 
         <main className="colonne colonne-centre" data-tuto="arene">
-          <div className="bandeau-zone">
-            <span className="bandeau-zone-nom">{routeParId(routeActive).nom}</span>
-            <span className="bandeau-zone-num">
-              <span className="bandeau-zone-numtxt">Zone {numZone}-{combatActuel}</span>
-              {combatBoss ? (<><span className="bandeau-badge bandeau-badge-boss">BOSS</span><span style={{ marginLeft: 8, fontWeight: 800, fontSize: 14, fontVariantNumeric: 'tabular-nums', color: tempsBossZone <= 10 ? '#ff5252' : '#fcd34d', background: 'rgba(0,0,0,0.35)', borderRadius: 8, padding: '2px 9px', border: tempsBossZone <= 10 ? '1px solid #ff5252' : '1px solid rgba(252,211,77,0.45)' }}>⏱️ {Math.floor(Math.max(0, tempsBossZone) / 60)}:{String(Math.floor(Math.max(0, tempsBossZone) % 60)).padStart(2, '0')}</span></>) : (
-                <span className="boss-jauge" title={bossOk ? `Le boss revient tous les ${seuilBoss} combats` : `Victoires avant le boss : ${Math.min(victoiresZone, seuilBoss)}/${seuilBoss}`}>
-                  <span className="boss-jauge-piste"><span className="boss-jauge-fill" style={{ width: `${progression}%` }}><span className="boss-jauge-brillance"></span></span></span>
-                  <span className="boss-jauge-txt">{Math.min(victoiresZone, seuilBoss)}/{seuilBoss} <span className="boss-jauge-couronne">👑</span></span>
-                </span>
-              )}
-            </span>
-          </div>
+          
           
           {!compoValide && (<div className="alerte-compo"><p className="alerte-compo-titre">Composition d'equipe invalide</p><p className="alerte-compo-sous">Le combat est en pause. Compo : 1 a 2 par role, les 4 roles, 1 special max.</p><ul className="alerte-compo-liste">{compoDiagnostic.map((m, i) => <li key={i}>{m}</li>)}</ul></div>)}
           {equipeAuPlafond && (<div className="alerte-plafond"><p className="alerte-plafond-titre">👑 Plafond de niveau atteint (Niv. {capActuel})</p><p className="alerte-plafond-sous">Ton equipe ne peut plus monter de niveau. Pour devenir plus fort et franchir les zones suivantes, fais un PRESTIGE et investis en Puissance pour debloquer plus de niveaux.</p><button className="alerte-plafond-btn" onClick={() => setVueOuverte('prestige')}>Ouvrir le Prestige</button></div>)}
-          <div className={`arene arene-terrain ${combatBoss ? 'arene-boss' : ''}`} style={{ position: 'relative', overflow: 'hidden', borderRadius: 14, minHeight: '74vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '64px 14px 16px', backgroundImage: `url(${routeParId(routeActive).decor})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-            <AmbianceCombat decor={routeParId(routeActive).decor} estBoss={combatBoss} />
-        <AmbianceBiomeMax decor={routeParId(routeActive).decor} boss={combatBoss} />
-        <AmbianceBiome decor={routeParId(routeActive).decor} boss={combatBoss} />
-            <TapisDuel decor={routeParId(routeActive).decor} estBoss={combatBoss} />
-            <HudDuel equipeJoueur={equipeJoueur} equipeEnnemie={equipeEnnemie} pvJoueur={pvJoueur} pvEnnemis={pvEnnemis} journal={journal} pseudo={identiteJoueur?.pseudo || 'Toi'} nomZone={routeParId(routeActive).nom} estBoss={combatBoss} />
-            <div className="terrain-rangee terrain-ennemis" style={{ display: 'flex', justifyContent: 'space-evenly', gap: 6, marginTop: '2%', width: '100%', margin: '0 auto' }}>
-              {equipeEnnemie.map((poke, i) => {
+          <div className={`arene arene-terrain ${combatBoss ? 'arene-boss' : ''}`} style={{ position: 'relative', borderRadius: 14, minHeight: '74vh' }}>
+            <ArenePremium
+            onZonePrec={() => changerZoneRapide(-1)}
+  onZoneSuiv={() => changerZoneRapide(1)}
+  zonePrecDispo={indexZoneActive > 0}
+  zoneSuivDispo={indexZoneActive < zonesDebloquees.length - 1}
+  indexZone={indexZoneActive + 1}
+  totalZones={zonesDebloquees.length}
+  progressionZone={progression}
+              estBoss={combatBoss}
+              decor={routeParId(routeActive).decor}
+              pseudo={identiteJoueur?.pseudo || 'Toi'}
+              nomZone={routeParId(routeActive).nom}
+              equipeJoueur={equipeJoueur}
+              equipeEnnemie={equipeEnnemie}
+              numZone={numZone}
+  combatActuel={combatActuel}
+  victoiresZone={victoiresZone}
+  seuilBoss={seuilBoss}
+              pvJoueur={pvJoueur}
+              pvEnnemis={pvEnnemis}
+              rangeeEnnemis={equipeEnnemie.map((poke, i) => {
                 const marqueeMaster = ciblesMasterBall.some((c) => c.cle === `${poke.id}${poke.shiny ? '-shiny' : ''}`); const ciblable = !poke.estBoss && !poke.estEvolution
-                return (<div className="terrain-slot" key={`${poke.uid || 'enn'}-${i}`} style={{ position: 'relative', flex: '0 0 16.6%', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}><SpriteCombattant pokemon={poke} pvActuels={pvEnnemis[i]} jauge={jaugeEnnemis[i]} camp="ennemi" ultimeLance={ultimeLanceEnnemiAff[i] || false} ultimeEnnemi marqueeMaster={marqueeMaster} ciblableMaster={ciblable} onCiblerMaster={() => basculerCibleMasterBall(poke)} />{rendreBadgesStatut(poke)}<div className="chiffres-couche">{chiffresFlottants.filter((c) => c.camp === 'ennemi' && c.index === i).map((c) => rendreChiffre(c))}</div></div>)
+                return (<div className="terrain-slot" key={`${poke.uid || 'enn'}-${i}`}><SpriteCombattant pokemon={poke} pvActuels={pvEnnemis[i]} jauge={jaugeEnnemis[i]} camp="ennemi" ultimeLance={ultimeLanceEnnemiAff[i] || false} ultimeEnnemi marqueeMaster={marqueeMaster} ciblableMaster={ciblable} onCiblerMaster={() => basculerCibleMasterBall(poke)} />{rendreBadgesStatut(poke)}<div className="chiffres-couche">{chiffresFlottants.filter((c) => c.camp === 'ennemi' && c.index === i).map((c) => rendreChiffre(c))}</div></div>)
               })}
-            </div>
-            <div className="terrain-vs" style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center', padding: '4px 0' }}><img src={ICONE_COMBAT} alt="VS" className="vs-img" /></div>
-            <div className="terrain-rangee terrain-joueur" style={{ display: 'flex', justifyContent: 'space-evenly', width: '100%' }}>
-              {equipeJoueur.map((poke, i) => (<div className="terrain-slot" key={poke.uid} style={{ position: 'relative', flex: '0 0 16.6%', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}><SpriteCombattant pokemon={poke} pvActuels={pvJoueur[i]} jauge={jaugeJoueur[i]} camp="joueur" ultimeLance={ultimeLanceJoueur[i] || false} plafond={capActuel} />{rendreBadgesStatut(poke)}<div className="chiffres-couche">{chiffresFlottants.filter((c) => c.camp === 'joueur' && c.index === i).map((c) => rendreChiffre(c))}</div></div>))}
-            </div>
+              rangeeJoueur={equipeJoueur.map((poke, i) => (<div className="terrain-slot" key={poke.uid}><SpriteCombattant pokemon={poke} pvActuels={pvJoueur[i]} jauge={jaugeJoueur[i]} camp="joueur" ultimeLance={ultimeLanceJoueur[i] || false} plafond={capActuel} />{rendreBadgesStatut(poke)}<div className="chiffres-couche">{chiffresFlottants.filter((c) => c.camp === 'joueur' && c.index === i).map((c) => rendreChiffre(c))}</div></div>))}
+            />
+            <FlashCombat evenement={flashCombat} onFini={() => setFlashCombat(null)} />
           </div>
           
         </main>
@@ -2276,27 +2275,27 @@ setPatchNoteVu(data.patchNoteVu === VERSION_PATCH_NOTE)
               </>)
             })()}
           </div>
-          <div className="panneau">
-            <div className="panneau-titre"><img src="/icons/vitesse.png" alt="" className="panneau-icone" /> Vitesse</div>
-            <div className="ctrl-rangee"><button className={`mode-btn ${vitesse === 1 ? 'actif' : ''}`} onClick={() => setVitesse(1)}>x1</button><button className={`mode-btn ${vitesse === 2 ? 'actif' : ''}`} onClick={() => setVitesse(2)}>x2</button><button className={`mode-btn ${vitesse === 4 ? 'actif' : ''}`} onClick={() => setVitesse(4)}>x4</button></div>
-          </div>
-          <div className="panneau">
-            <div className="panneau-titre"><span className="panneau-icone-emoji">⚡</span> Ultimes</div>
-            <p className="ultime-aide">Chaque Pokemon declenche automatiquement son ultime environ 7 secondes apres le debut du combat.</p>
-          </div>
-          <div className="panneau">
-            <div className="panneau-titre"><img src="/icons/routes.png" alt="" className="panneau-icone" /> Mode auto</div>
-            <button className={`bouton-auto ${autoZone ? 'actif' : ''}`} onClick={() => setAutoZone((v) => !v)} title="Passe automatiquement a la zone suivante apres chaque boss vaincu">{autoZone ? 'Auto zone : ON' : 'Auto zone : OFF'}</button>
-            <p className="bouton-auto-aide">Passe a la zone suivante des qu'un boss est vaincu.</p>
-          </div>
-          <div className="panneau">
-            <div className="panneau-titre"><img src="/icons/objets.png" alt="" className="panneau-icone" /> Ressources</div>
-            <div className="res-section"><span className="res-section-titre">Poke Balls</span><div className="ressources-balls"><span className="res-item"><img src={ICONES_BALLS.poke} alt="" className="res-ball-img" /> {balls.poke}</span><span className="res-item"><img src={ICONES_BALLS.super} alt="" className="res-ball-img" /> {balls.super}</span><span className="res-item"><img src={ICONES_BALLS.hyper} alt="" className="res-ball-img" /> {balls.hyper}</span><span className="res-item"><img src={ICONES_BALLS.master} alt="" className="res-ball-img" /> {balls.master}</span></div></div>
-            {(objetsBoss.rouage > 0 || objetsBoss.cristal > 0 || objetsBoss.relique > 0) && (<div className="res-section"><span className="res-section-titre">Objets de boss</span><div className="ressources-objets">{objetsBoss.rouage > 0 && (<span className="res-item" title={OBJETS_BOSS.rouage.nom}><img src={OBJETS_BOSS.rouage.sprite} alt="" className="res-ball-img" onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(OBJETS_BOSS.rouage.emoji)) }} /> {objetsBoss.rouage}</span>)}{objetsBoss.cristal > 0 && (<span className="res-item" title={OBJETS_BOSS.cristal.nom}><img src={OBJETS_BOSS.cristal.sprite} alt="" className="res-ball-img" onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(OBJETS_BOSS.cristal.emoji)) }} /> {objetsBoss.cristal}</span>)}{objetsBoss.relique > 0 && (<span className="res-item" title={OBJETS_BOSS.relique.nom}><img src={OBJETS_BOSS.relique.sprite} alt="" className="res-ball-img" onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(OBJETS_BOSS.relique.emoji)) }} /> {objetsBoss.relique}</span>)}</div></div>)}
-            {Object.entries(pierres).filter(([, n]) => n > 0).length > 0 && (<div className="res-section"><span className="res-section-titre">Pierres</span><div className="ressources-objets">{Object.entries(pierres).filter(([, n]) => n > 0).map(([cle, n]) => (<span key={cle} className="res-item" title={PIERRES[cle]?.nom || cle}>{ICONES_PIERRES[cle] ? <img src={ICONES_PIERRES[cle]} alt="" className="res-ball-img" /> : (PIERRES[cle]?.emoji || '💎')} {n}</span>))}</div></div>)}
-            {Object.entries(bonbons).filter(([, n]) => n > 0).length > 0 && (<div className="res-section"><span className="res-section-titre">Bonbons</span><div className="ressources-objets">{Object.entries(bonbons).filter(([, n]) => n > 0).map(([cle, n]) => (<span key={cle} className="res-item" title={BONBONS[cle]?.nom || cle}>{ICONES_BONBONS[cle] ? <img src={ICONES_BONBONS[cle]} alt="" className="res-ball-img" /> : (BONBONS[cle]?.emoji || '🍬')} {n}</span>))}</div></div>)}
-            <div className="ressources-compteurs"><span><img src={ICONE_COMBAT} alt="" className="icone-inline" /> {vaincus}</span><span>🎯 {captures.length}</span></div>
-          </div>
+          <BarreAction
+  vitesse={vitesse}
+  onVitesse={setVitesse}
+  autoZone={autoZone}
+  onToggleAuto={() => setAutoZone((v) => !v)}
+/>
+          <PanneauRessources
+            balls={balls}
+            pierres={pierres}
+            bonbons={bonbons}
+            objetsBoss={objetsBoss}
+            iconesBalls={ICONES_BALLS}
+            iconesPierres={ICONES_PIERRES}
+            iconesBonbons={ICONES_BONBONS}
+            pierresDef={PIERRES}
+            bonbonsDef={BONBONS}
+            objetsBossDef={OBJETS_BOSS}
+            iconeCombat={ICONE_COMBAT}
+            vaincus={vaincus}
+            nbCaptures={captures.length}
+          />
         </aside>
       </div>
 
